@@ -1,0 +1,4 @@
+build/
+.qtcreator
+system/logs/.*
+resource/
