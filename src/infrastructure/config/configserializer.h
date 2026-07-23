@@ -1,3 +1,10 @@
+/**
+ * @file configserializer.h
+ * @brief 定义配置结构与 JSON 之间的序列化映射。
+ * @author xili <1424858143@qq.com>
+ * @date 2026-07-21
+ */
+
 #ifndef CONFIGSERIALIZER_H
 #define CONFIGSERIALIZER_H
 

@@ -1,3 +1,10 @@
+/**
+ * @file networktypes.h
+ * @brief 定义网络身份、节点、消息及文件传输事件类型。
+ * @author xili <1424858143@qq.com>
+ * @date 2026-07-21
+ */
+
 #ifndef NETWORKTYPES_H
 #define NETWORKTYPES_H
 
@@ -22,6 +29,10 @@ struct PeerEndpoint
     QHostAddress address;
     quint16 tcpPort = 0;
 
+    /**
+     * @brief 检查节点是否包含完整的路由信息。
+     * @return 节点标识、名称、地址和端口均有效时返回 @c true。
+     */
     [[nodiscard]] bool isValid() const
     {
         return !peerId.isEmpty() && !displayName.isEmpty() && !address.isNull() && tcpPort != 0;

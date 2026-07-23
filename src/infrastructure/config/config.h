@@ -1,3 +1,10 @@
+/**
+ * @file config.h
+ * @brief 定义应用程序持久化配置数据结构。
+ * @author xili <1424858143@qq.com>
+ * @date 2026-07-21
+ */
+
 #ifndef CONFIG_H
 #define CONFIG_H
 
