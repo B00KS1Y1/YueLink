@@ -1,5 +1,6 @@
 #include <QApplication>
 #include <QDir>
+#include <QIcon>
 #include <QLockFile>
 #include <QMessageBox>
 #include <QQmlApplicationEngine>
@@ -22,6 +23,7 @@ int main(int argc, char *argv[])
     QApplication app(argc, argv);
     QCoreApplication::setOrganizationName(QStringLiteral("YueLink"));
     QCoreApplication::setApplicationName(QStringLiteral("YueLink"));
+    QGuiApplication::setWindowIcon(QIcon(QStringLiteral(":/assets/yuelink-app-icon.png")));
 
     RuntimeBootstrap::initialize();
     spdlog::info("[application] YueLink GUI starting");

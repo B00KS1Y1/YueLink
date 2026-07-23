@@ -109,6 +109,19 @@ if(YUELINK_BUILD_GUI)
         src/gui/main.cpp
     )
 
+    qt_add_resources(YueLink yuelink_app_assets
+        PREFIX "/"
+        BASE "${CMAKE_CURRENT_SOURCE_DIR}/src/gui"
+        FILES
+            src/gui/assets/yuelink-app-icon.png
+    )
+
+    if(WIN32)
+        target_sources(YueLink PRIVATE
+            src/gui/assets/yuelink.rc
+        )
+    endif()
+
     qt_add_qml_module(YueLink
         URI YueLink
         QML_FILES ${YUELINK_QML_FILES}
