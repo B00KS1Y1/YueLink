@@ -4,6 +4,7 @@
 #include "domain/networktypes.h"
 
 #include <QAbstractListModel>
+#include <QDateTime>
 #include <QVariantMap>
 
 class PeerListModel final : public QAbstractListModel
@@ -26,6 +27,18 @@ public:
         TcpPortRole
     };
 
+    struct Item
+    {
+        Network::PeerEndpoint endpoint;
+        QString initial;
+        QString statusText;
+        QString lastMessage;
+        QString lastTime;
+        QString avatarColor;
+        bool online = false;
+        int unread = 0;
+    };
+
     explicit PeerListModel(QObject *parent = nullptr);
 
     [[nodiscard]] int rowCount(const QModelIndex &parent = {}) const override;
@@ -34,37 +47,15 @@ public:
 
     [[nodiscard]] int indexOf(const QString &peerId) const;
     [[nodiscard]] QVariantMap peerInfo(const QString &peerId) const;
-    [[nodiscard]] Network::PeerEndpoint endpoint(const QString &peerId) const;
-    [[nodiscard]] bool isOnline(const QString &peerId) const;
     [[nodiscard]] int onlineCount() const;
     [[nodiscard]] int totalUnreadCount() const;
-
-    bool restore(const Network::PeerEndpoint &endpoint, const QString &lastMessage, const QString &lastTime, int unreadCount);
-    bool upsert(const Network::PeerEndpoint &endpoint, bool *inserted = nullptr);
-    bool setOffline(const QString &peerId);
-    void updateConversation(const QString &peerId, const QString &message, const QString &time, bool incrementUnread);
-    void clearUnread(const QString &peerId);
+    void setItems(QList<Item> items);
 
 signals:
     void unreadCountChanged();
 
 private:
-    struct PeerItem
-    {
-        Network::PeerEndpoint endpoint;
-        QString initial;
-        QString avatarColor;
-        QString lastMessage;
-        QString lastTime;
-        bool online = false;
-        int unread = 0;
-    };
-
-    [[nodiscard]] QVariantMap peerInfoAt(int row) const;
-    [[nodiscard]] static QString initialForName(const QString &name);
-    [[nodiscard]] static QString colorForId(const QString &peerId);
-
-    QList<PeerItem> m_peers;
+    QList<Item> m_peers;
 };
 
 #endif // PEERLISTMODEL_H

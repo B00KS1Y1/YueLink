@@ -31,6 +31,7 @@ struct MessageRecord
     QString fileName;
     QString fileSizeText;
     QString filePath;
+    qint64 fileSize = 0;
     qreal fileProgress = 0.0;
     bool fromMe = false;
 };

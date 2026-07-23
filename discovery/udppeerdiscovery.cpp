@@ -157,7 +157,7 @@ void UdpPeerDiscovery::readPendingDatagrams()
         const QString type = object.value(QStringLiteral("type")).toString();
         if (type == QLatin1String("goodbye"))
         {
-            if (m_lastSeenByPeer.remove(peer.peerId) > 0)
+            if (m_lastSeenByPeer.remove(peer.peerId))
             {
                 spdlog::info("[network.discovery] peer announced departure peer_id={}", peer.peerId.toUtf8().toStdString());
                 emit peerLost(peer.peerId);

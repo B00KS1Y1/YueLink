@@ -14,8 +14,7 @@ class UdpPeerDiscovery final : public IPeerDiscovery
 public:
     explicit UdpPeerDiscovery(QObject *parent = nullptr);
 
-    [[nodiscard]] bool start(const Network::LocalIdentity &identity,
-                             quint16 tcpPort) override;
+    [[nodiscard]] bool start(const Network::LocalIdentity &identity, quint16 tcpPort) override;
     void stop() override;
     void updateIdentity(const Network::LocalIdentity &identity) override;
     void announce() override;

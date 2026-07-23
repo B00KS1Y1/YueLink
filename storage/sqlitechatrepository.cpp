@@ -18,7 +18,7 @@
 
 namespace
 {
-constexpr int CurrentSchemaVersion = 1;
+constexpr int CurrentSchemaVersion = 2;
 
 void setError(QString *errorMessage, const QString &message)
 {
@@ -172,7 +172,7 @@ bool SqliteChatRepository::loadMessages(const QString &peerId, int limit, QList<
     QSqlQuery query(database());
     query.prepare(QStringLiteral("SELECT message_id, peer_id, from_me, sender_initial, sender_color, "
                                  "message_text, timestamp_utc, delivery_status, message_kind, file_name, "
-                                 "file_size_text, file_progress, file_path FROM messages "
+                                 "file_size_text, file_size_bytes, file_progress, file_path FROM messages "
                                  "WHERE id IN (SELECT id FROM messages WHERE peer_id = :peer_id "
                                  "ORDER BY id DESC LIMIT :limit) ORDER BY id ASC"));
     query.bindValue(QStringLiteral(":peer_id"), peerId);
@@ -198,8 +198,9 @@ bool SqliteChatRepository::loadMessages(const QString &peerId, int limit, QList<
         record.messageKind = query.value(8).toString();
         record.fileName = query.value(9).toString();
         record.fileSizeText = query.value(10).toString();
-        record.fileProgress = qBound(0.0, query.value(11).toDouble(), 1.0);
-        record.filePath = query.value(12).toString();
+        record.fileSize = qMax<qint64>(0, query.value(11).toLongLong());
+        record.fileProgress = qBound(0.0, query.value(12).toDouble(), 1.0);
+        record.filePath = query.value(13).toString();
         records.append(std::move(record));
     }
     *messages = std::move(records);
@@ -298,16 +299,17 @@ bool SqliteChatRepository::saveMessage(const Storage::MessageRecord &message, QS
     QSqlQuery query(database());
     query.prepare(QStringLiteral("INSERT INTO messages (message_id, peer_id, from_me, sender_initial, "
                                  "sender_color, message_text, timestamp_utc, delivery_status, message_kind, "
-                                 "file_name, file_size_text, file_progress, file_path) VALUES "
+                                 "file_name, file_size_text, file_size_bytes, file_progress, file_path) VALUES "
                                  "(:message_id, :peer_id, :from_me, :sender_initial, :sender_color, "
                                  ":message_text, :timestamp_utc, :delivery_status, :message_kind, "
-                                 ":file_name, :file_size_text, :file_progress, :file_path) "
+                                 ":file_name, :file_size_text, :file_size_bytes, :file_progress, :file_path) "
                                  "ON CONFLICT(message_id) DO UPDATE SET peer_id = excluded.peer_id, "
                                  "from_me = excluded.from_me, sender_initial = excluded.sender_initial, "
                                  "sender_color = excluded.sender_color, message_text = excluded.message_text, "
                                  "timestamp_utc = excluded.timestamp_utc, "
                                  "delivery_status = excluded.delivery_status, message_kind = excluded.message_kind, "
                                  "file_name = excluded.file_name, file_size_text = excluded.file_size_text, "
+                                 "file_size_bytes = excluded.file_size_bytes, "
                                  "file_progress = excluded.file_progress, file_path = excluded.file_path"));
     query.bindValue(QStringLiteral(":message_id"), message.messageId);
     query.bindValue(QStringLiteral(":peer_id"), message.peerId);
@@ -320,6 +322,7 @@ bool SqliteChatRepository::saveMessage(const Storage::MessageRecord &message, QS
     query.bindValue(QStringLiteral(":message_kind"), message.messageKind);
     query.bindValue(QStringLiteral(":file_name"), message.fileName);
     query.bindValue(QStringLiteral(":file_size_text"), message.fileSizeText);
+    query.bindValue(QStringLiteral(":file_size_bytes"), qMax<qint64>(0, message.fileSize));
     query.bindValue(QStringLiteral(":file_progress"), qBound(0.0, message.fileProgress, 1.0));
     query.bindValue(QStringLiteral(":file_path"), message.filePath);
     if (!query.exec())
@@ -447,10 +450,11 @@ bool SqliteChatRepository::migrateSchema(QString *errorMessage)
                                                 "message_text TEXT NOT NULL DEFAULT '', "
                                                 "timestamp_utc TEXT NOT NULL, "
                                                 "delivery_status TEXT NOT NULL, "
-                                                "message_kind TEXT NOT NULL DEFAULT 'text', "
-                                                "file_name TEXT NOT NULL DEFAULT '', "
-                                                "file_size_text TEXT NOT NULL DEFAULT '', "
-                                                "file_progress REAL NOT NULL DEFAULT 0, "
+                                                 "message_kind TEXT NOT NULL DEFAULT 'text', "
+                                                 "file_name TEXT NOT NULL DEFAULT '', "
+                                                 "file_size_text TEXT NOT NULL DEFAULT '', "
+                                                 "file_size_bytes INTEGER NOT NULL DEFAULT 0, "
+                                                 "file_progress REAL NOT NULL DEFAULT 0, "
                                                 "file_path TEXT NOT NULL DEFAULT '', "
                                                 "FOREIGN KEY(peer_id) REFERENCES peers(peer_id) ON DELETE CASCADE)"),
                                  QStringLiteral("CREATE INDEX IF NOT EXISTS idx_messages_peer_id "
@@ -462,6 +466,18 @@ bool SqliteChatRepository::migrateSchema(QString *errorMessage)
         {
             connection.rollback();
             setError(errorMessage, query.lastError().text());
+            return false;
+        }
+    }
+
+    if (version == 1)
+    {
+        QSqlQuery migration(connection);
+        if (!migration.exec(QStringLiteral(
+                "ALTER TABLE messages ADD COLUMN file_size_bytes INTEGER NOT NULL DEFAULT 0")))
+        {
+            connection.rollback();
+            setError(errorMessage, migration.lastError().text());
             return false;
         }
     }

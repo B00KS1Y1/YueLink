@@ -77,7 +77,6 @@ HusWindow {
         applyAppearanceSettings();
         HusTheme.installThemePrimaryFontSizeBase(16);
         LanChat.setNotificationsEnabled(AppSettings.notificationsEnabled);
-        LanChat.start();
     }
 
     Connections {

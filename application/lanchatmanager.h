@@ -1,27 +1,29 @@
 #ifndef LANCHATMANAGER_H
 #define LANCHATMANAGER_H
 
-#include "domain/networktypes.h"
 #include "models/chatmessagemodel.h"
 #include "models/peerlistmodel.h"
 
 #include <QAbstractItemModel>
-#include <QList>
 #include <QObject>
-#include <QSet>
 #include <QUrl>
 #include <QVariantMap>
 #include <QtQml/qqmlregistration.h>
 
 #include <memory>
 
-class IChatTransport;
-class IChatRepository;
+class ChatService;
 class IFileLauncher;
 class INotificationService;
-class IPeerDiscovery;
+class QJSEngine;
+class QQmlEngine;
 
-class LanChatManager : public QObject
+namespace Domain
+{
+struct Message;
+}
+
+class LanChatManager final : public QObject
 {
     Q_OBJECT
     QML_NAMED_ELEMENT(LanChat)
@@ -37,22 +39,12 @@ class LanChatManager : public QObject
     Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged)
 
 public:
-    explicit LanChatManager(QObject *parent = nullptr);
-    LanChatManager(std::unique_ptr<IPeerDiscovery> discovery,
-                   std::unique_ptr<IChatTransport> transport,
-                   QObject *parent = nullptr);
-    LanChatManager(std::unique_ptr<IPeerDiscovery> discovery,
-                   std::unique_ptr<IChatTransport> transport,
-                   std::unique_ptr<IChatRepository> repository,
-                   QObject *parent = nullptr);
-    LanChatManager(std::unique_ptr<IPeerDiscovery> discovery,
-                   std::unique_ptr<IChatTransport> transport,
-                   std::unique_ptr<IChatRepository> repository,
-                   std::unique_ptr<IFileLauncher> fileLauncher,
-                   QObject *parent = nullptr);
-    LanChatManager(std::unique_ptr<IPeerDiscovery> discovery,
-                   std::unique_ptr<IChatTransport> transport,
-                   std::unique_ptr<IChatRepository> repository,
+    static void setService(ChatService *service);
+    static LanChatManager *create(QQmlEngine *qmlEngine,
+                                  QJSEngine *jsEngine);
+
+    explicit LanChatManager(ChatService *service, QObject *parent = nullptr);
+    LanChatManager(ChatService *service,
                    std::unique_ptr<IFileLauncher> fileLauncher,
                    std::unique_ptr<INotificationService> notificationService,
                    QObject *parent = nullptr);
@@ -101,54 +93,27 @@ signals:
     void notificationActivated(const QString &peerId);
 
 private:
-    void connectServices();
-    void loadIdentity();
-    void initializeRepository();
-    void loadConversation(const QString &peerId);
-    void persistPeer(const Network::PeerEndpoint &peer);
-    void persistConversation(const QString &peerId,
-                             const QString &lastMessage,
-                             const QDateTime &timestamp,
-                             bool incrementUnread);
-    void persistMessage(const QString &peerId,
-                        const ChatMessageModel::Message &message,
-                        const QDateTime &timestamp);
-    void persistDeliveryStatus(const QString &peerId,
-                               const QString &messageId,
-                               const QString &status);
-    void persistFileTransfer(const QString &peerId,
-                             const QString &messageId,
-                             qreal progress,
-                             const QString &status,
-                             const QString &filePath = {});
-    void logRepositoryError(const char *operation, const QString &error) const;
-    void setLastError(const QString &error);
-    void observePeer(const Network::PeerEndpoint &peer);
-    void markPeerOffline(const QString &peerId);
-    void handleTextMessage(const Network::TextMessage &message);
-    void handleFileTransferStarted(const Network::FileTransferInfo &transfer);
-    void handleFileTransferProgress(const Network::FileTransferProgress &progress);
-    void handleFileTransferResult(const Network::FileTransferResult &result);
-    [[nodiscard]] bool shouldMarkIncomingUnread(const QString &peerId) const;
+    void connectService();
+    void synchronizePeers();
+    void synchronizeConversation(const QString &peerId);
+    void handleIncomingMessage(const QString &peerId, const QString &text);
     void showIncomingNotification(const QString &peerId,
                                   const QString &message);
-    [[nodiscard]] static QString displayFileSize(qint64 bytes);
+    [[nodiscard]] ChatMessageModel::Message toViewMessage(
+        const Domain::Message &message) const;
+    [[nodiscard]] static QString displayFileSize(qint64 bytes,
+                                                 const QString &fallback);
     [[nodiscard]] static QString displayTime(const QDateTime &timestamp);
+    [[nodiscard]] static QString initialForName(const QString &name);
+    [[nodiscard]] static QString colorForId(const QString &peerId);
 
-    std::unique_ptr<IPeerDiscovery> m_discovery;
-    std::unique_ptr<IChatTransport> m_transport;
-    std::unique_ptr<IChatRepository> m_repository;
+    ChatService *m_service = nullptr;
     std::unique_ptr<IFileLauncher> m_fileLauncher;
     std::unique_ptr<INotificationService> m_notificationService;
     PeerListModel m_peerModel;
     ChatMessageModel m_messageModel;
-    QSet<QString> m_loadedConversations;
-    Network::LocalIdentity m_identity;
-    QString m_localInitial;
     QString m_currentPeerId;
-    QString m_lastError;
-    bool m_repositoryReady = false;
-    bool m_running = false;
+    static ChatService *s_service;
 };
 
 #endif // LANCHATMANAGER_H

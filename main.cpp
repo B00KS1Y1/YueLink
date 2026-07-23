@@ -1,11 +1,21 @@
 #include <QApplication>
+#include <QDir>
+#include <QLockFile>
+#include <QMessageBox>
 #include <QQmlApplicationEngine>
-#include <QDebug>
 
-#include "config/configstore.h"
-#include "logging/logging.h"
+#include "application/chatservice.h"
+#include "application/lanchatmanager.h"
+#include "application/runtimebootstrap.h"
+#include "discovery/udppeerdiscovery.h"
+#include "settings/qsettingsidentitystore.h"
+#include "storage/sqlitechatrepository.h"
+#include "transport/tcpchattransport.h"
+#include "utils/path.h"
 
 #include <spdlog/spdlog.h>
+
+#include <memory>
 
 int main(int argc, char *argv[])
 {
@@ -13,29 +23,35 @@ int main(int argc, char *argv[])
     QCoreApplication::setOrganizationName(QStringLiteral("YueLink"));
     QCoreApplication::setApplicationName(QStringLiteral("YueLink"));
 
-    const Config::Result logConfigResult = Config::log.load();
-    const Config::Result loggingResult = Logging::initialize(Config::log.get());
-    if (!loggingResult)
+    RuntimeBootstrap::initialize();
+    spdlog::info("[application] YueLink GUI starting");
+
+    if (!QDir().mkpath(Utils::Path::dataDirectory()))
     {
-        qWarning().noquote() << "Failed to initialize logging:" << loggingResult.errorMessage;
-        spdlog::error("[application] failed to initialize configured logging: {}", loggingResult.errorMessage.toUtf8().toStdString());
+        spdlog::error("[application] failed to create data directory");
+        QMessageBox::critical(nullptr,
+                              QObject::tr("YueLink"),
+                              QObject::tr("无法创建 YueLink 数据目录。"));
+        RuntimeBootstrap::shutdown();
+        return 3;
     }
-    if (!logConfigResult)
+    QLockFile instanceLock(Utils::Path::dataFile(QStringLiteral("runtime.lock")));
+    if (!instanceLock.tryLock())
     {
-        spdlog::warn("[configuration] failed to load log configuration: {}", logConfigResult.errorMessage.toUtf8().toStdString());
+        spdlog::error("[application] another YueLink instance is using this profile");
+        QMessageBox::critical(
+            nullptr,
+            QObject::tr("YueLink"),
+            QObject::tr("另一个 YueLink 实例正在使用当前配置。"));
+        RuntimeBootstrap::shutdown();
+        return 2;
     }
 
-    const auto loadConfig = [](const char *name, auto &store) {
-        const Config::Result result = store.load();
-        if (!result)
-        {
-            spdlog::warn("[configuration] failed to load {} configuration: {}", name, result.errorMessage.toUtf8().toStdString());
-        }
-    };
-    loadConfig("theme", Config::theme);
-    loadConfig("application", Config::application);
-    loadConfig("database", Config::database);
-    spdlog::info("[application] YueLink starting");
+    ChatService service(std::make_unique<UdpPeerDiscovery>(),
+                        std::make_unique<TcpChatTransport>(),
+                        std::make_unique<SqliteChatRepository>(),
+                        std::make_unique<QSettingsIdentityStore>());
+    LanChatManager::setService(&service);
 
     QQmlApplicationEngine engine;
     QObject::connect(
@@ -49,8 +65,19 @@ int main(int argc, char *argv[])
         Qt::QueuedConnection);
     engine.loadFromModule("YueLink", "Main");
 
+    if (!engine.rootObjects().isEmpty())
+    {
+        const Domain::OperationResult startResult = service.start();
+        if (!startResult)
+        {
+            spdlog::error("[application] service startup failed: {}",
+                          startResult.message.toUtf8().toStdString());
+        }
+    }
+
     const int exitCode = QCoreApplication::exec();
-    spdlog::info("[application] YueLink stopped exit_code={}", exitCode);
-    Logging::shutdown();
+    service.stop();
+    spdlog::info("[application] YueLink GUI stopped exit_code={}", exitCode);
+    RuntimeBootstrap::shutdown();
     return exitCode;
 }

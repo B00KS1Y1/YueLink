@@ -25,10 +25,8 @@ inline constexpr qint64 MaximumFileSize = 2LL * 1024 * 1024 * 1024;
                                          const QString &fileName,
                                          qint64 fileSize,
                                          const QDateTime &timestamp);
-[[nodiscard]] bool isEnvelopeFor(const QJsonObject &object,
-                                 const LocalIdentity &identity);
-[[nodiscard]] PeerEndpoint senderFromEnvelope(const QJsonObject &object,
-                                              const QHostAddress &address);
+[[nodiscard]] bool isEnvelopeFor(const QJsonObject &object, const LocalIdentity &identity);
+[[nodiscard]] PeerEndpoint senderFromEnvelope(const QJsonObject &object, const QHostAddress &address);
 
 } // namespace Network::WireProtocol
 

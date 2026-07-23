@@ -24,8 +24,7 @@ struct PeerEndpoint
 
     [[nodiscard]] bool isValid() const
     {
-        return !peerId.isEmpty() && !displayName.isEmpty() && !address.isNull()
-               && tcpPort != 0;
+        return !peerId.isEmpty() && !displayName.isEmpty() && !address.isNull() && tcpPort != 0;
     }
 };
 
