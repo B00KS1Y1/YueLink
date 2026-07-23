@@ -29,9 +29,7 @@ int main(int argc, char *argv[])
     if (!QDir().mkpath(Utils::Path::dataDirectory()))
     {
         spdlog::error("[application] failed to create data directory");
-        QMessageBox::critical(nullptr,
-                              QObject::tr("YueLink"),
-                              QObject::tr("无法创建 YueLink 数据目录。"));
+        QMessageBox::critical(nullptr, QObject::tr("YueLink"), QObject::tr("无法创建 YueLink 数据目录。"));
         RuntimeBootstrap::shutdown();
         return 3;
     }
@@ -39,10 +37,7 @@ int main(int argc, char *argv[])
     if (!instanceLock.tryLock())
     {
         spdlog::error("[application] another YueLink instance is using this profile");
-        QMessageBox::critical(
-            nullptr,
-            QObject::tr("YueLink"),
-            QObject::tr("另一个 YueLink 实例正在使用当前配置。"));
+        QMessageBox::critical(nullptr, QObject::tr("YueLink"), QObject::tr("另一个 YueLink 实例正在使用当前配置。"));
         RuntimeBootstrap::shutdown();
         return 2;
     }
@@ -70,8 +65,7 @@ int main(int argc, char *argv[])
         const Domain::OperationResult startResult = service.start();
         if (!startResult)
         {
-            spdlog::error("[application] service startup failed: {}",
-                          startResult.message.toUtf8().toStdString());
+            spdlog::error("[application] service startup failed: {}", startResult.message.toUtf8().toStdString());
         }
     }
 

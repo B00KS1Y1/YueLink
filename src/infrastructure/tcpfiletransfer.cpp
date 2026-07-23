@@ -18,7 +18,7 @@ namespace
 constexpr qint64 FileChunkSize = 64 * 1024;
 constexpr qint64 MaximumPendingBytes = 256 * 1024;
 constexpr qreal ProgressStep = 0.01;
-}
+} // namespace
 
 struct TcpChatTransport::OutgoingFileTransfer
 {
@@ -39,13 +39,10 @@ struct TcpChatTransport::IncomingFileTransfer
     qreal reportedProgress = 0.0;
 };
 
-bool TcpChatTransport::sendFile(const Network::PeerEndpoint &peer,
-                                const QUrl &fileUrl,
-                                QString *errorMessage)
+bool TcpChatTransport::sendFile(const Network::PeerEndpoint &peer, const QUrl &fileUrl, QString *errorMessage)
 {
     const auto fail = [errorMessage](const QString &message) {
-        spdlog::warn("[network.file] outgoing file request rejected reason={}",
-                     message.toUtf8().toStdString());
+        spdlog::warn("[network.file] outgoing file request rejected reason={}", message.toUtf8().toStdString());
         if (errorMessage)
         {
             *errorMessage = message;
@@ -71,8 +68,7 @@ bool TcpChatTransport::sendFile(const Network::PeerEndpoint &peer,
     {
         return fail(tr("要发送的文件不存在。"));
     }
-    if (fileInfo.size() < 0
-        || fileInfo.size() > Network::WireProtocol::MaximumFileSize)
+    if (fileInfo.size() < 0 || fileInfo.size() > Network::WireProtocol::MaximumFileSize)
     {
         return fail(tr("文件大小不能超过 2 GB。"));
     }
@@ -96,12 +92,11 @@ bool TcpChatTransport::sendFile(const Network::PeerEndpoint &peer,
 
     auto *socket = new QTcpSocket(this);
     m_outgoingFiles.insert(socket, transfer);
-    spdlog::info(
-        "[network.file] outgoing transfer started peer_id={} transfer_id={} file_name={} size={}",
-        peer.peerId.toUtf8().toStdString(),
-        transfer->info.transferId.toUtf8().toStdString(),
-        transfer->info.fileName.toUtf8().toStdString(),
-        transfer->info.fileSize);
+    spdlog::info("[network.file] outgoing transfer started peer_id={} transfer_id={} file_name={} size={}",
+                 peer.peerId.toUtf8().toStdString(),
+                 transfer->info.transferId.toUtf8().toStdString(),
+                 transfer->info.fileName.toUtf8().toStdString(),
+                 transfer->info.fileSize);
 
     connect(socket, &QTcpSocket::connected, this, [this, socket]() {
         OutgoingFileTransfer *transfer = m_outgoingFiles.value(socket);
@@ -109,19 +104,17 @@ bool TcpChatTransport::sendFile(const Network::PeerEndpoint &peer,
         {
             return;
         }
-        spdlog::debug(
-            "[network.file] outgoing transfer connected peer_id={} transfer_id={}",
-            transfer->info.peer.peerId.toUtf8().toStdString(),
-            transfer->info.transferId.toUtf8().toStdString());
+        spdlog::debug("[network.file] outgoing transfer connected peer_id={} transfer_id={}",
+                      transfer->info.peer.peerId.toUtf8().toStdString(),
+                      transfer->info.transferId.toUtf8().toStdString());
 
-        const QByteArray header = Network::WireProtocol::fileHeaderFrame(
-            m_identity,
-            listeningPort(),
-            transfer->info.peer,
-            transfer->info.transferId,
-            transfer->info.fileName,
-            transfer->info.fileSize,
-            transfer->info.timestamp);
+        const QByteArray header = Network::WireProtocol::fileHeaderFrame(m_identity,
+                                                                         listeningPort(),
+                                                                         transfer->info.peer,
+                                                                         transfer->info.transferId,
+                                                                         transfer->info.fileName,
+                                                                         transfer->info.fileSize,
+                                                                         transfer->info.timestamp);
         transfer->headerSize = header.size();
         transfer->lastActivityMs = QDateTime::currentMSecsSinceEpoch();
         if (socket->write(header) != header.size())
@@ -140,36 +133,22 @@ bool TcpChatTransport::sendFile(const Network::PeerEndpoint &peer,
 
         transfer->socketBytesWritten += bytes;
         transfer->lastActivityMs = QDateTime::currentMSecsSinceEpoch();
-        const qint64 payloadBytes = qBound<qint64>(
-            0,
-            transfer->socketBytesWritten - transfer->headerSize,
-            transfer->info.fileSize);
-        const qreal progress = transfer->info.fileSize == 0
-                                   ? 1.0
-                                   : static_cast<qreal>(payloadBytes)
-                                         / static_cast<qreal>(transfer->info.fileSize);
-        if (progress >= 1.0
-            || progress - transfer->reportedProgress >= ProgressStep)
+        const qint64 payloadBytes = qBound<qint64>(0, transfer->socketBytesWritten - transfer->headerSize, transfer->info.fileSize);
+        const qreal progress = transfer->info.fileSize == 0 ? 1.0 : static_cast<qreal>(payloadBytes) / static_cast<qreal>(transfer->info.fileSize);
+        if (progress >= 1.0 || progress - transfer->reportedProgress >= ProgressStep)
         {
             transfer->reportedProgress = progress;
-            spdlog::trace(
-                "[network.file] outgoing progress peer_id={} transfer_id={} progress={:.0f}%",
-                transfer->info.peer.peerId.toUtf8().toStdString(),
-                transfer->info.transferId.toUtf8().toStdString(),
-                progress * 100.0);
-            emit fileTransferProgressed({transfer->info.peer.peerId,
-                                         transfer->info.transferId,
-                                         Network::TransferDirection::Outgoing,
-                                         progress});
+            spdlog::trace("[network.file] outgoing progress peer_id={} transfer_id={} progress={:.0f}%",
+                          transfer->info.peer.peerId.toUtf8().toStdString(),
+                          transfer->info.transferId.toUtf8().toStdString(),
+                          progress * 100.0);
+            emit fileTransferProgressed({transfer->info.peer.peerId, transfer->info.transferId, Network::TransferDirection::Outgoing, progress});
         }
         pumpOutgoingFile(socket);
     });
-    connect(socket,
-            &QTcpSocket::errorOccurred,
-            this,
-            [this, socket](QAbstractSocket::SocketError) {
-                failOutgoingFile(socket, socket->errorString());
-            });
+    connect(socket, &QTcpSocket::errorOccurred, this, [this, socket](QAbstractSocket::SocketError) {
+        failOutgoingFile(socket, socket->errorString());
+    });
     connect(socket, &QTcpSocket::disconnected, this, [this, socket]() {
         if (m_outgoingFiles.contains(socket))
         {
@@ -187,8 +166,7 @@ bool TcpChatTransport::sendFile(const Network::PeerEndpoint &peer,
     return true;
 }
 
-bool TcpChatTransport::cancelFileTransfer(const QString &peerId,
-                                          const QString &transferId)
+bool TcpChatTransport::cancelFileTransfer(const QString &peerId, const QString &transferId)
 {
     if (peerId.isEmpty() || transferId.isEmpty())
     {
@@ -198,8 +176,7 @@ bool TcpChatTransport::cancelFileTransfer(const QString &peerId,
     for (QTcpSocket *socket : m_outgoingFiles.keys())
     {
         const OutgoingFileTransfer *transfer = m_outgoingFiles.value(socket);
-        if (transfer && transfer->info.peer.peerId == peerId
-            && transfer->info.transferId == transferId)
+        if (transfer && transfer->info.peer.peerId == peerId && transfer->info.transferId == transferId)
         {
             failOutgoingFile(socket, tr("文件发送已由用户取消。"), true);
             return true;
@@ -208,8 +185,7 @@ bool TcpChatTransport::cancelFileTransfer(const QString &peerId,
     for (QTcpSocket *socket : m_incomingFiles.keys())
     {
         const IncomingFileTransfer *transfer = m_incomingFiles.value(socket);
-        if (transfer && transfer->info.peer.peerId == peerId
-            && transfer->info.transferId == transferId)
+        if (transfer && transfer->info.peer.peerId == peerId && transfer->info.transferId == transferId)
         {
             failIncomingFile(socket, tr("文件接收已由用户取消。"), true);
             return true;
@@ -218,45 +194,35 @@ bool TcpChatTransport::cancelFileTransfer(const QString &peerId,
     return false;
 }
 
-bool TcpChatTransport::handleIncomingFileHeader(const QJsonObject &object,
-                                                QTcpSocket *socket)
+bool TcpChatTransport::handleIncomingFileHeader(const QJsonObject &object, QTcpSocket *socket)
 {
     if (!Network::WireProtocol::isEnvelopeFor(object, m_identity))
     {
-        spdlog::debug("[network.file] ignored file envelope for another recipient address={}",
-                      socket->peerAddress().toString().toStdString());
+        spdlog::debug("[network.file] ignored file envelope for another recipient address={}", socket->peerAddress().toString().toStdString());
         return false;
     }
 
     const Network::PeerEndpoint peer = incomingPeer(object, socket);
-    const QString transferId = object.value(QStringLiteral("transferId"))
-                                   .toString()
-                                   .trimmed();
+    const QString transferId = object.value(QStringLiteral("transferId")).toString().trimmed();
     QString fileName = object.value(QStringLiteral("fileName")).toString().trimmed();
     fileName.replace(QLatin1Char('\\'), QLatin1Char('/'));
     fileName = fileName.section(QLatin1Char('/'), -1);
     const qint64 fileSize = object.value(QStringLiteral("fileSize")).toInteger(-1);
-    if (!peer.isValid() || peer.peerId == m_identity.deviceId
-        || transferId.isEmpty() || transferId.size() > 128
-        || fileName.isEmpty() || fileName == QLatin1String(".")
-        || fileName == QLatin1String("..") || fileName.size() > 255
-        || fileName.contains(QChar::Null) || fileSize < 0
-        || fileSize > Network::WireProtocol::MaximumFileSize
-        || !rememberEventId(transferId))
+    if (!peer.isValid() || peer.peerId == m_identity.deviceId || transferId.isEmpty() || transferId.size() > 128 || fileName.isEmpty() ||
+        fileName == QLatin1String(".") || fileName == QLatin1String("..") || fileName.size() > 255 || fileName.contains(QChar::Null) || fileSize < 0 ||
+        fileSize > Network::WireProtocol::MaximumFileSize || !rememberEventId(transferId))
     {
-        spdlog::warn(
-            "[network.file] invalid or duplicate incoming file header address={} transfer_id={} file_size={}",
-            socket->peerAddress().toString().toStdString(),
-            transferId.toUtf8().toStdString(),
-            fileSize);
+        spdlog::warn("[network.file] invalid or duplicate incoming file header address={} transfer_id={} file_size={}",
+                     socket->peerAddress().toString().toStdString(),
+                     transferId.toUtf8().toStdString(),
+                     fileSize);
         return false;
     }
 
     const QString receivePath = uniqueReceivePath(fileName);
     if (receivePath.isEmpty())
     {
-        spdlog::error("[network.file] unable to create receive directory transfer_id={}",
-                      transferId.toUtf8().toStdString());
+        spdlog::error("[network.file] unable to create receive directory transfer_id={}", transferId.toUtf8().toStdString());
         setLastError(tr("无法创建文件接收目录。"));
         return false;
     }
@@ -273,9 +239,7 @@ bool TcpChatTransport::handleIncomingFileHeader(const QJsonObject &object,
     if (!transfer->file.open(QIODevice::WriteOnly))
     {
         const QString reason = transfer->file.errorString();
-        spdlog::error("[network.file] unable to open incoming file transfer_id={} reason={}",
-                      transferId.toUtf8().toStdString(),
-                      reason.toUtf8().toStdString());
+        spdlog::error("[network.file] unable to open incoming file transfer_id={} reason={}", transferId.toUtf8().toStdString(), reason.toUtf8().toStdString());
         delete transfer;
         setLastError(tr("无法接收文件：%1").arg(reason));
         return false;
@@ -283,12 +247,11 @@ bool TcpChatTransport::handleIncomingFileHeader(const QJsonObject &object,
     transfer->lastActivityMs = QDateTime::currentMSecsSinceEpoch();
     m_incomingFiles.insert(socket, transfer);
 
-    spdlog::info(
-        "[network.file] incoming transfer started peer_id={} transfer_id={} file_name={} size={}",
-        peer.peerId.toUtf8().toStdString(),
-        transferId.toUtf8().toStdString(),
-        fileName.toUtf8().toStdString(),
-        fileSize);
+    spdlog::info("[network.file] incoming transfer started peer_id={} transfer_id={} file_name={} size={}",
+                 peer.peerId.toUtf8().toStdString(),
+                 transferId.toUtf8().toStdString(),
+                 fileName.toUtf8().toStdString(),
+                 fileSize);
     emit peerObserved(peer);
     emit fileTransferStarted(transfer->info);
     return true;
@@ -303,8 +266,7 @@ bool TcpChatTransport::consumeIncomingFile(QTcpSocket *socket, QByteArray &buffe
     }
 
     const qint64 remainingBytes = transfer->info.fileSize - transfer->receivedBytes;
-    const qsizetype consumedBytes = static_cast<qsizetype>(
-        qMin<qint64>(remainingBytes, buffer.size()));
+    const qsizetype consumedBytes = static_cast<qsizetype>(qMin<qint64>(remainingBytes, buffer.size()));
     if (consumedBytes > 0)
     {
         const qint64 writtenBytes = transfer->file.write(buffer.constData(), consumedBytes);
@@ -318,23 +280,15 @@ bool TcpChatTransport::consumeIncomingFile(QTcpSocket *socket, QByteArray &buffe
         transfer->receivedBytes += writtenBytes;
         transfer->lastActivityMs = QDateTime::currentMSecsSinceEpoch();
 
-        const qreal progress = transfer->info.fileSize == 0
-                                   ? 1.0
-                                   : static_cast<qreal>(transfer->receivedBytes)
-                                         / static_cast<qreal>(transfer->info.fileSize);
-        if (progress >= 1.0
-            || progress - transfer->reportedProgress >= ProgressStep)
+        const qreal progress = transfer->info.fileSize == 0 ? 1.0 : static_cast<qreal>(transfer->receivedBytes) / static_cast<qreal>(transfer->info.fileSize);
+        if (progress >= 1.0 || progress - transfer->reportedProgress >= ProgressStep)
         {
             transfer->reportedProgress = progress;
-            spdlog::trace(
-                "[network.file] incoming progress peer_id={} transfer_id={} progress={:.0f}%",
-                transfer->info.peer.peerId.toUtf8().toStdString(),
-                transfer->info.transferId.toUtf8().toStdString(),
-                progress * 100.0);
-            emit fileTransferProgressed({transfer->info.peer.peerId,
-                                         transfer->info.transferId,
-                                         Network::TransferDirection::Incoming,
-                                         progress});
+            spdlog::trace("[network.file] incoming progress peer_id={} transfer_id={} progress={:.0f}%",
+                          transfer->info.peer.peerId.toUtf8().toStdString(),
+                          transfer->info.transferId.toUtf8().toStdString(),
+                          progress * 100.0);
+            emit fileTransferProgressed({transfer->info.peer.peerId, transfer->info.transferId, Network::TransferDirection::Incoming, progress});
         }
     }
 
@@ -353,30 +307,19 @@ bool TcpChatTransport::consumeIncomingFile(QTcpSocket *socket, QByteArray &buffe
     transfer = m_incomingFiles.take(socket);
     if (transfer->reportedProgress < 1.0)
     {
-        emit fileTransferProgressed({transfer->info.peer.peerId,
-                                     transfer->info.transferId,
-                                     Network::TransferDirection::Incoming,
-                                     1.0});
+        emit fileTransferProgressed({transfer->info.peer.peerId, transfer->info.transferId, Network::TransferDirection::Incoming, 1.0});
     }
-    spdlog::info(
-        "[network.file] incoming transfer completed peer_id={} transfer_id={} file_name={} size={}",
-        transfer->info.peer.peerId.toUtf8().toStdString(),
-        transfer->info.transferId.toUtf8().toStdString(),
-        transfer->info.fileName.toUtf8().toStdString(),
-        transfer->info.fileSize);
-    emit fileTransferFinished({transfer->info.peer.peerId,
-                               transfer->info.transferId,
-                               transfer->info.filePath,
-                               {},
-                               Network::TransferDirection::Incoming,
-                               true});
+    spdlog::info("[network.file] incoming transfer completed peer_id={} transfer_id={} file_name={} size={}",
+                 transfer->info.peer.peerId.toUtf8().toStdString(),
+                 transfer->info.transferId.toUtf8().toStdString(),
+                 transfer->info.fileName.toUtf8().toStdString(),
+                 transfer->info.fileSize);
+    emit fileTransferFinished({transfer->info.peer.peerId, transfer->info.transferId, transfer->info.filePath, {}, Network::TransferDirection::Incoming, true});
     delete transfer;
     return true;
 }
 
-void TcpChatTransport::failIncomingFile(QTcpSocket *socket,
-                                        const QString &reason,
-                                        bool cancelled)
+void TcpChatTransport::failIncomingFile(QTcpSocket *socket, const QString &reason, bool cancelled)
 {
     IncomingFileTransfer *transfer = m_incomingFiles.take(socket);
     if (!transfer)
@@ -386,29 +329,22 @@ void TcpChatTransport::failIncomingFile(QTcpSocket *socket,
 
     if (cancelled)
     {
-        spdlog::info(
-            "[network.file] incoming transfer cancelled peer_id={} transfer_id={} file_name={}",
-            transfer->info.peer.peerId.toUtf8().toStdString(),
-            transfer->info.transferId.toUtf8().toStdString(),
-            transfer->info.fileName.toUtf8().toStdString());
+        spdlog::info("[network.file] incoming transfer cancelled peer_id={} transfer_id={} file_name={}",
+                     transfer->info.peer.peerId.toUtf8().toStdString(),
+                     transfer->info.transferId.toUtf8().toStdString(),
+                     transfer->info.fileName.toUtf8().toStdString());
     }
     else
     {
-        spdlog::warn(
-            "[network.file] incoming transfer failed peer_id={} transfer_id={} file_name={} reason={}",
-            transfer->info.peer.peerId.toUtf8().toStdString(),
-            transfer->info.transferId.toUtf8().toStdString(),
-            transfer->info.fileName.toUtf8().toStdString(),
-            reason.toUtf8().toStdString());
+        spdlog::warn("[network.file] incoming transfer failed peer_id={} transfer_id={} file_name={} reason={}",
+                     transfer->info.peer.peerId.toUtf8().toStdString(),
+                     transfer->info.transferId.toUtf8().toStdString(),
+                     transfer->info.fileName.toUtf8().toStdString(),
+                     reason.toUtf8().toStdString());
     }
     transfer->file.cancelWriting();
-    emit fileTransferFinished({transfer->info.peer.peerId,
-                               transfer->info.transferId,
-                               transfer->info.filePath,
-                               reason,
-                               Network::TransferDirection::Incoming,
-                               false,
-                               cancelled});
+    emit fileTransferFinished(
+        {transfer->info.peer.peerId, transfer->info.transferId, transfer->info.filePath, reason, Network::TransferDirection::Incoming, false, cancelled});
     delete transfer;
     socket->abort();
     socket->deleteLater();
@@ -422,19 +358,14 @@ void TcpChatTransport::pumpOutgoingFile(QTcpSocket *socket)
         return;
     }
 
-    while (transfer->file.pos() < transfer->info.fileSize
-           && socket->bytesToWrite() < MaximumPendingBytes)
+    while (transfer->file.pos() < transfer->info.fileSize && socket->bytesToWrite() < MaximumPendingBytes)
     {
         const qint64 availableBuffer = MaximumPendingBytes - socket->bytesToWrite();
-        const qint64 bytesToRead = qMin(
-            FileChunkSize,
-            qMin(availableBuffer, transfer->info.fileSize - transfer->file.pos()));
+        const qint64 bytesToRead = qMin(FileChunkSize, qMin(availableBuffer, transfer->info.fileSize - transfer->file.pos()));
         const QByteArray chunk = transfer->file.read(bytesToRead);
         if (chunk.size() != bytesToRead)
         {
-            failOutgoingFile(socket,
-                             tr("读取发送文件失败：%1")
-                                 .arg(transfer->file.errorString()));
+            failOutgoingFile(socket, tr("读取发送文件失败：%1").arg(transfer->file.errorString()));
             return;
         }
         if (socket->write(chunk) != chunk.size())
@@ -445,10 +376,8 @@ void TcpChatTransport::pumpOutgoingFile(QTcpSocket *socket)
     }
 
     transfer = m_outgoingFiles.value(socket);
-    if (transfer && transfer->file.pos() == transfer->info.fileSize
-        && socket->bytesToWrite() == 0
-        && transfer->socketBytesWritten
-               >= transfer->headerSize + transfer->info.fileSize)
+    if (transfer && transfer->file.pos() == transfer->info.fileSize && socket->bytesToWrite() == 0 &&
+        transfer->socketBytesWritten >= transfer->headerSize + transfer->info.fileSize)
     {
         finishOutgoingFile(socket);
     }
@@ -465,30 +394,19 @@ void TcpChatTransport::finishOutgoingFile(QTcpSocket *socket)
     transfer->file.close();
     if (transfer->reportedProgress < 1.0)
     {
-        emit fileTransferProgressed({transfer->info.peer.peerId,
-                                     transfer->info.transferId,
-                                     Network::TransferDirection::Outgoing,
-                                     1.0});
+        emit fileTransferProgressed({transfer->info.peer.peerId, transfer->info.transferId, Network::TransferDirection::Outgoing, 1.0});
     }
-    spdlog::info(
-        "[network.file] outgoing transfer completed peer_id={} transfer_id={} file_name={} size={}",
-        transfer->info.peer.peerId.toUtf8().toStdString(),
-        transfer->info.transferId.toUtf8().toStdString(),
-        transfer->info.fileName.toUtf8().toStdString(),
-        transfer->info.fileSize);
-    emit fileTransferFinished({transfer->info.peer.peerId,
-                               transfer->info.transferId,
-                               transfer->info.filePath,
-                               {},
-                               Network::TransferDirection::Outgoing,
-                               true});
+    spdlog::info("[network.file] outgoing transfer completed peer_id={} transfer_id={} file_name={} size={}",
+                 transfer->info.peer.peerId.toUtf8().toStdString(),
+                 transfer->info.transferId.toUtf8().toStdString(),
+                 transfer->info.fileName.toUtf8().toStdString(),
+                 transfer->info.fileSize);
+    emit fileTransferFinished({transfer->info.peer.peerId, transfer->info.transferId, transfer->info.filePath, {}, Network::TransferDirection::Outgoing, true});
     delete transfer;
     socket->disconnectFromHost();
 }
 
-void TcpChatTransport::failOutgoingFile(QTcpSocket *socket,
-                                        const QString &reason,
-                                        bool cancelled)
+void TcpChatTransport::failOutgoingFile(QTcpSocket *socket, const QString &reason, bool cancelled)
 {
     OutgoingFileTransfer *transfer = m_outgoingFiles.take(socket);
     if (!transfer)
@@ -498,29 +416,22 @@ void TcpChatTransport::failOutgoingFile(QTcpSocket *socket,
 
     if (cancelled)
     {
-        spdlog::info(
-            "[network.file] outgoing transfer cancelled peer_id={} transfer_id={} file_name={}",
-            transfer->info.peer.peerId.toUtf8().toStdString(),
-            transfer->info.transferId.toUtf8().toStdString(),
-            transfer->info.fileName.toUtf8().toStdString());
+        spdlog::info("[network.file] outgoing transfer cancelled peer_id={} transfer_id={} file_name={}",
+                     transfer->info.peer.peerId.toUtf8().toStdString(),
+                     transfer->info.transferId.toUtf8().toStdString(),
+                     transfer->info.fileName.toUtf8().toStdString());
     }
     else
     {
-        spdlog::warn(
-            "[network.file] outgoing transfer failed peer_id={} transfer_id={} file_name={} reason={}",
-            transfer->info.peer.peerId.toUtf8().toStdString(),
-            transfer->info.transferId.toUtf8().toStdString(),
-            transfer->info.fileName.toUtf8().toStdString(),
-            reason.toUtf8().toStdString());
+        spdlog::warn("[network.file] outgoing transfer failed peer_id={} transfer_id={} file_name={} reason={}",
+                     transfer->info.peer.peerId.toUtf8().toStdString(),
+                     transfer->info.transferId.toUtf8().toStdString(),
+                     transfer->info.fileName.toUtf8().toStdString(),
+                     reason.toUtf8().toStdString());
     }
     transfer->file.close();
-    emit fileTransferFinished({transfer->info.peer.peerId,
-                               transfer->info.transferId,
-                               transfer->info.filePath,
-                               reason,
-                               Network::TransferDirection::Outgoing,
-                               false,
-                               cancelled});
+    emit fileTransferFinished(
+        {transfer->info.peer.peerId, transfer->info.transferId, transfer->info.filePath, reason, Network::TransferDirection::Outgoing, false, cancelled});
     delete transfer;
     socket->abort();
     socket->deleteLater();
@@ -549,15 +460,13 @@ void TcpChatTransport::expireFileTransfers()
 
 QString TcpChatTransport::uniqueReceivePath(const QString &fileName) const
 {
-    QString downloadPath = QStandardPaths::writableLocation(
-        QStandardPaths::DownloadLocation);
+    QString downloadPath = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
     if (downloadPath.isEmpty())
     {
         downloadPath = QDir::home().filePath(QStringLiteral("Downloads"));
     }
 
-    const QString receiveDirectory = QDir(downloadPath).filePath(
-        QStringLiteral("YueLink"));
+    const QString receiveDirectory = QDir(downloadPath).filePath(QStringLiteral("YueLink"));
     if (!QDir().mkpath(receiveDirectory))
     {
         spdlog::error("[network.file] failed to create receive directory");
@@ -588,13 +497,8 @@ QString TcpChatTransport::uniqueReceivePath(const QString &fileName) const
         return true;
     };
     const auto candidateFor = [&directory, &stem, &suffix](int index) {
-        const QString numberedStem = index == 0
-                                         ? stem
-                                         : QStringLiteral("%1 (%2)").arg(stem).arg(index);
-        const QString candidateName = suffix.isEmpty()
-                                          ? numberedStem
-                                          : QStringLiteral("%1.%2")
-                                                .arg(numberedStem, suffix);
+        const QString numberedStem = index == 0 ? stem : QStringLiteral("%1 (%2)").arg(stem).arg(index);
+        const QString candidateName = suffix.isEmpty() ? numberedStem : QStringLiteral("%1.%2").arg(numberedStem, suffix);
         return directory.filePath(candidateName);
     };
 
@@ -605,19 +509,12 @@ QString TcpChatTransport::uniqueReceivePath(const QString &fileName) const
         {
             if (index > 0)
             {
-                spdlog::debug(
-                    "[network.file] receive file renamed to avoid collision file_name={} index={}",
-                    fileName.toUtf8().toStdString(),
-                    index);
+                spdlog::debug("[network.file] receive file renamed to avoid collision file_name={} index={}", fileName.toUtf8().toStdString(), index);
             }
             return candidate;
         }
     }
-    spdlog::warn("[network.file] receive file collision limit reached file_name={}",
-                 fileName.toUtf8().toStdString());
-    return directory.filePath(
-        QStringLiteral("%1-%2%3")
-            .arg(stem,
-                 QUuid::createUuid().toString(QUuid::WithoutBraces),
-                 suffix.isEmpty() ? QString() : QStringLiteral(".%1").arg(suffix)));
+    spdlog::warn("[network.file] receive file collision limit reached file_name={}", fileName.toUtf8().toStdString());
+    return directory.filePath(QStringLiteral("%1-%2%3").arg(
+        stem, QUuid::createUuid().toString(QUuid::WithoutBraces), suffix.isEmpty() ? QString() : QStringLiteral(".%1").arg(suffix)));
 }

@@ -450,11 +450,11 @@ bool SqliteChatRepository::migrateSchema(QString *errorMessage)
                                                 "message_text TEXT NOT NULL DEFAULT '', "
                                                 "timestamp_utc TEXT NOT NULL, "
                                                 "delivery_status TEXT NOT NULL, "
-                                                 "message_kind TEXT NOT NULL DEFAULT 'text', "
-                                                 "file_name TEXT NOT NULL DEFAULT '', "
-                                                 "file_size_text TEXT NOT NULL DEFAULT '', "
-                                                 "file_size_bytes INTEGER NOT NULL DEFAULT 0, "
-                                                 "file_progress REAL NOT NULL DEFAULT 0, "
+                                                "message_kind TEXT NOT NULL DEFAULT 'text', "
+                                                "file_name TEXT NOT NULL DEFAULT '', "
+                                                "file_size_text TEXT NOT NULL DEFAULT '', "
+                                                "file_size_bytes INTEGER NOT NULL DEFAULT 0, "
+                                                "file_progress REAL NOT NULL DEFAULT 0, "
                                                 "file_path TEXT NOT NULL DEFAULT '', "
                                                 "FOREIGN KEY(peer_id) REFERENCES peers(peer_id) ON DELETE CASCADE)"),
                                  QStringLiteral("CREATE INDEX IF NOT EXISTS idx_messages_peer_id "
@@ -473,8 +473,7 @@ bool SqliteChatRepository::migrateSchema(QString *errorMessage)
     if (version == 1)
     {
         QSqlQuery migration(connection);
-        if (!migration.exec(QStringLiteral(
-                "ALTER TABLE messages ADD COLUMN file_size_bytes INTEGER NOT NULL DEFAULT 0")))
+        if (!migration.exec(QStringLiteral("ALTER TABLE messages ADD COLUMN file_size_bytes INTEGER NOT NULL DEFAULT 0")))
         {
             connection.rollback();
             setError(errorMessage, migration.lastError().text());

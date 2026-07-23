@@ -28,9 +28,7 @@ std::string normalizedLevelName(const std::string &name)
     return normalized.toStdString();
 }
 
-spdlog::level::level_enum configuredLevel(const std::string &name,
-                                          spdlog::level::level_enum fallback,
-                                          std::vector<std::string> &warnings)
+spdlog::level::level_enum configuredLevel(const std::string &name, spdlog::level::level_enum fallback, std::vector<std::string> &warnings)
 {
     const std::string normalized = normalizedLevelName(name);
     const spdlog::level::level_enum level = spdlog::level::from_str(normalized);
@@ -51,8 +49,7 @@ QString resolvedLogPath(const std::string &configuredPath)
         return QDir::cleanPath(path);
     }
 
-    QString dataDirectory = QStandardPaths::writableLocation(
-        QStandardPaths::AppLocalDataLocation);
+    QString dataDirectory = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
     if (dataDirectory.isEmpty())
     {
         dataDirectory = QCoreApplication::applicationDirPath();
@@ -85,22 +82,15 @@ Config::Result Logging::initialize(const Config::LogConfig &config)
     try
     {
         std::vector<std::string> warnings;
-        const spdlog::level::level_enum level = configuredLevel(
-            config.level,
-            spdlog::level::info,
-            warnings);
-        const spdlog::level::level_enum flushLevel = configuredLevel(
-            config.flush_level,
-            spdlog::level::warn,
-            warnings);
+        const spdlog::level::level_enum level = configuredLevel(config.level, spdlog::level::info, warnings);
+        const spdlog::level::level_enum flushLevel = configuredLevel(config.flush_level, spdlog::level::warn, warnings);
 
         std::vector<spdlog::sink_ptr> sinks;
         if (config.console_enabled)
         {
             if (config.console_color)
             {
-                sinks.push_back(
-                    std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
+                sinks.push_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
             }
             else
             {
@@ -119,26 +109,16 @@ Config::Result Logging::initialize(const Config::LogConfig &config)
             const QString directory = QFileInfo(logPath).absolutePath();
             if (!QDir().mkpath(directory))
             {
-                throw spdlog::spdlog_ex(
-                    "unable to create log directory: "
-                    + directory.toUtf8().toStdString());
+                throw spdlog::spdlog_ex("unable to create log directory: " + directory.toUtf8().toStdString());
             }
 
-            const std::size_t maxFileSize = std::max<std::size_t>(
-                config.max_file_size,
-                1);
+            const std::size_t maxFileSize = std::max<std::size_t>(config.max_file_size, 1);
             const std::size_t maxFiles = std::max<std::size_t>(config.max_files, 1);
             if (maxFileSize != config.max_file_size || maxFiles != config.max_files)
             {
-                warnings.push_back(
-                    "rotating file limits must be greater than zero; fallback applied");
+                warnings.push_back("rotating file limits must be greater than zero; fallback applied");
             }
-            sinks.push_back(
-                std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
-                    nativeLogPath(logPath),
-                    maxFileSize,
-                    maxFiles,
-                    config.rotate_on_open));
+            sinks.push_back(std::make_shared<spdlog::sinks::rotating_file_sink_mt>(nativeLogPath(logPath), maxFileSize, maxFiles, config.rotate_on_open));
         }
         if (sinks.empty())
         {
@@ -148,37 +128,21 @@ Config::Result Logging::initialize(const Config::LogConfig &config)
         std::shared_ptr<spdlog::logger> logger;
         if (config.async)
         {
-            const std::size_t queueSize = std::max<std::size_t>(
-                config.async_queue_size,
-                1);
-            const std::size_t threadCount = std::max<std::size_t>(
-                config.async_thread_count,
-                1);
-            if (queueSize != config.async_queue_size
-                || threadCount != config.async_thread_count)
+            const std::size_t queueSize = std::max<std::size_t>(config.async_queue_size, 1);
+            const std::size_t threadCount = std::max<std::size_t>(config.async_thread_count, 1);
+            if (queueSize != config.async_queue_size || threadCount != config.async_thread_count)
             {
-                warnings.push_back(
-                    "async queue size and thread count must be greater than zero; fallback applied");
+                warnings.push_back("async queue size and thread count must be greater than zero; fallback applied");
             }
             spdlog::init_thread_pool(queueSize, threadCount);
-            logger = std::make_shared<spdlog::async_logger>(
-                "YueLink",
-                sinks.begin(),
-                sinks.end(),
-                spdlog::thread_pool(),
-                spdlog::async_overflow_policy::block);
+            logger = std::make_shared<spdlog::async_logger>("YueLink", sinks.begin(), sinks.end(), spdlog::thread_pool(), spdlog::async_overflow_policy::block);
         }
         else
         {
-            logger = std::make_shared<spdlog::logger>(
-                "YueLink",
-                sinks.begin(),
-                sinks.end());
+            logger = std::make_shared<spdlog::logger>("YueLink", sinks.begin(), sinks.end());
         }
 
-        logger->set_pattern(config.pattern.empty()
-                                ? Config::LogConfig{}.pattern
-                                : config.pattern);
+        logger->set_pattern(config.pattern.empty() ? Config::LogConfig{}.pattern : config.pattern);
         logger->set_level(level);
         logger->flush_on(flushLevel);
         spdlog::set_default_logger(std::move(logger));
@@ -191,24 +155,20 @@ Config::Result Logging::initialize(const Config::LogConfig &config)
         {
             spdlog::warn("[logging] {}", warning);
         }
-        spdlog::info(
-            "[logging] initialized level={} console={} file={} async={}",
-            normalizedLevelName(config.level),
-            config.console_enabled,
-            config.file_enabled,
-            config.async);
+        spdlog::info("[logging] initialized level={} console={} file={} async={}",
+                     normalizedLevelName(config.level),
+                     config.console_enabled,
+                     config.file_enabled,
+                     config.async);
         if (!logPath.isEmpty())
         {
-            spdlog::debug("[logging] file sink path={}",
-                          logPath.toUtf8().toStdString());
+            spdlog::debug("[logging] file sink path={}", logPath.toUtf8().toStdString());
         }
         return {};
-    }
-    catch (const std::exception &exception)
+    } catch (const std::exception &exception)
     {
         installFallbackLogger();
-        return Config::Result::failure(
-            QString::fromUtf8(exception.what()));
+        return Config::Result::failure(QString::fromUtf8(exception.what()));
     }
 }
 
