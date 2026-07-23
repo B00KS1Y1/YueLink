@@ -1,9 +1,9 @@
-#include "application/chatservice.h"
-#include "application/iidentitystore.h"
 #include "cli/commandparser.h"
-#include "discovery/ipeerdiscovery.h"
-#include "storage/ichatrepository.h"
-#include "transport/ichattransport.h"
+#include "core/chatservice.h"
+#include "core/ichatrepository.h"
+#include "core/ichattransport.h"
+#include "core/iidentitystore.h"
+#include "core/ipeerdiscovery.h"
 
 #include <QHostAddress>
 #include <QHash>

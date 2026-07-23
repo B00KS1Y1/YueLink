@@ -1,5 +1,13 @@
 # YueLink
 
+## 源码结构
+
+- `src/core`：共享业务核心、领域类型与抽象接口。
+- `src/infrastructure`：网络、存储、配置、日志与运行时装配。
+- `src/gui`：Qt Quick GUI 入口、QML、模型与桌面适配器。
+- `src/cli`：基于 `QCoreApplication` 的终端前端。
+- `tests`：核心服务与命令解析测试。
+
 YueLink 由共享聊天核心和两个前端组成：
 
 - `YueLink`：Qt Quick/HuskarUI 图形界面。

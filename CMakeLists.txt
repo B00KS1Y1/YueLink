@@ -22,20 +22,20 @@ add_subdirectory(thirdparty/nlohmann_json)
 qt_standard_project_setup(REQUIRES 6.8)
 
 add_library(YueLinkCore STATIC
-    application/chatservice.cpp
-    application/chatservice.h
-    application/iidentitystore.h
-    discovery/ipeerdiscovery.h
-    domain/chattypes.cpp
-    domain/chattypes.h
-    domain/networktypes.h
-    storage/ichatrepository.h
-    transport/ichattransport.h
+    src/core/chatservice.cpp
+    src/core/chatservice.h
+    src/core/chattypes.cpp
+    src/core/chattypes.h
+    src/core/ichatrepository.h
+    src/core/ichattransport.h
+    src/core/iidentitystore.h
+    src/core/ipeerdiscovery.h
+    src/core/networktypes.h
 )
 
 target_include_directories(YueLinkCore
     PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
 target_link_libraries(YueLinkCore
@@ -47,34 +47,33 @@ target_link_libraries(YueLinkCore
 )
 
 add_library(YueLinkInfrastructure STATIC
-    application/runtimebootstrap.cpp
-    application/runtimebootstrap.h
-    config/config.h
-    config/configserializer.h
-    config/configstore.cpp
-    config/configstore.h
-    config/result.h
-    discovery/udppeerdiscovery.cpp
-    discovery/udppeerdiscovery.h
-    logging/logging.cpp
-    logging/logging.h
-    protocol/wireprotocol.cpp
-    protocol/wireprotocol.h
-    settings/qsettingsidentitystore.cpp
-    settings/qsettingsidentitystore.h
-    storage/sqlitechatrepository.cpp
-    storage/sqlitechatrepository.h
-    transport/tcpchattransport.cpp
-    transport/tcpchattransport.h
-    transport/tcpfiletransfer.cpp
-    utils/path.cpp
-    utils/path.h
-    utils/singleton.h
+    src/infrastructure/config/config.h
+    src/infrastructure/config/configserializer.h
+    src/infrastructure/config/configstore.cpp
+    src/infrastructure/config/configstore.h
+    src/infrastructure/config/result.h
+    src/infrastructure/logging.cpp
+    src/infrastructure/logging.h
+    src/infrastructure/path.cpp
+    src/infrastructure/path.h
+    src/infrastructure/qsettingsidentitystore.cpp
+    src/infrastructure/qsettingsidentitystore.h
+    src/infrastructure/runtimebootstrap.cpp
+    src/infrastructure/runtimebootstrap.h
+    src/infrastructure/sqlitechatrepository.cpp
+    src/infrastructure/sqlitechatrepository.h
+    src/infrastructure/tcpchattransport.cpp
+    src/infrastructure/tcpchattransport.h
+    src/infrastructure/tcpfiletransfer.cpp
+    src/infrastructure/udppeerdiscovery.cpp
+    src/infrastructure/udppeerdiscovery.h
+    src/infrastructure/wireprotocol.cpp
+    src/infrastructure/wireprotocol.h
 )
 
 target_include_directories(YueLinkInfrastructure
     PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
 target_link_libraries(YueLinkInfrastructure
@@ -90,44 +89,44 @@ target_link_libraries(YueLinkInfrastructure
 
 if(YUELINK_BUILD_GUI)
     set(YUELINK_QML_FILES
-    qml/ChatContent.qml
-    qml/FriendListPanel.qml
-    qml/Main.qml
-    qml/MessageComposer.qml
-    qml/ProfileEditPage.qml
-    qml/SettingsPage.qml
-    qml/UserInfoPanel.qml
+        src/gui/qml/ChatContent.qml
+        src/gui/qml/FriendListPanel.qml
+        src/gui/qml/Main.qml
+        src/gui/qml/MessageComposer.qml
+        src/gui/qml/ProfileEditPage.qml
+        src/gui/qml/SettingsPage.qml
+        src/gui/qml/UserInfoPanel.qml
     )
 
     foreach(YUELINK_QML_FILE IN LISTS YUELINK_QML_FILES)
-        string(REGEX REPLACE "^qml/" "" YUELINK_QML_RESOURCE_ALIAS "${YUELINK_QML_FILE}")
+        string(REGEX REPLACE "^src/gui/qml/" "" YUELINK_QML_RESOURCE_ALIAS "${YUELINK_QML_FILE}")
         set_source_files_properties("${YUELINK_QML_FILE}"
             PROPERTIES QT_RESOURCE_ALIAS "${YUELINK_QML_RESOURCE_ALIAS}"
         )
     endforeach()
 
     qt_add_executable(YueLink
-        main.cpp
+        src/gui/main.cpp
     )
 
     qt_add_qml_module(YueLink
         URI YueLink
         QML_FILES ${YUELINK_QML_FILES}
         SOURCES
-            application/lanchatmanager.cpp
-            application/lanchatmanager.h
-            models/chatmessagemodel.cpp
-            models/chatmessagemodel.h
-            models/peerlistmodel.cpp
-            models/peerlistmodel.h
-            platform/desktopfilelauncher.cpp
-            platform/desktopfilelauncher.h
-            platform/desktopnotificationservice.cpp
-            platform/desktopnotificationservice.h
-            platform/ifilelauncher.h
-            platform/inotificationservice.h
-            settings/appsettings.cpp
-            settings/appsettings.h
+            src/gui/appsettings.cpp
+            src/gui/appsettings.h
+            src/gui/chatmessagemodel.cpp
+            src/gui/chatmessagemodel.h
+            src/gui/desktopfilelauncher.cpp
+            src/gui/desktopfilelauncher.h
+            src/gui/desktopnotificationservice.cpp
+            src/gui/desktopnotificationservice.h
+            src/gui/ifilelauncher.h
+            src/gui/inotificationservice.h
+            src/gui/lanchatmanager.cpp
+            src/gui/lanchatmanager.h
+            src/gui/peerlistmodel.cpp
+            src/gui/peerlistmodel.h
     )
 
     set_target_properties(YueLink PROPERTIES
@@ -140,9 +139,8 @@ if(YUELINK_BUILD_GUI)
 
     target_include_directories(YueLink
         PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}
-            ${CMAKE_CURRENT_SOURCE_DIR}/application
-            ${CMAKE_CURRENT_SOURCE_DIR}/settings
+            ${CMAKE_CURRENT_SOURCE_DIR}/src
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/gui
     )
 
     target_link_libraries(YueLink
@@ -168,15 +166,15 @@ if(YUELINK_BUILD_GUI)
 endif()
 
 add_executable(yuelink-cli
-    cli/commandparser.cpp
-    cli/commandparser.h
-    cli/consolecontroller.cpp
-    cli/consolecontroller.h
-    cli/consoleinput.cpp
-    cli/consoleinput.h
-    cli/consolerenderer.cpp
-    cli/consolerenderer.h
-    cli/main.cpp
+    src/cli/commandparser.cpp
+    src/cli/commandparser.h
+    src/cli/consolecontroller.cpp
+    src/cli/consolecontroller.h
+    src/cli/consoleinput.cpp
+    src/cli/consoleinput.h
+    src/cli/consolerenderer.cpp
+    src/cli/consolerenderer.h
+    src/cli/main.cpp
 )
 
 set_target_properties(yuelink-cli PROPERTIES
@@ -185,7 +183,7 @@ set_target_properties(yuelink-cli PROPERTIES
 
 target_include_directories(yuelink-cli
     PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
 target_link_libraries(yuelink-cli
@@ -202,13 +200,13 @@ target_link_libraries(yuelink-cli
 if(BUILD_TESTING)
     find_package(Qt6 REQUIRED COMPONENTS Test)
     qt_add_executable(YueLinkTests
-        cli/commandparser.cpp
-        cli/commandparser.h
+        src/cli/commandparser.cpp
+        src/cli/commandparser.h
         tests/chatservicetest.cpp
     )
     target_include_directories(YueLinkTests
         PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}
+            ${CMAKE_CURRENT_SOURCE_DIR}/src
     )
     target_link_libraries(YueLinkTests
         PRIVATE
