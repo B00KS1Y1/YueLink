@@ -86,7 +86,7 @@ bool SqliteChatRepository::initialize(QString *errorMessage)
     const QString directory = QFileInfo(m_databasePath).absolutePath();
     if (!QDir().mkpath(directory))
     {
-        spdlog::error("无法创建数据库目录：%1", directory.toUtf8().toStdString());
+        spdlog::error("无法创建数据库目录：{}", directory.toUtf8().toStdString());
         return false;
     }
 
@@ -94,7 +94,7 @@ bool SqliteChatRepository::initialize(QString *errorMessage)
     connection.setDatabaseName(m_databasePath);
     if (!connection.open())
     {
-        spdlog::error("无法打开 SQLite 数据库：%1", connection.lastError().text().toUtf8().toStdString());
+        spdlog::error("无法打开 SQLite 数据库：{}", connection.lastError().text().toUtf8().toStdString());
         return false;
     }
 
@@ -105,7 +105,7 @@ bool SqliteChatRepository::initialize(QString *errorMessage)
     }
 
     m_initialized = true;
-    spdlog::info("[storage.sqlite] chat database initialized path={} schema_version={}", m_databasePath.toUtf8().toStdString(), CurrentSchemaVersion);
+    spdlog::info("[存储.SQLite] 聊天数据库初始化完成 路径={} 架构版本={}", m_databasePath.toUtf8().toStdString(), CurrentSchemaVersion);
     return true;
 }
 
@@ -123,7 +123,7 @@ bool SqliteChatRepository::loadPeers(QList<Storage::PeerRecord> *peers, QString 
                                    "FROM peers ORDER BY COALESCE(NULLIF(last_activity_utc, ''), "
                                    "updated_at_utc) DESC")))
     {
-        spdlog::error("查询好友列表失败：%1", query.lastError().text().toUtf8().toStdString());
+        spdlog::error("查询好友列表失败：{}", query.lastError().text().toUtf8().toStdString());
         return false;
     }
 
@@ -170,7 +170,7 @@ bool SqliteChatRepository::loadMessages(const QString &peerId, int limit, QList<
     query.bindValue(QStringLiteral(":limit"), qBound(1, limit, 5000));
     if (!query.exec())
     {
-        spdlog::error("查询聊天记录失败：%1", query.lastError().text().toUtf8().toStdString());
+        spdlog::error("查询聊天记录失败：{}", query.lastError().text().toUtf8().toStdString());
         return false;
     }
 
@@ -224,7 +224,7 @@ bool SqliteChatRepository::upsertPeer(const Network::PeerEndpoint &peer, QString
     query.bindValue(QStringLiteral(":updated_at"), now);
     if (!query.exec())
     {
-        spdlog::error("保存好友信息失败：%1", query.lastError().text().toUtf8().toStdString());
+        spdlog::error("保存好友信息失败：{}", query.lastError().text().toUtf8().toStdString());
         return false;
     }
     spdlog::info("好友信息保存完成。");
@@ -252,7 +252,7 @@ bool SqliteChatRepository::updateConversation(
     query.bindValue(QStringLiteral(":peer_id"), peerId);
     if (!query.exec())
     {
-        spdlog::error("更新会话信息失败：%1", query.lastError().text().toUtf8().toStdString());
+        spdlog::error("更新会话信息失败：{}", query.lastError().text().toUtf8().toStdString());
         return false;
     }
     spdlog::info("会话信息更新完成。");
@@ -272,7 +272,7 @@ bool SqliteChatRepository::clearUnread(const QString &peerId, QString *errorMess
     query.bindValue(QStringLiteral(":peer_id"), peerId);
     if (!query.exec())
     {
-        spdlog::error("清除未读消息失败：%1", query.lastError().text().toUtf8().toStdString());
+        spdlog::error("清除未读消息失败：{}", query.lastError().text().toUtf8().toStdString());
         return false;
     }
     spdlog::info("未读消息清除完成。");
@@ -318,7 +318,7 @@ bool SqliteChatRepository::saveMessage(const Storage::MessageRecord &message, QS
     query.bindValue(QStringLiteral(":file_path"), message.filePath);
     if (!query.exec())
     {
-        spdlog::error("保存消息失败：%1", query.lastError().text().toUtf8().toStdString());
+        spdlog::error("保存消息失败：{}", query.lastError().text().toUtf8().toStdString());
         return false;
     }
     spdlog::info("消息保存完成。");
@@ -341,7 +341,7 @@ bool SqliteChatRepository::updateDeliveryStatus(const QString &peerId, const QSt
     query.bindValue(QStringLiteral(":message_id"), messageId);
     if (!query.exec())
     {
-        spdlog::error("更新消息状态失败：%1", query.lastError().text().toUtf8().toStdString());
+        spdlog::error("更新消息状态失败：{}", query.lastError().text().toUtf8().toStdString());
         return false;
     }
     spdlog::info("消息状态更新完成。");
@@ -368,7 +368,7 @@ bool SqliteChatRepository::updateFileTransfer(
     query.bindValue(QStringLiteral(":message_id"), messageId);
     if (!query.exec())
     {
-        spdlog::error("更新文件传输状态失败：%1", query.lastError().text().toUtf8().toStdString());
+        spdlog::error("更新文件传输状态失败：{}", query.lastError().text().toUtf8().toStdString());
         return false;
     }
     spdlog::info("文件传输状态更新完成。");
@@ -406,19 +406,19 @@ bool SqliteChatRepository::migrateSchema(QString *errorMessage)
     QSqlQuery versionQuery(connection);
     if (!versionQuery.exec(QStringLiteral("PRAGMA user_version")) || !versionQuery.next())
     {
-        spdlog::error("查询数据库版本失败：%1", versionQuery.lastError().text().toUtf8().toStdString());
+        spdlog::error("查询数据库版本失败：{}", versionQuery.lastError().text().toUtf8().toStdString());
         return false;
     }
     const int version = versionQuery.value(0).toInt();
     if (version > CurrentSchemaVersion)
     {
-        spdlog::error("数据库版本 %1 高于当前支持版本 %2。", version, CurrentSchemaVersion);
+        spdlog::error("数据库版本 {} 高于当前支持版本 {}。", version, CurrentSchemaVersion);
         return false;
     }
 
     if (!connection.transaction())
     {
-        spdlog::error("开始事务失败：%1", connection.lastError().text().toUtf8().toStdString());
+        spdlog::error("开始事务失败：{}", connection.lastError().text().toUtf8().toStdString());
         return false;
     }
 
@@ -456,7 +456,7 @@ bool SqliteChatRepository::migrateSchema(QString *errorMessage)
         if (!query.exec(statement))
         {
             connection.rollback();
-            spdlog::error("创建表失败：%1", query.lastError().text().toUtf8().toStdString());
+            spdlog::error("创建表失败：{}", query.lastError().text().toUtf8().toStdString());
             return false;
         }
     }
@@ -467,7 +467,7 @@ bool SqliteChatRepository::migrateSchema(QString *errorMessage)
         if (!migration.exec(QStringLiteral("ALTER TABLE messages ADD COLUMN file_size_bytes INTEGER NOT NULL DEFAULT 0")))
         {
             connection.rollback();
-            spdlog::error("迁移表失败：%1", migration.lastError().text().toUtf8().toStdString());
+            spdlog::error("迁移表失败：{}", migration.lastError().text().toUtf8().toStdString());
             return false;
         }
     }
@@ -476,12 +476,12 @@ bool SqliteChatRepository::migrateSchema(QString *errorMessage)
     if (!versionUpdate.exec(QStringLiteral("PRAGMA user_version = %1").arg(CurrentSchemaVersion)))
     {
         connection.rollback();
-        spdlog::error("更新数据库版本失败：%1", versionUpdate.lastError().text().toUtf8().toStdString());
+        spdlog::error("更新数据库版本失败：{}", versionUpdate.lastError().text().toUtf8().toStdString());
         return false;
     }
     if (!connection.commit())
     {
-        spdlog::error("提交事务失败：%1", connection.lastError().text().toUtf8().toStdString());
+        spdlog::error("提交事务失败：{}", connection.lastError().text().toUtf8().toStdString());
         return false;
     }
     spdlog::info("数据库模式迁移完成。");
@@ -493,9 +493,9 @@ bool SqliteChatRepository::executeStatement(const QString &statement, QString *e
     QSqlQuery query(database());
     if (!query.exec(statement))
     {
-        spdlog::error("执行SQL语句失败：%1", query.lastError().text().toUtf8().toStdString());
+        spdlog::error("执行 SQL 语句失败：{}", query.lastError().text().toUtf8().toStdString());
         return false;
     }
-    spdlog::info("SQL语句执行完成。");
+    spdlog::info("SQL 语句执行完成。");
     return true;
 }

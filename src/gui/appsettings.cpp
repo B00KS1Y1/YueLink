@@ -103,7 +103,7 @@ bool AppSettings::save(const QString &themeMode,
     {
         Config::theme.set(previousTheme);
         setLastError(tr("无法保存外观设置：%1").arg(themeResult.errorMessage));
-        spdlog::error("[settings] failed to save appearance settings: {}",
+        spdlog::error("[设置] 保存外观设置失败 原因={}",
                       themeResult.errorMessage.toUtf8().toStdString());
         return false;
     }
@@ -123,7 +123,7 @@ bool AppSettings::save(const QString &themeMode,
             error += tr("；外观设置回滚失败：%1").arg(rollbackResult.errorMessage);
         }
         setLastError(error);
-        spdlog::error("[settings] failed to save notification settings: {}",
+        spdlog::error("[设置] 保存通知设置失败 原因={}",
                       applicationResult.errorMessage.toUtf8().toStdString());
         return false;
     }
@@ -151,7 +151,7 @@ bool AppSettings::save(const QString &themeMode,
                          .arg(themeRollbackResult.errorMessage);
         }
         setLastError(error);
-        spdlog::error("[settings] failed to save log settings: {}",
+        spdlog::error("[设置] 保存日志设置失败 原因={}",
                       logResult.errorMessage.toUtf8().toStdString());
         return false;
     }
@@ -172,7 +172,7 @@ bool AppSettings::save(const QString &themeMode,
     {
         emit settingsChanged();
     }
-    spdlog::info("[settings] application settings saved theme={} animations={} notifications={} log_level={}",
+    spdlog::info("[设置] 应用设置已保存 主题={} 动画={} 通知={} 日志级别={}",
                  normalizedMode.toStdString(),
                  animationsEnabled,
                  notificationsEnabled,

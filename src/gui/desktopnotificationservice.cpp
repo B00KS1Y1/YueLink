@@ -35,11 +35,11 @@ void DesktopNotificationService::setEnabled(bool enabled)
     m_trayIcon.setVisible(enabled && available);
     if (enabled && !available)
     {
-        spdlog::warn("[platform.notification] system tray is unavailable");
+        spdlog::warn("[平台.通知] 系统托盘不可用");
     }
     else
     {
-        spdlog::info("[platform.notification] notifications enabled={}",
+        spdlog::info("[平台.通知] 通知启用状态={}",
                      enabled);
     }
 }
@@ -58,7 +58,7 @@ void DesktopNotificationService::showNotification(const QString &title,
                            message,
                            QSystemTrayIcon::Information,
                            6000);
-    spdlog::debug("[platform.notification] notification shown context_id={} title={}",
+    spdlog::debug("[平台.通知] 通知已显示 上下文标识={} 标题={}",
                   contextId.toUtf8().toStdString(),
                   title.toUtf8().toStdString());
 }

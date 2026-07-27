@@ -114,7 +114,7 @@ Domain::OperationResult ChatService::start()
         return Domain::OperationResult::failure(QStringLiteral("identity.invalid"), error);
     }
 
-    spdlog::info("[network.application] starting LAN chat services");
+    spdlog::info("[网络.应用] 正在启动局域网聊天服务");
     if (!m_transport->start(m_identity))
     {
         const QString error = m_transport->lastError();
@@ -132,7 +132,7 @@ Domain::OperationResult ChatService::start()
     m_running = true;
     setLastError({});
     emit runningChanged();
-    spdlog::info("[network.application] LAN chat services started tcp_port={}", m_transport->listeningPort());
+    spdlog::info("[网络.应用] 局域网聊天服务已启动 TCP端口={}", m_transport->listeningPort());
     return Domain::OperationResult::success();
 }
 
@@ -151,7 +151,7 @@ void ChatService::stop()
     m_running = false;
     emit peersChanged();
     emit runningChanged();
-    spdlog::info("[network.application] LAN chat services stopped");
+    spdlog::info("[网络.应用] 局域网聊天服务已停止");
 }
 
 Domain::OperationResult ChatService::markConversationRead(const QString &peerId)
@@ -171,7 +171,7 @@ Domain::OperationResult ChatService::markConversationRead(const QString &peerId)
         QString error;
         if (!m_repository->clearUnread(peerId, &error))
         {
-            logRepositoryError("clear unread", error);
+            logRepositoryError("清除未读消息", error);
             return Domain::OperationResult::failure(QStringLiteral("storage.clear_unread"), error);
         }
     }
@@ -209,7 +209,7 @@ Domain::OperationResult ChatService::updateLocalProfile(const QString &displayNa
     m_transport->updateIdentity(m_identity);
     setLastError({});
     emit localIdentityChanged();
-    spdlog::info("[network.application] local profile updated");
+    spdlog::info("[网络.应用] 本机资料已更新");
     return Domain::OperationResult::success();
 }
 
@@ -330,7 +330,7 @@ void ChatService::initializeIdentity()
     if (!m_identityStore->load(&m_identity, &error))
     {
         setLastError(error);
-        spdlog::error("[identity] failed to load local identity: {}", error.toUtf8().toStdString());
+        spdlog::error("[身份] 加载本机身份信息失败 原因={}", error.toUtf8().toStdString());
     }
 }
 
@@ -339,7 +339,7 @@ void ChatService::initializeRepository()
     QString error;
     if (!m_repository->initialize(&error))
     {
-        logRepositoryError("initialize", error);
+        logRepositoryError("初始化", error);
         return;
     }
     m_repositoryReady = true;
@@ -347,7 +347,7 @@ void ChatService::initializeRepository()
     QList<Storage::PeerRecord> records;
     if (!m_repository->loadPeers(&records, &error))
     {
-        logRepositoryError("load peers", error);
+        logRepositoryError("加载好友列表", error);
         return;
     }
     for (const Storage::PeerRecord &record : records)
@@ -372,7 +372,7 @@ void ChatService::loadConversation(const QString &peerId)
     QList<Storage::MessageRecord> records;
     if (!m_repository->loadMessages(peerId, 500, &records, &error))
     {
-        logRepositoryError("load messages", error);
+        logRepositoryError("加载消息", error);
         return;
     }
 
@@ -386,7 +386,7 @@ void ChatService::loadConversation(const QString &peerId)
             state = Domain::DeliveryState::Failed;
             if (!m_repository->updateDeliveryStatus(record.peerId, record.messageId, Domain::deliveryStateName(state), &error))
             {
-                logRepositoryError("recover interrupted message", error);
+                logRepositoryError("恢复中断消息", error);
             }
         }
 
@@ -418,7 +418,7 @@ void ChatService::persistPeer(const Network::PeerEndpoint &peer)
     QString error;
     if (!m_repository->upsertPeer(peer, &error))
     {
-        logRepositoryError("upsert peer", error);
+        logRepositoryError("保存好友", error);
     }
 }
 
@@ -431,7 +431,7 @@ void ChatService::persistConversation(const QString &peerId, const QString &last
     QString error;
     if (!m_repository->updateConversation(peerId, lastMessage, timestamp, incrementUnread, &error))
     {
-        logRepositoryError("update conversation", error);
+        logRepositoryError("更新会话", error);
     }
 }
 
@@ -457,7 +457,7 @@ void ChatService::persistMessage(const Domain::Message &message)
     QString error;
     if (!m_repository->saveMessage(record, &error))
     {
-        logRepositoryError("save message", error);
+        logRepositoryError("保存消息", error);
     }
 }
 
@@ -470,7 +470,7 @@ void ChatService::persistDeliveryStatus(const QString &peerId, const QString &me
     QString error;
     if (!m_repository->updateDeliveryStatus(peerId, messageId, Domain::deliveryStateName(state), &error))
     {
-        logRepositoryError("update delivery status", error);
+        logRepositoryError("更新送达状态", error);
     }
 }
 
@@ -483,13 +483,13 @@ void ChatService::persistFileTransfer(const QString &peerId, const QString &mess
     QString error;
     if (!m_repository->updateFileTransfer(peerId, messageId, progress, Domain::deliveryStateName(state), filePath, &error))
     {
-        logRepositoryError("update file transfer", error);
+        logRepositoryError("更新文件传输", error);
     }
 }
 
 void ChatService::logRepositoryError(const char *operation, const QString &error) const
 {
-    spdlog::warn("[storage.repository] operation failed operation={} reason={}", operation, error.toUtf8().toStdString());
+    spdlog::warn("[存储.仓储] 操作失败 操作={} 原因={}", operation, error.toUtf8().toStdString());
 }
 
 void ChatService::setLastError(const QString &error)

@@ -37,7 +37,7 @@ spdlog::level::level_enum configuredLevel(const std::string &name, spdlog::level
         return level;
     }
 
-    warnings.push_back("unsupported log level '" + name + "'; fallback applied");
+    warnings.push_back("不支持的日志级别 '" + name + "'，已使用默认值");
     return fallback;
 }
 
@@ -104,19 +104,19 @@ Config::Result Logging::initialize(const Config::LogConfig &config)
             logPath = resolvedLogPath(config.file_path);
             if (logPath.isEmpty())
             {
-                throw spdlog::spdlog_ex("log file path is empty");
+                throw spdlog::spdlog_ex("日志文件路径为空");
             }
             const QString directory = QFileInfo(logPath).absolutePath();
             if (!QDir().mkpath(directory))
             {
-                throw spdlog::spdlog_ex("unable to create log directory: " + directory.toUtf8().toStdString());
+                throw spdlog::spdlog_ex("无法创建日志目录：" + directory.toUtf8().toStdString());
             }
 
             const std::size_t maxFileSize = std::max<std::size_t>(config.max_file_size, 1);
             const std::size_t maxFiles = std::max<std::size_t>(config.max_files, 1);
             if (maxFileSize != config.max_file_size || maxFiles != config.max_files)
             {
-                warnings.push_back("rotating file limits must be greater than zero; fallback applied");
+                warnings.push_back("滚动日志文件限制必须大于零，已使用默认值");
             }
             sinks.push_back(std::make_shared<spdlog::sinks::rotating_file_sink_mt>(nativeLogPath(logPath), maxFileSize, maxFiles, config.rotate_on_open));
         }
@@ -132,7 +132,7 @@ Config::Result Logging::initialize(const Config::LogConfig &config)
             const std::size_t threadCount = std::max<std::size_t>(config.async_thread_count, 1);
             if (queueSize != config.async_queue_size || threadCount != config.async_thread_count)
             {
-                warnings.push_back("async queue size and thread count must be greater than zero; fallback applied");
+                warnings.push_back("异步队列大小和线程数必须大于零，已使用默认值");
             }
             spdlog::init_thread_pool(queueSize, threadCount);
             logger = std::make_shared<spdlog::async_logger>("YueLink", sinks.begin(), sinks.end(), spdlog::thread_pool(), spdlog::async_overflow_policy::block);
@@ -153,16 +153,16 @@ Config::Result Logging::initialize(const Config::LogConfig &config)
 
         for (const std::string &warning : warnings)
         {
-            spdlog::warn("[logging] {}", warning);
+            spdlog::warn("[日志] {}", warning);
         }
-        spdlog::info("[logging] initialized level={} console={} file={} async={}",
+        spdlog::info("[日志] 初始化完成 级别={} 控制台={} 文件={} 异步={}",
                      normalizedLevelName(config.level),
                      config.console_enabled,
                      config.file_enabled,
                      config.async);
         if (!logPath.isEmpty())
         {
-            spdlog::debug("[logging] file sink path={}", logPath.toUtf8().toStdString());
+            spdlog::debug("[日志] 文件输出路径={}", logPath.toUtf8().toStdString());
         }
         return {};
     } catch (const std::exception &exception)

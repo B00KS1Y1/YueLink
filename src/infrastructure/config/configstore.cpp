@@ -44,19 +44,19 @@ template <typename T> Result ConfigStore<T>::load()
     }
     if (!info.isFile())
     {
-        return Result::failure(QStringLiteral("Configuration path is not a regular file."));
+        return Result::failure(QStringLiteral("配置路径不是常规文件。"));
     }
 
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly))
     {
-        return Result::failure(file.errorString());
+        return Result::failure(QStringLiteral("打开配置文件失败：%1").arg(file.errorString()));
     }
 
     const QByteArray bytes = file.readAll();
     if (file.error() != QFileDevice::NoError)
     {
-        return Result::failure(file.errorString());
+        return Result::failure(QStringLiteral("读取配置文件失败：%1").arg(file.errorString()));
     }
 
     try
@@ -67,7 +67,7 @@ template <typename T> Result ConfigStore<T>::load()
         return {};
     } catch (const std::exception &exception)
     {
-        return Result::failure(QString::fromUtf8(exception.what()));
+        return Result::failure(QStringLiteral("解析配置文件失败：%1").arg(QString::fromUtf8(exception.what())));
     }
 }
 
@@ -81,30 +81,30 @@ template <typename T> Result ConfigStore<T>::save() const
         bytes.append('\n');
     } catch (const std::exception &exception)
     {
-        return Result::failure(QString::fromUtf8(exception.what()));
+        return Result::failure(QStringLiteral("序列化配置失败：%1").arg(QString::fromUtf8(exception.what())));
     }
 
     const QString path = Utils::Path::configFile(m_fileName);
     const QString directory = QFileInfo(path).absolutePath();
     if (!QDir().mkpath(directory))
     {
-        return Result::failure(QStringLiteral("Unable to create configuration directory '%1'.").arg(directory));
+        return Result::failure(QStringLiteral("创建配置目录“%1”失败。").arg(directory));
     }
 
     QSaveFile file(path);
     file.setDirectWriteFallback(false);
     if (!file.open(QIODevice::WriteOnly))
     {
-        return Result::failure(file.errorString());
+        return Result::failure(QStringLiteral("打开配置文件失败：%1").arg(file.errorString()));
     }
     if (file.write(bytes) != bytes.size())
     {
         file.cancelWriting();
-        return Result::failure(file.errorString());
+        return Result::failure(QStringLiteral("写入配置文件失败：%1").arg(file.errorString()));
     }
     if (!file.commit())
     {
-        return Result::failure(file.errorString());
+        return Result::failure(QStringLiteral("提交配置文件失败：%1").arg(file.errorString()));
     }
     return {};
 }
