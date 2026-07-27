@@ -2,8 +2,11 @@
 
 #include "config/configstore.h"
 #include "logging.h"
+#include "path.h"
 
 #include <QDebug>
+#include <QDir>
+#include <QStringList>
 
 #include <spdlog/spdlog.h>
 
@@ -12,6 +15,19 @@ namespace RuntimeBootstrap
 
 void initialize()
 {
+    const QStringList systemDirectories = {
+        Utils::Path::configDirectory(),
+        Utils::Path::logDirectory(),
+        Utils::Path::databaseDirectory()
+    };
+    for (const QString &directory : systemDirectories)
+    {
+        if (!QDir().mkpath(directory))
+        {
+            qWarning().noquote() << "创建系统目录失败：" << directory;
+        }
+    }
+
     const Config::Result logConfigResult = Config::log.load();
     const Config::Result loggingResult = Logging::initialize(Config::log.get());
     if (!loggingResult)

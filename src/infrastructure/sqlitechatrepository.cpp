@@ -82,7 +82,7 @@ bool SqliteChatRepository::initialize(QString *errorMessage)
         spdlog::error("SQLite 数据库路径不能为空。");
         return false;
     }
-    m_databasePath = QDir::isAbsolutePath(configuredPath) ? QDir::cleanPath(configuredPath) : Utils::Path::dataFile(configuredPath);
+    m_databasePath = QDir::isAbsolutePath(configuredPath) ? QDir::cleanPath(configuredPath) : Utils::Path::databaseFile(configuredPath);
     const QString directory = QFileInfo(m_databasePath).absolutePath();
     if (!QDir().mkpath(directory))
     {

@@ -1,9 +1,9 @@
 #include "logging.h"
 
-#include <QCoreApplication>
+#include "path.h"
+
 #include <QDir>
 #include <QFileInfo>
-#include <QStandardPaths>
 
 #include <spdlog/async.h>
 #include <spdlog/sinks/null_sink.h>
@@ -49,12 +49,7 @@ QString resolvedLogPath(const std::string &configuredPath)
         return QDir::cleanPath(path);
     }
 
-    QString dataDirectory = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
-    if (dataDirectory.isEmpty())
-    {
-        dataDirectory = QCoreApplication::applicationDirPath();
-    }
-    return QDir::cleanPath(QDir(dataDirectory).filePath(path));
+    return QDir::cleanPath(Utils::Path::logFile(path));
 }
 
 spdlog::filename_t nativeLogPath(const QString &path)

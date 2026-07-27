@@ -1,5 +1,8 @@
 #include "qsettingsidentitystore.h"
 
+#include "path.h"
+
+#include <QDir>
 #include <QSettings>
 #include <QSysInfo>
 #include <QUuid>
@@ -15,6 +18,22 @@ void setError(QString *errorMessage, const QString &message)
         *errorMessage = message;
     }
 }
+
+QString identityConfigPath()
+{
+    return Utils::Path::configFile(QStringLiteral("identity.ini"));
+}
+
+bool ensureConfigDirectory(QString *errorMessage)
+{
+    if (QDir().mkpath(Utils::Path::configDirectory()))
+    {
+        return true;
+    }
+    setError(errorMessage, QStringLiteral("无法创建身份配置目录。"));
+    return false;
+}
+
 } // namespace
 
 bool QSettingsIdentityStore::load(Network::LocalIdentity *identity,
@@ -26,7 +45,12 @@ bool QSettingsIdentityStore::load(Network::LocalIdentity *identity,
         return false;
     }
 
-    QSettings settings;
+    if (!ensureConfigDirectory(errorMessage))
+    {
+        return false;
+    }
+
+    QSettings settings(identityConfigPath(), QSettings::IniFormat);
     Network::LocalIdentity loaded;
     loaded.deviceId = settings.value(QStringLiteral("network/deviceId"))
                           .toString()
@@ -71,7 +95,12 @@ bool QSettingsIdentityStore::save(const Network::LocalIdentity &identity,
         return false;
     }
 
-    QSettings settings;
+    if (!ensureConfigDirectory(errorMessage))
+    {
+        return false;
+    }
+
+    QSettings settings(identityConfigPath(), QSettings::IniFormat);
     settings.setValue(QStringLiteral("network/deviceId"), identity.deviceId);
     settings.setValue(QStringLiteral("profile/displayName"), identity.displayName);
     settings.sync();

@@ -9,6 +9,23 @@ Config::database  // database.json
 Config::application // application.json
 ```
 
+运行时配置默认保存在可执行文件同级的 `system/configs`：
+
+- `log.json`：日志配置，默认日志文件为 `system/logs/yuelink.log`；
+- `theme.json`：主题配置；
+- `database.json`：数据库配置，默认 SQLite 文件为 `system/database/yuelink.db`；
+- `application.json`：应用配置；
+- `identity.ini`：本机设备标识与昵称。
+
+相对日志路径始终以 `system/logs` 为基准，相对 SQLite 路径始终以
+`system/database` 为基准；配置中显式填写的绝对路径保持不变。
+为兼容已有配置，日志路径开头的 `logs/` 以及 SQLite 路径开头的 `data/`
+或 `database/` 会被移除，避免生成重复目录。
+system、配置、日志和数据库目录可分别通过 `YUELINK_SYSTEM_DIR`、
+`YUELINK_CONFIG_DIR`、`YUELINK_LOG_DIR`、`YUELINK_DATABASE_DIR` 覆盖。
+system 相对路径以可执行文件目录为基准，其余相对路径以 system 目录为基准；
+所有变量也接受绝对路径。
+
 每个对象都只提供 `get()`、`set()`、`load()`、`save()`。
 
 ## 加载

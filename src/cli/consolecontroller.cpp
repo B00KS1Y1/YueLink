@@ -582,17 +582,23 @@ void ConsoleController::showConfig()
     const Config::LogConfig log = Config::log.get();
     m_renderer->event(
         QStringLiteral("config"),
-        {{QStringLiteral("config_directory"), Utils::Path::configDirectory()},
+        {{QStringLiteral("system_directory"), Utils::Path::systemDirectory()},
+         {QStringLiteral("config_directory"), Utils::Path::configDirectory()},
+         {QStringLiteral("log_directory"), Utils::Path::logDirectory()},
+         {QStringLiteral("database_directory"), Utils::Path::databaseDirectory()},
          {QStringLiteral("data_directory"), Utils::Path::dataDirectory()},
          {QStringLiteral("database_driver"),
           QString::fromStdString(database.driver)},
          {QStringLiteral("log_level"), QString::fromStdString(log.level)},
          {QStringLiteral("message"),
-          QStringLiteral("配置目录：%1\n数据目录：%2\n数据库：%3\n日志级别：%4")
-              .arg(Utils::Path::configDirectory(),
-                   Utils::Path::dataDirectory(),
-                   QString::fromStdString(database.driver),
-                   QString::fromStdString(log.level))}});
+          QStringLiteral("系统目录：%1\n配置目录：%2\n日志目录：%3\n数据库目录：%4\n数据目录：%5\n数据库驱动：%6\n日志级别：%7")
+              .arg(Utils::Path::systemDirectory())
+              .arg(Utils::Path::configDirectory())
+              .arg(Utils::Path::logDirectory())
+              .arg(Utils::Path::databaseDirectory())
+              .arg(Utils::Path::dataDirectory())
+              .arg(QString::fromStdString(database.driver))
+              .arg(QString::fromStdString(log.level))}});
 }
 
 QString ConsoleController::resolvePeer(const QString &selector) const

@@ -18,6 +18,29 @@ YueLink 由共享聊天核心和两个前端组成：
 两个前端使用相同的身份、配置和数据库。当前同一份配置只允许启动一个实例；
 GUI 与 CLI 同时启动时，后启动的进程会退出，避免重复广播同一个设备身份。
 
+## 运行时目录
+
+默认在可执行文件同级创建以下结构，缺失的目录会在启动时自动创建：
+
+```text
+system/
+├── configs/    # JSON 配置与 identity.ini
+├── logs/       # yuelink.log 及轮转日志
+└── database/   # yuelink.db、WAL 与 SHM 文件
+```
+
+运行锁文件保留在应用数据根目录，不放入数据库目录。相对日志与 SQLite 路径
+分别以 `system/logs` 和 `system/database` 为基准，显式绝对路径不受影响。
+目录可在启动前通过环境变量覆盖：
+
+- `YUELINK_SYSTEM_DIR`：system 根目录；相对路径以可执行文件目录为基准；
+- `YUELINK_CONFIG_DIR`：配置目录；相对路径以 system 根目录为基准；
+- `YUELINK_LOG_DIR`：日志目录；相对路径以 system 根目录为基准；
+- `YUELINK_DATABASE_DIR`：数据库目录；相对路径以 system 根目录为基准。
+
+每项都支持绝对路径。日志文件名和 SQLite 文件名仍分别通过 `log.json` 与
+`database.json` 的 `file_path` 配置。
+
 ## CLI
 
 启动终端模式：

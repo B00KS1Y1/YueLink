@@ -41,7 +41,7 @@ struct LogConfig
     bool console_color = true;
 
     bool file_enabled = true;
-    std::string file_path = "logs/yuelink.log";
+    std::string file_path = "yuelink.log";
     std::size_t max_file_size = 5 * 1024 * 1024;
     std::size_t max_files = 3;
     bool rotate_on_open = false;
@@ -53,7 +53,7 @@ struct LogConfig
 
 struct SqliteConfig
 {
-    std::string file_path = "data/yuelink.db";
+    std::string file_path = "yuelink.db";
     std::size_t pool_size = 1;
     std::size_t busy_timeout_ms = 5000;
     bool wal_enabled = true;
