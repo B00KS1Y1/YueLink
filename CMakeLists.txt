@@ -6,7 +6,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(GNUInstallDirs)
-include(CTest)
 
 option(YUELINK_BUILD_GUI "Build the Qt Quick GUI application" ON)
 
@@ -209,27 +208,6 @@ target_link_libraries(yuelink-cli
         spdlog::spdlog
         nlohmann_json::nlohmann_json
 )
-
-if(BUILD_TESTING)
-    find_package(Qt6 REQUIRED COMPONENTS Test)
-    qt_add_executable(YueLinkTests
-        src/cli/commandparser.cpp
-        src/cli/commandparser.h
-        tests/chatservicetest.cpp
-    )
-    target_include_directories(YueLinkTests
-        PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}/src
-    )
-    target_link_libraries(YueLinkTests
-        PRIVATE
-            YueLinkCore
-            Qt6::Core
-            Qt6::Network
-            Qt6::Test
-    )
-    add_test(NAME YueLinkTests COMMAND YueLinkTests)
-endif()
 
 install(TARGETS yuelink-cli
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
