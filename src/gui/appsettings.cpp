@@ -12,7 +12,7 @@ namespace
 constexpr auto DefaultThemeMode = "dark";
 constexpr auto DefaultPrimaryColor = "#4F7CFF";
 constexpr auto DefaultLogLevel = "info";
-}
+} // namespace
 
 AppSettings::AppSettings(QObject *parent)
 : QObject(parent)
@@ -22,9 +22,7 @@ AppSettings::AppSettings(QObject *parent)
     const Config::LogConfig log = Config::log.get();
     m_themeMode = normalizedThemeMode(QString::fromStdString(theme.mode));
     m_primaryColor = QColor(QString::fromStdString(theme.primary_color)).isValid()
-                         ? QColor(QString::fromStdString(theme.primary_color))
-                               .name(QColor::HexRgb)
-                               .toUpper()
+                         ? QColor(QString::fromStdString(theme.primary_color)).name(QColor::HexRgb).toUpper()
                          : QString::fromLatin1(DefaultPrimaryColor);
     m_animationsEnabled = theme.animations_enabled;
     m_notificationsEnabled = application.notifications_enabled;
@@ -61,11 +59,7 @@ QString AppSettings::lastError() const
     return m_lastError;
 }
 
-bool AppSettings::save(const QString &themeMode,
-                       const QString &primaryColor,
-                       bool animationsEnabled,
-                       bool notificationsEnabled,
-                       const QString &logLevel)
+bool AppSettings::save(const QString &themeMode, const QString &primaryColor, bool animationsEnabled, bool notificationsEnabled, const QString &logLevel)
 {
     const QString normalizedMode = normalizedThemeMode(themeMode);
     if (normalizedMode != themeMode.trimmed().toLower())
@@ -103,8 +97,7 @@ bool AppSettings::save(const QString &themeMode,
     {
         Config::theme.set(previousTheme);
         setLastError(tr("无法保存外观设置：%1").arg(themeResult.errorMessage));
-        spdlog::error("[设置] 保存外观设置失败 原因={}",
-                      themeResult.errorMessage.toUtf8().toStdString());
+        spdlog::error("[设置] 保存外观设置失败 原因={}", themeResult.errorMessage.toUtf8().toStdString());
         return false;
     }
 
@@ -123,8 +116,7 @@ bool AppSettings::save(const QString &themeMode,
             error += tr("；外观设置回滚失败：%1").arg(rollbackResult.errorMessage);
         }
         setLastError(error);
-        spdlog::error("[设置] 保存通知设置失败 原因={}",
-                      applicationResult.errorMessage.toUtf8().toStdString());
+        spdlog::error("[设置] 保存通知设置失败 原因={}", applicationResult.errorMessage.toUtf8().toStdString());
         return false;
     }
 
@@ -142,25 +134,19 @@ bool AppSettings::save(const QString &themeMode,
         QString error = tr("无法保存日志设置：%1").arg(logResult.errorMessage);
         if (!applicationRollbackResult)
         {
-            error += tr("；通知设置回滚失败：%1")
-                         .arg(applicationRollbackResult.errorMessage);
+            error += tr("；通知设置回滚失败：%1").arg(applicationRollbackResult.errorMessage);
         }
         if (!themeRollbackResult)
         {
-            error += tr("；外观设置回滚失败：%1")
-                         .arg(themeRollbackResult.errorMessage);
+            error += tr("；外观设置回滚失败：%1").arg(themeRollbackResult.errorMessage);
         }
         setLastError(error);
-        spdlog::error("[设置] 保存日志设置失败 原因={}",
-                      logResult.errorMessage.toUtf8().toStdString());
+        spdlog::error("[设置] 保存日志设置失败 原因={}", logResult.errorMessage.toUtf8().toStdString());
         return false;
     }
 
-    const bool changed = m_themeMode != normalizedMode
-                         || m_primaryColor != normalizedColor
-                         || m_animationsEnabled != animationsEnabled
-                         || m_notificationsEnabled != notificationsEnabled
-                         || m_logLevel != normalizedLevel;
+    const bool changed = m_themeMode != normalizedMode || m_primaryColor != normalizedColor || m_animationsEnabled != animationsEnabled ||
+                         m_notificationsEnabled != notificationsEnabled || m_logLevel != normalizedLevel;
     m_themeMode = normalizedMode;
     m_primaryColor = normalizedColor;
     m_animationsEnabled = animationsEnabled;
@@ -193,14 +179,8 @@ void AppSettings::setLastError(const QString &error)
 QString AppSettings::normalizedThemeMode(const QString &mode)
 {
     const QString normalized = mode.trimmed().toLower();
-    static const QSet<QString> supportedModes = {
-        QStringLiteral("light"),
-        QStringLiteral("dark"),
-        QStringLiteral("system")
-    };
-    return supportedModes.contains(normalized)
-               ? normalized
-               : QString::fromLatin1(DefaultThemeMode);
+    static const QSet<QString> supportedModes = {QStringLiteral("light"), QStringLiteral("dark"), QStringLiteral("system")};
+    return supportedModes.contains(normalized) ? normalized : QString::fromLatin1(DefaultThemeMode);
 }
 
 QString AppSettings::normalizedLogLevel(const QString &level)
@@ -214,16 +194,12 @@ QString AppSettings::normalizedLogLevel(const QString &level)
     {
         return QStringLiteral("error");
     }
-    static const QSet<QString> supportedLevels = {
-        QStringLiteral("trace"),
-        QStringLiteral("debug"),
-        QStringLiteral("info"),
-        QStringLiteral("warn"),
-        QStringLiteral("error"),
-        QStringLiteral("critical"),
-        QStringLiteral("off")
-    };
-    return supportedLevels.contains(normalized)
-               ? normalized
-               : QString::fromLatin1(DefaultLogLevel);
+    static const QSet<QString> supportedLevels = {QStringLiteral("trace"),
+                                                  QStringLiteral("debug"),
+                                                  QStringLiteral("info"),
+                                                  QStringLiteral("warn"),
+                                                  QStringLiteral("error"),
+                                                  QStringLiteral("critical"),
+                                                  QStringLiteral("off")};
+    return supportedLevels.contains(normalized) ? normalized : QString::fromLatin1(DefaultLogLevel);
 }
