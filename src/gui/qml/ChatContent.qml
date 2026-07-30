@@ -13,10 +13,28 @@ Item {
     property color friendColor: "#7C6EE6"
     property bool friendOnline: true
     property bool peerSelected: false
+    property bool searchOpen: false
+    readonly property string messageSearchKeyword: LanChat.messageSearchText.trim()
 
     signal cancelFileRequested(string messageId)
     signal openFileRequested(string filePath)
     signal revealFileRequested(string filePath)
+    signal searchFocusRequested()
+
+    function closeSearch(): void {
+        searchOpen = false;
+        LanChat.messageSearchText = "";
+    }
+
+    function focusSearch(): void {
+        searchOpen = true;
+        Qt.callLater(() => root.searchFocusRequested());
+    }
+
+    onPeerSelectedChanged: {
+        if (!peerSelected)
+            closeSearch();
+    }
 
     Connections {
         target: LanChat.messages
@@ -40,8 +58,12 @@ Item {
         color: HusTheme.Primary.colorBgContainer
 
         Row {
+            id: friendSummary
+
             anchors.left: parent.left
+            anchors.right: headerActions.left
             anchors.leftMargin: 24
+            anchors.rightMargin: 12
             anchors.verticalCenter: parent.verticalCenter
             spacing: 12
 
@@ -61,24 +83,31 @@ Item {
 
             Column {
                 anchors.verticalCenter: parent.verticalCenter
+                width: Math.max(0, friendSummary.width - 56)
                 spacing: 5
 
                 HusText {
+                    width: parent.width
                     text: root.friendName
                     color: HusTheme.Primary.colorTextBase
+                    elide: Text.ElideRight
                     font.pixelSize: HusTheme.Primary.fontPrimarySizeHeading5
                     font.weight: Font.Medium
                 }
 
                 HusText {
+                    width: parent.width
                     text: root.friendStatus
                     color: HusTheme.Primary.colorTextSecondary
+                    elide: Text.ElideRight
                     font.pixelSize: HusTheme.Primary.fontPrimarySize
                 }
             }
         }
 
         Row {
+            id: headerActions
+
             anchors.right: parent.right
             anchors.rightMargin: 18
             anchors.verticalCenter: parent.verticalCenter
@@ -89,29 +118,82 @@ Item {
                 height: 40
                 padding: 0
                 type: HusButton.Type_Text
-                iconSource: HusIcon.PhoneOutlined
+                iconSource: HusIcon.SearchOutlined
                 iconSize: 20
-                contentDescription: qsTr("语音通话")
+                enabled: root.peerSelected
+                contentDescription: root.searchOpen
+                                    ? qsTr("关闭消息搜索")
+                                    : qsTr("搜索当前会话")
+                onClicked: root.searchOpen ? root.closeSearch() : root.focusSearch()
+            }
+        }
+    }
+
+    Loader {
+        id: messageSearchLoader
+
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: chatHeader.bottom
+        height: active ? 56 : 0
+        active: root.searchOpen
+        sourceComponent: messageSearchComponent
+    }
+
+    Component {
+        id: messageSearchComponent
+
+        Rectangle {
+            id: searchPanel
+
+            color: HusTheme.Primary.colorBgContainer
+
+            function focusInput(): void {
+                messageSearchInput.forceActiveFocus();
+                messageSearchInput.selectAll();
             }
 
-            HusIconButton {
-                width: 40
-                height: 40
-                padding: 0
-                type: HusButton.Type_Text
-                iconSource: HusIcon.VideoCameraOutlined
-                iconSize: 20
-                contentDescription: qsTr("视频通话")
+            Component.onCompleted: searchPanel.focusInput()
+
+            Connections {
+                target: root
+
+                function onSearchFocusRequested(): void {
+                    searchPanel.focusInput();
+                }
             }
 
-            HusIconButton {
-                width: 40
-                height: 40
-                padding: 0
-                type: HusButton.Type_Text
-                iconSource: HusIcon.MoreOutlined
-                iconSize: 20
-                contentDescription: qsTr("更多会话操作")
+            HusInput {
+                id: messageSearchInput
+
+                anchors.left: parent.left
+                anchors.right: resultCount.left
+                anchors.leftMargin: 24
+                anchors.rightMargin: 12
+                anchors.verticalCenter: parent.verticalCenter
+                height: 38
+                iconSource: HusIcon.SearchOutlined
+                iconPosition: HusInput.Position_Left
+                clearEnabled: "active"
+                type: HusInput.Type_Filled
+                text: LanChat.messageSearchText
+                placeholderText: qsTr("搜索消息或文件名")
+                contentDescription: qsTr("搜索当前会话中的消息或文件")
+                onTextChanged: LanChat.messageSearchText = text
+                Keys.onEscapePressed: root.closeSearch()
+            }
+
+            HusText {
+                id: resultCount
+
+                anchors.right: parent.right
+                anchors.rightMargin: 24
+                anchors.verticalCenter: parent.verticalCenter
+                width: 74
+                text: qsTr("%1 条结果").arg(messageList.count)
+                color: HusTheme.Primary.colorTextTertiary
+                horizontalAlignment: Text.AlignRight
+                font.pixelSize: HusTheme.Primary.fontPrimarySize
             }
         }
     }
@@ -121,7 +203,7 @@ Item {
 
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.top: chatHeader.bottom
+        anchors.top: messageSearchLoader.bottom
         height: 1
         color: HusTheme.Primary.colorBorderSecondary
     }
@@ -341,9 +423,23 @@ Item {
         anchors.centerIn: messageList
         visible: messageList.count === 0
         text: root.peerSelected
-              ? qsTr("还没有消息，发一句问候吧")
+              ? root.messageSearchKeyword.length > 0
+                ? qsTr("没有找到与“%1”匹配的消息").arg(root.messageSearchKeyword)
+                : qsTr("还没有消息，发一句问候吧")
               : qsTr("从左侧选择一个局域网好友开始聊天")
         color: HusTheme.Primary.colorTextTertiary
         font.pixelSize: HusTheme.Primary.fontPrimarySize
+    }
+
+    Shortcut {
+        sequence: StandardKey.Find
+        enabled: root.peerSelected
+        onActivated: root.focusSearch()
+    }
+
+    Shortcut {
+        sequence: "Escape"
+        enabled: root.searchOpen
+        onActivated: root.closeSearch()
     }
 }

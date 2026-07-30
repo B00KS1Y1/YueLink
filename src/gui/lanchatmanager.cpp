@@ -48,6 +48,14 @@ LanChatManager::LanChatManager(
     Q_ASSERT(m_service);
     Q_ASSERT(m_fileLauncher);
     Q_ASSERT(m_notificationService);
+    m_peerFilterModel.setSourceModel(&m_peerModel);
+    m_peerFilterModel.setFilterRole(PeerListModel::FriendNameRole);
+    m_peerFilterModel.setFilterCaseSensitivity(Qt::CaseInsensitive);
+    m_peerFilterModel.setDynamicSortFilter(true);
+    m_messageFilterModel.setSourceModel(&m_messageModel);
+    m_messageFilterModel.setFilterRole(ChatMessageModel::SearchTextRole);
+    m_messageFilterModel.setFilterCaseSensitivity(Qt::CaseInsensitive);
+    m_messageFilterModel.setDynamicSortFilter(true);
     connectService();
     synchronizePeers();
 }
@@ -56,12 +64,44 @@ LanChatManager::~LanChatManager() = default;
 
 QAbstractItemModel *LanChatManager::peers()
 {
-    return &m_peerModel;
+    return &m_peerFilterModel;
 }
 
 QAbstractItemModel *LanChatManager::messages()
 {
-    return &m_messageModel;
+    return &m_messageFilterModel;
+}
+
+QString LanChatManager::peerSearchText() const
+{
+    return m_peerSearchText;
+}
+
+void LanChatManager::setPeerSearchText(const QString &text)
+{
+    if (m_peerSearchText == text)
+    {
+        return;
+    }
+    m_peerSearchText = text;
+    m_peerFilterModel.setFilterFixedString(text.trimmed());
+    emit peerSearchTextChanged();
+}
+
+QString LanChatManager::messageSearchText() const
+{
+    return m_messageSearchText;
+}
+
+void LanChatManager::setMessageSearchText(const QString &text)
+{
+    if (m_messageSearchText == text)
+    {
+        return;
+    }
+    m_messageSearchText = text;
+    m_messageFilterModel.setFilterFixedString(text.trimmed());
+    emit messageSearchTextChanged();
 }
 
 QString LanChatManager::localName() const
@@ -118,6 +158,10 @@ bool LanChatManager::selectPeer(const QString &peerId)
     }
     const bool changed = m_currentPeerId != peerId;
     m_currentPeerId = peerId;
+    if (changed)
+    {
+        setMessageSearchText({});
+    }
     synchronizeConversation(peerId);
     markConversationRead(peerId);
     if (changed)

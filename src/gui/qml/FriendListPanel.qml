@@ -9,9 +9,10 @@ Item {
     id: root
 
     property string selectedPeerId: ""
-    readonly property string searchKeyword: searchInput.text.trim().toLocaleLowerCase()
+    readonly property string searchKeyword: LanChat.peerSearchText.trim()
 
     signal friendSelected(string peerId)
+    signal networkStartRequested()
 
     Item {
         id: searchSection
@@ -40,18 +41,27 @@ Item {
                 type: HusInput.Type_Filled
                 placeholderText: qsTr("搜索好友")
                 contentDescription: qsTr("搜索好友")
+                text: LanChat.peerSearchText
+                onTextChanged: LanChat.peerSearchText = text
             }
 
             HusIconButton {
                 Layout.preferredWidth: 38
                 Layout.preferredHeight: 38
+                visible: !LanChat.running
                 padding: 0
                 type: HusButton.Type_Filled
-                iconSource: HusIcon.PlusOutlined
+                iconSource: HusIcon.ReloadOutlined
                 iconSize: 18
-                contentDescription: qsTr("添加好友")
+                contentDescription: qsTr("重新启动局域网发现服务")
+                onClicked: root.networkStartRequested()
             }
         }
+    }
+
+    Shortcut {
+        sequence: "Ctrl+K"
+        onActivated: searchInput.forceActiveFocus()
     }
 
     Item {
@@ -116,12 +126,9 @@ Item {
             required property color avatarColor
             required property bool online
             required property int unread
-            readonly property bool matchesSearch: root.searchKeyword.length === 0 ||
-                                                      friendName.toLocaleLowerCase().indexOf(root.searchKeyword) !== -1
 
             width: friendList.width
-            height: matchesSearch ? 72 : 0
-            visible: matchesSearch
+            height: 72
 
             Rectangle {
                 anchors.fill: parent
@@ -240,11 +247,13 @@ Item {
         anchors.centerIn: friendList
         width: Math.max(0, friendList.width - 40)
         visible: friendList.count === 0
-        text: LanChat.running
-              ? qsTr("正在发现同一局域网内的好友…")
-              : LanChat.lastError.length > 0
-                ? LanChat.lastError
-                : qsTr("局域网服务未启动")
+        text: root.searchKeyword.length > 0
+              ? qsTr("没有找到与“%1”匹配的好友").arg(root.searchKeyword)
+              : LanChat.running
+                ? qsTr("正在自动发现同一局域网内的好友…")
+                : LanChat.lastError.length > 0
+                  ? LanChat.lastError
+                  : qsTr("局域网服务未启动")
         color: HusTheme.Primary.colorTextTertiary
         horizontalAlignment: Text.AlignHCenter
         wrapMode: Text.Wrap

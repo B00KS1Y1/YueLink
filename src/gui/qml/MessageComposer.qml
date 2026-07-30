@@ -5,20 +5,42 @@ import HuskarUI.Basic
 Rectangle {
     id: root
 
+    property string peerId: ""
     property bool sendEnabled: false
     property string errorText: ""
     property bool draggingFiles: false
+    property var drafts: ({})
+    property string draftPeerId: ""
 
-    signal sendRequested(string message)
     signal filesSelected(var fileUrls)
 
     function submitMessage(): void {
         const content = composer.text.trim();
-        if (content.length === 0)
+        if (content.length === 0 || peerId.length === 0 || !sendEnabled)
             return;
 
-        sendRequested(content);
+        if (!LanChat.sendMessage(peerId, content))
+            return;
+
         composer.clear();
+        drafts[draftPeerId] = "";
+    }
+
+    function switchDraft(nextPeerId: string): void {
+        if (draftPeerId.length > 0)
+            drafts[draftPeerId] = composer.text;
+
+        draftPeerId = nextPeerId;
+        composer.text = nextPeerId.length > 0 && drafts[nextPeerId] !== undefined
+                ? drafts[nextPeerId]
+                : "";
+    }
+
+    onPeerIdChanged: switchDraft(peerId)
+
+    Component.onDestruction: {
+        if (draftPeerId.length > 0)
+            drafts[draftPeerId] = composer.text;
     }
 
     onSendEnabledChanged: {
@@ -51,16 +73,6 @@ Rectangle {
             height: 36
             padding: 0
             type: HusButton.Type_Text
-            iconSource: HusIcon.SmileOutlined
-            iconSize: 20
-            contentDescription: qsTr("选择表情")
-        }
-
-        HusIconButton {
-            width: 36
-            height: 36
-            padding: 0
-            type: HusButton.Type_Text
             iconSource: HusIcon.PictureOutlined
             iconSize: 20
             enabled: root.sendEnabled
@@ -79,16 +91,6 @@ Rectangle {
             contentDescription: qsTr("发送文件")
             onClicked: fileDialog.open()
         }
-
-        HusIconButton {
-            width: 36
-            height: 36
-            padding: 0
-            type: HusButton.Type_Text
-            iconSource: HusIcon.ScissorOutlined
-            iconSize: 20
-            contentDescription: qsTr("截图")
-        }
     }
 
     HusText {
@@ -98,9 +100,13 @@ Rectangle {
         anchors.leftMargin: 12
         anchors.rightMargin: 20
         anchors.topMargin: 18
-        visible: root.errorText.length > 0
-        text: root.errorText
-        color: "#D84A4A"
+        visible: root.errorText.length > 0 || composer.text.length >= 1600
+        text: root.errorText.length > 0
+              ? root.errorText
+              : qsTr("%1/2000 个字符").arg(composer.text.length)
+        color: root.errorText.length > 0
+               ? HusTheme.Primary.colorError
+               : HusTheme.Primary.colorTextTertiary
         elide: Text.ElideRight
         horizontalAlignment: Text.AlignRight
         font.pixelSize: HusTheme.Primary.fontPrimarySize
@@ -122,7 +128,9 @@ Rectangle {
         colorBorder: "transparent"
         placeholderText: root.sendEnabled
                          ? qsTr("输入消息，按 Ctrl+Enter 发送")
-                         : qsTr("好友离线，暂时无法发送消息")
+                         : root.peerId.length === 0
+                           ? qsTr("请先选择一个好友")
+                           : qsTr("好友离线，暂时无法发送消息")
         contentDescription: qsTr("消息输入框")
         textArea.wrapMode: TextEdit.Wrap
     }

@@ -68,9 +68,12 @@ HusWindow {
         refreshSelectedFriend();
     }
 
-    function sendMessage(message: string): void {
-        if (selectedPeerId.length > 0)
-            LanChat.sendMessage(selectedPeerId, message);
+    function startNetworkService(): void {
+        operationError = "";
+        if (!LanChat.start())
+            showOperationError(LanChat.lastError.length > 0
+                               ? LanChat.lastError
+                               : qsTr("无法启动局域网服务"));
     }
 
     Component.onCompleted: {
@@ -102,8 +105,7 @@ HusWindow {
         }
 
         function onRunningChanged(): void {
-            if (root.selectedPeerId.length === 0)
-                root.refreshSelectedFriend();
+            root.refreshSelectedFriend();
         }
 
         function onLastErrorChanged(): void {
@@ -188,6 +190,7 @@ HusWindow {
                 anchors.bottom: parent.bottom
                 selectedPeerId: root.selectedPeerId
                 onFriendSelected: peerId => root.selectFriend(peerId)
+                onNetworkStartRequested: root.startNetworkService()
             }
         }
 
@@ -236,9 +239,9 @@ HusWindow {
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
                 height: 176
+                peerId: root.selectedPeerId
                 sendEnabled: root.selectedFriendOnline
                 errorText: root.operationError
-                onSendRequested: message => root.sendMessage(message)
                 onFilesSelected: fileUrls => {
                     if (root.selectedPeerId.length > 0)
                         LanChat.sendFiles(root.selectedPeerId, fileUrls);

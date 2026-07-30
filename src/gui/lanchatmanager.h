@@ -13,6 +13,7 @@
 
 #include <QAbstractItemModel>
 #include <QObject>
+#include <QSortFilterProxyModel>
 #include <QUrl>
 #include <QVariantMap>
 #include <QtQml/qqmlregistration.h>
@@ -37,6 +38,8 @@ class LanChatManager final : public QObject
     QML_SINGLETON
     Q_PROPERTY(QAbstractItemModel *peers READ peers CONSTANT)
     Q_PROPERTY(QAbstractItemModel *messages READ messages CONSTANT)
+    Q_PROPERTY(QString peerSearchText READ peerSearchText WRITE setPeerSearchText NOTIFY peerSearchTextChanged)
+    Q_PROPERTY(QString messageSearchText READ messageSearchText WRITE setMessageSearchText NOTIFY messageSearchTextChanged)
     Q_PROPERTY(QString localName READ localName NOTIFY localProfileChanged)
     Q_PROPERTY(QString localInitial READ localInitial NOTIFY localProfileChanged)
     Q_PROPERTY(QString currentPeerId READ currentPeerId NOTIFY currentPeerIdChanged)
@@ -90,6 +93,26 @@ public:
      * @return 当前会话消息列表模型指针。
      */
     [[nodiscard]] QAbstractItemModel *messages();
+    /**
+     * @brief 返回好友列表当前使用的搜索文本。
+     * @return 未经裁剪的好友搜索文本。
+     */
+    [[nodiscard]] QString peerSearchText() const;
+    /**
+     * @brief 更新好友列表搜索文本。
+     * @param text 新的搜索文本；匹配时忽略大小写和首尾空白。
+     */
+    void setPeerSearchText(const QString &text);
+    /**
+     * @brief 返回当前会话使用的消息搜索文本。
+     * @return 未经裁剪的消息搜索文本。
+     */
+    [[nodiscard]] QString messageSearchText() const;
+    /**
+     * @brief 更新当前会话的消息搜索文本。
+     * @param text 新的搜索文本；匹配时忽略大小写和首尾空白。
+     */
+    void setMessageSearchText(const QString &text);
     /**
      * @brief 返回本地显示名称。
      * @return 当前本地显示名称。
@@ -206,6 +229,10 @@ public:
     Q_INVOKABLE void setNotificationsEnabled(bool enabled);
 
 signals:
+    /** @brief 好友搜索文本发生变化时发出。 */
+    void peerSearchTextChanged();
+    /** @brief 消息搜索文本发生变化时发出。 */
+    void messageSearchTextChanged();
     /** @brief 本地身份信息发生变化时发出。 */
     void localProfileChanged();
     /** @brief 当前会话节点标识发生变化时发出。 */
@@ -324,7 +351,11 @@ private:
     std::unique_ptr<IFileLauncher> m_fileLauncher;
     std::unique_ptr<INotificationService> m_notificationService;
     PeerListModel m_peerModel;
+    QSortFilterProxyModel m_peerFilterModel;
     ChatMessageModel m_messageModel;
+    QSortFilterProxyModel m_messageFilterModel;
+    QString m_peerSearchText;
+    QString m_messageSearchText;
     QString m_currentPeerId;
     static ChatService *s_service;
 };

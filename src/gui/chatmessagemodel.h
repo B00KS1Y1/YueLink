@@ -29,7 +29,8 @@ public:
         FileNameRole,
         FileSizeTextRole,
         FileProgressRole,
-        FilePathRole
+        FilePathRole,
+        SearchTextRole
     };
 
     struct Message
