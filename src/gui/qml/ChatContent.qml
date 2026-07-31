@@ -31,6 +31,15 @@ Item {
         Qt.callLater(() => root.searchFocusRequested());
     }
 
+    function isImageFile(fileName: string): bool {
+        const extensionIndex = fileName.lastIndexOf(".");
+        if (extensionIndex < 0)
+            return false;
+
+        const extension = fileName.slice(extensionIndex + 1).toLowerCase();
+        return ["png", "jpg", "jpeg", "bmp", "gif", "webp"].indexOf(extension) >= 0;
+    }
+
     onPeerSelectedChanged: {
         if (!peerSelected)
             closeSearch();
@@ -241,6 +250,7 @@ Item {
             required property string fileSizeText
             required property real fileProgress
             required property string filePath
+            required property url fileUrl
 
             readonly property bool fileTransferActive:
                 deliveryStatus === "transferring"
@@ -248,6 +258,11 @@ Item {
             readonly property bool fileTransferComplete:
                 deliveryStatus === "sent"
                 || deliveryStatus === "received"
+            readonly property bool imageFile:
+                messageKind === "file" && root.isImageFile(fileName)
+            readonly property bool imagePreviewAvailable:
+                imageFile && fileUrl.toString().length > 0
+                && (fromMe || fileTransferComplete)
 
             width: messageList.width
             height: Math.max(messageAvatar.height, messageBody.height) + 14
@@ -270,7 +285,9 @@ Item {
                 anchors.right: messageDelegate.fromMe ? messageAvatar.left : undefined
                 anchors.leftMargin: messageDelegate.fromMe ? 0 : 10
                 anchors.rightMargin: messageDelegate.fromMe ? 10 : 0
-                width: messageDelegate.messageKind === "file"
+                width: messageDelegate.imageFile
+                       ? Math.min(360, Math.max(220, messageList.width * 0.58))
+                       : messageDelegate.messageKind === "file"
                        ? Math.min(Math.max(260, messageTextItem.implicitWidth + 28),
                                   Math.max(260, messageList.width * 0.58))
                        : Math.min(messageTextItem.implicitWidth + 28,
@@ -279,7 +296,10 @@ Item {
 
                 Rectangle {
                     width: parent.width
-                    height: messageTextItem.implicitHeight
+                    height: messagePreview.status === Image.Ready
+                            ? messagePreview.height + messageTextItem.implicitHeight
+                              + (messageDelegate.messageKind === "file" ? 44 : 28)
+                            : messageTextItem.implicitHeight
                             + (messageDelegate.messageKind === "file" ? 36 : 20)
                     radius: 10
                     color: messageDelegate.fromMe
@@ -293,21 +313,48 @@ Item {
 
                         anchors.left: parent.left
                         anchors.right: parent.right
-                        anchors.top: parent.top
+                        anchors.top: messagePreview.status === Image.Ready
+                                     ? messagePreview.bottom
+                                     : parent.top
                         anchors.bottom: messageDelegate.messageKind === "file"
                                         ? fileProgressTrack.top
                                         : parent.bottom
                         anchors.leftMargin: 14
                         anchors.rightMargin: 14
-                        anchors.topMargin: 10
+                        anchors.topMargin: messagePreview.status === Image.Ready ? 8 : 10
                         anchors.bottomMargin: messageDelegate.messageKind === "file" ? 8 : 10
                         text: messageDelegate.messageKind === "file"
-                              ? qsTr("文件：%1\n%2").arg(messageDelegate.fileName)
-                                                       .arg(messageDelegate.fileSizeText)
+                              ? (messageDelegate.imageFile
+                                 ? qsTr("图片：%1\n%2").arg(messageDelegate.fileName)
+                                                        .arg(messageDelegate.fileSizeText)
+                                 : qsTr("文件：%1\n%2").arg(messageDelegate.fileName)
+                                                        .arg(messageDelegate.fileSizeText))
                               : messageDelegate.messageText
                         color: HusTheme.Primary.colorTextBase
                         wrapMode: Text.Wrap
                         font.pixelSize: HusTheme.Primary.fontPrimarySize
+                    }
+
+                    Image {
+                        id: messagePreview
+
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.leftMargin: 10
+                        anchors.rightMargin: 10
+                        anchors.topMargin: 10
+                        height: status === Image.Ready ? 220 : 0
+                        source: messageDelegate.imagePreviewAvailable
+                                ? messageDelegate.fileUrl
+                                : ""
+                        sourceSize.width: 560
+                        sourceSize.height: 440
+                        asynchronous: true
+                        mipmap: true
+                        fillMode: Image.PreserveAspectFit
+                        visible: status === Image.Ready
+                        Accessible.name: qsTr("图片预览：%1").arg(messageDelegate.fileName)
                     }
 
                     Rectangle {

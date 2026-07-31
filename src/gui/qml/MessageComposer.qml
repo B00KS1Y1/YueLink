@@ -36,6 +36,15 @@ Rectangle {
                 : "";
     }
 
+    function sendClipboardImages(): bool {
+        const imageUrls = LanChat.clipboardImageUrls();
+        if (imageUrls.length === 0)
+            return false;
+
+        filesSelected(imageUrls);
+        return true;
+    }
+
     onPeerIdChanged: switchDraft(peerId)
 
     Component.onDestruction: {
@@ -133,6 +142,12 @@ Rectangle {
                            : qsTr("好友离线，暂时无法发送消息")
         contentDescription: qsTr("消息输入框")
         textArea.wrapMode: TextEdit.Wrap
+        textArea.Keys.onPressed: event => {
+            if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_V
+                    && root.sendClipboardImages()) {
+                event.accepted = true;
+            }
+        }
     }
 
     HusIconButton {
