@@ -53,6 +53,7 @@ private:
     T m_config;
 };
 
+extern ConfigStore<IdentityConfig> identity;
 extern ConfigStore<LogConfig> log;
 extern ConfigStore<ThemeConfig> theme;
 extern ConfigStore<DatabaseConfig> database;

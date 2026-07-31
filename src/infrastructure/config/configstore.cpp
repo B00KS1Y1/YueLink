@@ -109,11 +109,13 @@ template <typename T> Result ConfigStore<T>::save() const
     return {};
 }
 
+template class ConfigStore<IdentityConfig>;
 template class ConfigStore<LogConfig>;
 template class ConfigStore<ThemeConfig>;
 template class ConfigStore<DatabaseConfig>;
 template class ConfigStore<ApplicationConfig>;
 
+ConfigStore<IdentityConfig> identity{QStringLiteral("identity.json")};
 ConfigStore<LogConfig> log{QStringLiteral("log.json")};
 ConfigStore<ThemeConfig> theme{QStringLiteral("theme.json")};
 ConfigStore<DatabaseConfig> database{QStringLiteral("database.json")};

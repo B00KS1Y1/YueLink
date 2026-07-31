@@ -15,6 +15,10 @@
 namespace Config
 {
 
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(IdentityConfig,
+                                                device_id,
+                                                display_name)
+
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApplicationConfig,
                                                 notifications_enabled)
 

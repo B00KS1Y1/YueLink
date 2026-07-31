@@ -15,6 +15,12 @@
 namespace Config
 {
 
+struct IdentityConfig
+{
+    std::string device_id;
+    std::string display_name;
+};
+
 struct ApplicationConfig
 {
     bool notifications_enabled = true;

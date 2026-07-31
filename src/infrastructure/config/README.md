@@ -1,12 +1,13 @@
 # YueLink configuration
 
-配置模块提供四个相互独立的存储对象：
+配置模块提供五个相互独立的存储对象：
 
 ```cpp
 Config::log       // log.json
 Config::theme     // theme.json
 Config::database  // database.json
 Config::application // application.json
+Config::identity  // identity.json
 ```
 
 运行时配置默认保存在可执行文件同级的 `system/configs`：
@@ -15,7 +16,7 @@ Config::application // application.json
 - `theme.json`：主题配置；
 - `database.json`：数据库配置，默认 SQLite 文件为 `system/database/yuelink.db`；
 - `application.json`：应用配置；
-- `identity.ini`：本机设备标识与昵称。
+- `identity.json`：本机设备标识与昵称。
 
 相对日志路径始终以 `system/logs` 为基准，相对 SQLite 路径始终以
 `system/database` 为基准；配置中显式填写的绝对路径保持不变。
