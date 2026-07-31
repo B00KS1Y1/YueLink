@@ -22,6 +22,7 @@ class AppSettings : public QObject
     Q_PROPERTY(bool animationsEnabled READ animationsEnabled NOTIFY settingsChanged)
     Q_PROPERTY(bool notificationsEnabled READ notificationsEnabled NOTIFY settingsChanged)
     Q_PROPERTY(QString logLevel READ logLevel NOTIFY settingsChanged)
+    Q_PROPERTY(QString logFilePath READ logFilePath NOTIFY settingsChanged)
     Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged)
 
 public:
@@ -57,6 +58,11 @@ public:
      */
     [[nodiscard]] QString logLevel() const;
     /**
+     * @brief 返回当前配置的日志文件路径。
+     * @return 日志文件的绝对路径。
+     */
+    [[nodiscard]] QString logFilePath() const;
+    /**
      * @brief 返回最近一次设置保存错误。
      * @return 最近错误文本；没有错误时返回空字符串。
      */
@@ -69,13 +75,15 @@ public:
      * @param animationsEnabled 是否启用界面动画。
      * @param notificationsEnabled 是否启用桌面通知。
      * @param logLevel 日志级别。
+     * @param logFilePath 日志文件的绝对路径。
      * @return 设置保存成功时返回 @c true。
      */
     Q_INVOKABLE bool save(const QString &themeMode,
                           const QString &primaryColor,
                           bool animationsEnabled,
                           bool notificationsEnabled,
-                          const QString &logLevel);
+                          const QString &logLevel,
+                          const QString &logFilePath);
 
 signals:
     /** @brief 任一已保存设置发生变化时发出。 */
@@ -105,6 +113,7 @@ private:
     QString m_themeMode;
     QString m_primaryColor;
     QString m_logLevel;
+    QString m_logFilePath;
     QString m_lastError;
     bool m_animationsEnabled = true;
     bool m_notificationsEnabled = true;

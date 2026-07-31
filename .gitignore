@@ -2,3 +2,4 @@ build/
 .qtcreator
 system/logs/.*
 resource/
+dist/

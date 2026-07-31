@@ -34,11 +34,13 @@ Item {
                 id: searchInput
 
                 Layout.fillWidth: true
-                Layout.preferredHeight: 38
+                Layout.preferredHeight: 34
                 iconSource: HusIcon.SearchOutlined
+                iconSize: 16
                 iconPosition: HusInput.Position_Left
                 clearEnabled: "active"
                 type: HusInput.Type_Filled
+                verticalAlignment: TextInput.AlignVCenter
                 placeholderText: qsTr("搜索好友")
                 contentDescription: qsTr("搜索好友")
                 text: LanChat.peerSearchText
@@ -46,8 +48,8 @@ Item {
             }
 
             HusIconButton {
-                Layout.preferredWidth: 38
-                Layout.preferredHeight: 38
+                Layout.preferredWidth: 34
+                Layout.preferredHeight: 34
                 visible: !LanChat.running
                 padding: 0
                 type: HusButton.Type_Filled

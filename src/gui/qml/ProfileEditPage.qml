@@ -94,12 +94,14 @@ Item {
                 id: displayNameInput
 
                 Layout.fillWidth: true
-                Layout.preferredHeight: 42
+                Layout.preferredHeight: 34
                 text: LanChat.localName
                 maximumLength: 64
                 clearEnabled: "active"
                 iconSource: HusIcon.UserOutlined
+                iconSize: 16
                 iconPosition: HusInput.Position_Left
+                verticalAlignment: TextInput.AlignVCenter
                 placeholderText: qsTr("输入昵称")
                 contentDescription: qsTr("昵称")
                 selectByMouse: true

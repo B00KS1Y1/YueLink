@@ -1,8 +1,11 @@
 #include "appsettings.h"
 
 #include "infrastructure/config/configstore.h"
+#include "infrastructure/path.h"
 
 #include <QColor>
+#include <QDir>
+#include <QFileInfo>
 #include <QSet>
 
 #include <spdlog/spdlog.h>
@@ -27,6 +30,7 @@ AppSettings::AppSettings(QObject *parent)
     m_animationsEnabled = theme.animations_enabled;
     m_notificationsEnabled = application.notifications_enabled;
     m_logLevel = normalizedLogLevel(QString::fromStdString(log.level));
+    m_logFilePath = Utils::Path::logFile(QString::fromStdString(log.file_path).trimmed());
 }
 
 QString AppSettings::themeMode() const
@@ -54,12 +58,22 @@ QString AppSettings::logLevel() const
     return m_logLevel;
 }
 
+QString AppSettings::logFilePath() const
+{
+    return m_logFilePath;
+}
+
 QString AppSettings::lastError() const
 {
     return m_lastError;
 }
 
-bool AppSettings::save(const QString &themeMode, const QString &primaryColor, bool animationsEnabled, bool notificationsEnabled, const QString &logLevel)
+bool AppSettings::save(const QString &themeMode,
+                       const QString &primaryColor,
+                       bool animationsEnabled,
+                       bool notificationsEnabled,
+                       const QString &logLevel,
+                       const QString &logFilePath)
 {
     const QString normalizedMode = normalizedThemeMode(themeMode);
     if (normalizedMode != themeMode.trimmed().toLower())
@@ -79,6 +93,13 @@ bool AppSettings::save(const QString &themeMode, const QString &primaryColor, bo
     if (normalizedLevel != logLevel.trimmed().toLower())
     {
         setLastError(tr("日志级别无效。"));
+        return false;
+    }
+
+    const QString normalizedLogFilePath = QDir::cleanPath(QDir::fromNativeSeparators(logFilePath.trimmed()));
+    if (normalizedLogFilePath.isEmpty() || !QFileInfo(normalizedLogFilePath).isAbsolute())
+    {
+        setLastError(tr("日志文件必须使用绝对路径。"));
         return false;
     }
 
@@ -122,6 +143,7 @@ bool AppSettings::save(const QString &themeMode, const QString &primaryColor, bo
 
     Config::LogConfig newLog = previousLog;
     newLog.level = normalizedLevel.toStdString();
+    newLog.file_path = normalizedLogFilePath.toStdString();
     Config::log.set(newLog);
     const Config::Result logResult = Config::log.save();
     if (!logResult)
@@ -146,23 +168,26 @@ bool AppSettings::save(const QString &themeMode, const QString &primaryColor, bo
     }
 
     const bool changed = m_themeMode != normalizedMode || m_primaryColor != normalizedColor || m_animationsEnabled != animationsEnabled ||
-                         m_notificationsEnabled != notificationsEnabled || m_logLevel != normalizedLevel;
+                         m_notificationsEnabled != notificationsEnabled || m_logLevel != normalizedLevel ||
+                         m_logFilePath != normalizedLogFilePath;
     m_themeMode = normalizedMode;
     m_primaryColor = normalizedColor;
     m_animationsEnabled = animationsEnabled;
     m_notificationsEnabled = notificationsEnabled;
     m_logLevel = normalizedLevel;
+    m_logFilePath = normalizedLogFilePath;
     spdlog::set_level(spdlog::level::from_str(normalizedLevel.toStdString()));
     setLastError({});
     if (changed)
     {
         emit settingsChanged();
     }
-    spdlog::info("[设置] 应用设置已保存 主题={} 动画={} 通知={} 日志级别={}",
+    spdlog::info("[设置] 应用设置已保存 主题={} 动画={} 通知={} 日志级别={} 日志路径={}",
                  normalizedMode.toStdString(),
                  animationsEnabled,
                  notificationsEnabled,
-                 normalizedLevel.toStdString());
+                 normalizedLevel.toStdString(),
+                 normalizedLogFilePath.toUtf8().toStdString());
     return true;
 }
 

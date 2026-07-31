@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Dialogs
 import QtQuick.Layouts
 import QtQuick.Controls.Basic
 import HuskarUI.Basic
@@ -15,19 +16,20 @@ Item {
 
     function loadSettings(): void {
         themeModeSelect.currentIndex = themeModeSelect.indexOfValue(AppSettings.themeMode);
-        primaryColorInput.text = AppSettings.primaryColor;
         animationsSwitch.checked = AppSettings.animationsEnabled;
         notificationsSwitch.checked = AppSettings.notificationsEnabled;
         logLevelSelect.currentIndex = logLevelSelect.indexOfValue(AppSettings.logLevel);
+        logFilePathInput.text = AppSettings.logFilePath;
         root.errorText = "";
     }
 
     function saveSettings(): void {
         if (AppSettings.save(themeModeSelect.currentValue,
-                             primaryColorInput.text,
+                             primaryColorPicker.toHexString(primaryColorPicker.value),
                              animationsSwitch.checked,
                              notificationsSwitch.checked,
-                             logLevelSelect.currentValue)) {
+                             logLevelSelect.currentValue,
+                             logFilePathInput.text)) {
             root.errorText = "";
             root.saved();
         } else {
@@ -35,7 +37,26 @@ Item {
         }
     }
 
+    function localFilePath(fileUrl: url): string {
+        const fileUrlText = decodeURIComponent(fileUrl.toString());
+        if (fileUrlText.startsWith("file:///"))
+            return Qt.platform.os === "windows" ? fileUrlText.substring(8) : fileUrlText.substring(7);
+        if (fileUrlText.startsWith("file://"))
+            return "//" + fileUrlText.substring(7);
+        return "";
+    }
+
     Component.onCompleted: root.loadSettings()
+
+    FileDialog {
+        id: logFileDialog
+
+        title: qsTr("选择日志文件")
+        fileMode: FileDialog.SaveFile
+        defaultSuffix: "log"
+        nameFilters: [qsTr("日志文件 (*.log)"), qsTr("所有文件 (*)")]
+        onAccepted: logFilePathInput.text = root.localFilePath(selectedFile)
+    }
 
     Flickable {
         id: settingsFlickable
@@ -60,13 +81,15 @@ Item {
 
             Rectangle {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 278
+                Layout.preferredHeight: appearanceLayout.implicitHeight + 40
                 radius: 12
                 color: HusTheme.Primary.colorBgContainer
                 border.width: 1
                 border.color: HusTheme.Primary.colorBorderSecondary
 
                 ColumnLayout {
+                    id: appearanceLayout
+
                     anchors.fill: parent
                     anchors.margins: 20
                     spacing: 16
@@ -83,31 +106,19 @@ Item {
                         Layout.fillWidth: true
                         spacing: 16
 
-                        ColumnLayout {
+                        HusText {
                             Layout.fillWidth: true
-                            spacing: 4
-
-                            HusText {
-                                Layout.fillWidth: true
-                                text: qsTr("主题模式")
-                                color: HusTheme.Primary.colorTextBase
-                                font.pixelSize: HusTheme.Primary.fontPrimarySize
-                                font.weight: Font.Medium
-                            }
-
-                            HusText {
-                                Layout.fillWidth: true
-                                text: qsTr("选择浅色、深色或跟随系统")
-                                color: HusTheme.Primary.colorTextTertiary
-                                font.pixelSize: HusTheme.Primary.fontPrimarySize
-                            }
+                            text: qsTr("主题模式")
+                            color: HusTheme.Primary.colorTextBase
+                            font.pixelSize: HusTheme.Primary.fontPrimarySize
+                            font.weight: Font.Medium
                         }
 
                         HusSelect {
                             id: themeModeSelect
 
                             Layout.preferredWidth: 150
-                            Layout.preferredHeight: 40
+                            Layout.preferredHeight: 34
                             clearEnabled: false
                             contentDescription: qsTr("主题模式")
                             model: [
@@ -122,50 +133,25 @@ Item {
                         Layout.fillWidth: true
                         spacing: 16
 
-                        ColumnLayout {
+                        HusText {
                             Layout.fillWidth: true
-                            spacing: 4
-
-                            HusText {
-                                Layout.fillWidth: true
-                                text: qsTr("主题色")
-                                color: HusTheme.Primary.colorTextBase
-                                font.pixelSize: HusTheme.Primary.fontPrimarySize
-                                font.weight: Font.Medium
-                            }
-
-                            HusText {
-                                Layout.fillWidth: true
-                                text: qsTr("使用六位十六进制颜色值")
-                                color: HusTheme.Primary.colorTextTertiary
-                                font.pixelSize: HusTheme.Primary.fontPrimarySize
-                            }
+                            text: qsTr("主题色")
+                            color: HusTheme.Primary.colorTextBase
+                            font.pixelSize: HusTheme.Primary.fontPrimarySize
+                            font.weight: Font.Medium
                         }
 
-                        Rectangle {
-                            Layout.preferredWidth: 28
-                            Layout.preferredHeight: 28
-                            radius: 8
-                            color: primaryColorInput.acceptableInput
-                                   ? primaryColorInput.text
-                                   : "transparent"
-                            border.width: 1
-                            border.color: HusTheme.Primary.colorBorder
-                            Accessible.ignored: true
-                        }
+                        HusColorPicker {
+                            id: primaryColorPicker
 
-                        HusInput {
-                            id: primaryColorInput
-
-                            Layout.preferredWidth: 120
-                            Layout.preferredHeight: 40
-                            maximumLength: 7
-                            selectByMouse: true
-                            horizontalAlignment: Text.AlignHCenter
-                            contentDescription: qsTr("主题色")
-                            validator: RegularExpressionValidator {
-                                regularExpression: /^#[0-9A-Fa-f]{6}$/
-                            }
+                            Layout.preferredWidth: 150
+                            Layout.preferredHeight: 34
+                            defaultValue: AppSettings.primaryColor
+                            showText: true
+                            alphaEnabled: false
+                            format: "hex"
+                            title: qsTr("选择主题色")
+                            Accessible.name: qsTr("主题色")
                         }
                     }
 
@@ -173,24 +159,12 @@ Item {
                         Layout.fillWidth: true
                         spacing: 16
 
-                        ColumnLayout {
+                        HusText {
                             Layout.fillWidth: true
-                            spacing: 4
-
-                            HusText {
-                                Layout.fillWidth: true
-                                text: qsTr("界面动画")
-                                color: HusTheme.Primary.colorTextBase
-                                font.pixelSize: HusTheme.Primary.fontPrimarySize
-                                font.weight: Font.Medium
-                            }
-
-                            HusText {
-                                Layout.fillWidth: true
-                                text: qsTr("关闭后界面切换和控件反馈将立即完成")
-                                color: HusTheme.Primary.colorTextTertiary
-                                font.pixelSize: HusTheme.Primary.fontPrimarySize
-                            }
+                            text: qsTr("界面动画")
+                            color: HusTheme.Primary.colorTextBase
+                            font.pixelSize: HusTheme.Primary.fontPrimarySize
+                            font.weight: Font.Medium
                         }
 
                         HusSwitch {
@@ -206,13 +180,15 @@ Item {
 
             Rectangle {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 136
+                Layout.preferredHeight: notificationLayout.implicitHeight + 40
                 radius: 12
                 color: HusTheme.Primary.colorBgContainer
                 border.width: 1
                 border.color: HusTheme.Primary.colorBorderSecondary
 
                 ColumnLayout {
+                    id: notificationLayout
+
                     anchors.fill: parent
                     anchors.margins: 20
                     spacing: 15
@@ -229,25 +205,12 @@ Item {
                         Layout.fillWidth: true
                         spacing: 16
 
-                        ColumnLayout {
+                        HusText {
                             Layout.fillWidth: true
-                            spacing: 4
-
-                            HusText {
-                                Layout.fillWidth: true
-                                text: qsTr("系统通知")
-                                color: HusTheme.Primary.colorTextBase
-                                font.pixelSize: HusTheme.Primary.fontPrimarySize
-                                font.weight: Font.Medium
-                            }
-
-                            HusText {
-                                Layout.fillWidth: true
-                                text: qsTr("窗口不在前台时提示新消息和文件接收结果")
-                                color: HusTheme.Primary.colorTextTertiary
-                                wrapMode: Text.Wrap
-                                font.pixelSize: HusTheme.Primary.fontPrimarySize
-                            }
+                            text: qsTr("系统通知")
+                            color: HusTheme.Primary.colorTextBase
+                            font.pixelSize: HusTheme.Primary.fontPrimarySize
+                            font.weight: Font.Medium
                         }
 
                         HusSwitch {
@@ -263,13 +226,15 @@ Item {
 
             Rectangle {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 136
+                Layout.preferredHeight: diagnosticsLayout.implicitHeight + 40
                 radius: 12
                 color: HusTheme.Primary.colorBgContainer
                 border.width: 1
                 border.color: HusTheme.Primary.colorBorderSecondary
 
                 ColumnLayout {
+                    id: diagnosticsLayout
+
                     anchors.fill: parent
                     anchors.margins: 20
                     spacing: 15
@@ -286,31 +251,19 @@ Item {
                         Layout.fillWidth: true
                         spacing: 16
 
-                        ColumnLayout {
+                        HusText {
                             Layout.fillWidth: true
-                            spacing: 4
-
-                            HusText {
-                                Layout.fillWidth: true
-                                text: qsTr("日志级别")
-                                color: HusTheme.Primary.colorTextBase
-                                font.pixelSize: HusTheme.Primary.fontPrimarySize
-                                font.weight: Font.Medium
-                            }
-
-                            HusText {
-                                Layout.fillWidth: true
-                                text: qsTr("调试问题时可临时切换为 Debug 或 Trace")
-                                color: HusTheme.Primary.colorTextTertiary
-                                font.pixelSize: HusTheme.Primary.fontPrimarySize
-                            }
+                            text: qsTr("日志级别")
+                            color: HusTheme.Primary.colorTextBase
+                            font.pixelSize: HusTheme.Primary.fontPrimarySize
+                            font.weight: Font.Medium
                         }
 
                         HusSelect {
                             id: logLevelSelect
 
                             Layout.preferredWidth: 150
-                            Layout.preferredHeight: 40
+                            Layout.preferredHeight: 34
                             clearEnabled: false
                             contentDescription: qsTr("日志级别")
                             model: [
@@ -324,18 +277,53 @@ Item {
                             ]
                         }
                     }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 16
+
+                        HusText {
+                            Layout.preferredWidth: 112
+                            text: qsTr("日志文件路径")
+                            color: HusTheme.Primary.colorTextBase
+                            font.pixelSize: HusTheme.Primary.fontPrimarySize
+                            font.weight: Font.Medium
+                        }
+
+                        HusInput {
+                            id: logFilePathInput
+
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 34
+                            selectByMouse: true
+                            verticalAlignment: TextInput.AlignVCenter
+                            contentDescription: qsTr("日志文件路径")
+                        }
+
+                        HusIconButton {
+                            Layout.preferredWidth: 96
+                            Layout.preferredHeight: 34
+                            text: qsTr("浏览")
+                            iconSource: HusIcon.FolderOpenOutlined
+                            iconSize: 16
+                            contentDescription: qsTr("选择日志文件路径")
+                            onClicked: logFileDialog.open()
+                        }
+                    }
                 }
             }
 
             Rectangle {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 108
+                Layout.preferredHeight: aboutLayout.implicitHeight + 40
                 radius: 12
                 color: HusTheme.Primary.colorFillQuaternary
                 border.width: 1
                 border.color: HusTheme.Primary.colorBorderSecondary
 
                 RowLayout {
+                    id: aboutLayout
+
                     anchors.fill: parent
                     anchors.margins: 20
                     spacing: 16
@@ -412,7 +400,7 @@ Item {
                 Layout.preferredHeight: 40
                 type: HusButton.Type_Primary
                 text: qsTr("保存设置")
-                enabled: primaryColorInput.acceptableInput
+                enabled: logFilePathInput.text.trim().length > 0
                          && themeModeSelect.currentIndex >= 0
                          && logLevelSelect.currentIndex >= 0
                 contentDescription: qsTr("保存应用设置")

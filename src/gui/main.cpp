@@ -4,6 +4,7 @@
 #include <QLockFile>
 #include <QMessageBox>
 #include <QQmlApplicationEngine>
+#include <QQuickWindow>
 
 #include "core/chatservice.h"
 #include "gui/lanchatmanager.h"
@@ -21,6 +22,8 @@
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
+
+    QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGL);
     QCoreApplication::setOrganizationName(QStringLiteral("YueLink"));
     QCoreApplication::setApplicationName(QStringLiteral("YueLink"));
     QGuiApplication::setWindowIcon(QIcon(QStringLiteral(":/assets/yuelink-app-icon.png")));
