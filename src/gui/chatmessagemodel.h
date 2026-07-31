@@ -10,6 +10,7 @@
 
 #include <QAbstractListModel>
 #include <QHash>
+#include <QUrl>
 
 class ChatMessageModel final : public QAbstractListModel
 {
@@ -30,6 +31,7 @@ public:
         FileSizeTextRole,
         FileProgressRole,
         FilePathRole,
+        FileUrlRole,
         SearchTextRole
     };
 
@@ -45,6 +47,7 @@ public:
         QString fileName;
         QString fileSizeText;
         QString filePath;
+        QUrl fileUrl;
         qreal fileProgress = 0.0;
         bool fromMe = false;
     };

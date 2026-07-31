@@ -21,13 +21,10 @@ add_subdirectory(thirdparty/nlohmann_json)
 qt_standard_project_setup(REQUIRES 6.8)
 
 add_library(YueLinkCore STATIC
-    src/core/chatservice.cpp
-    src/core/chatservice.h
     src/core/chattypes.cpp
     src/core/chattypes.h
     src/core/ichatrepository.h
     src/core/ichattransport.h
-    src/core/iidentitystore.h
     src/core/ipeerdiscovery.h
     src/core/networktypes.h
 )
@@ -55,8 +52,6 @@ add_library(YueLinkInfrastructure STATIC
     src/infrastructure/logging.h
     src/infrastructure/path.cpp
     src/infrastructure/path.h
-    src/infrastructure/qsettingsidentitystore.cpp
-    src/infrastructure/qsettingsidentitystore.h
     src/infrastructure/runtimebootstrap.cpp
     src/infrastructure/runtimebootstrap.h
     src/infrastructure/sqlitechatrepository.cpp
@@ -84,6 +79,29 @@ target_link_libraries(YueLinkInfrastructure
         Qt6::Sql
         spdlog::spdlog
         nlohmann_json::nlohmann_json
+)
+
+add_library(YueLinkApplication STATIC
+    src/application/chatcoordinator.cpp
+    src/application/chatcoordinator.h
+    src/application/conversationstore.cpp
+    src/application/conversationstore.h
+    src/application/transfercoordinator.cpp
+    src/application/transfercoordinator.h
+)
+
+target_include_directories(YueLinkApplication
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+target_link_libraries(YueLinkApplication
+    PUBLIC
+        YueLinkCore
+    PRIVATE
+        YueLinkInfrastructure
+        Qt6::Core
+        spdlog::spdlog
 )
 
 if(YUELINK_BUILD_GUI)
@@ -129,8 +147,12 @@ if(YUELINK_BUILD_GUI)
             src/gui/appsettings.h
             src/gui/chatmessagemodel.cpp
             src/gui/chatmessagemodel.h
+            src/gui/conversationviewmodel.cpp
+            src/gui/conversationviewmodel.h
             src/gui/desktopfilelauncher.cpp
             src/gui/desktopfilelauncher.h
+            src/gui/desktopintegration.cpp
+            src/gui/desktopintegration.h
             src/gui/desktopnotificationservice.cpp
             src/gui/desktopnotificationservice.h
             src/gui/ifilelauncher.h
@@ -139,6 +161,8 @@ if(YUELINK_BUILD_GUI)
             src/gui/lanchatmanager.h
             src/gui/peerlistmodel.cpp
             src/gui/peerlistmodel.h
+            src/gui/peerlistviewmodel.cpp
+            src/gui/peerlistviewmodel.h
     )
 
     set_target_properties(YueLink PROPERTIES
@@ -157,6 +181,7 @@ if(YUELINK_BUILD_GUI)
 
     target_link_libraries(YueLink
         PRIVATE
+            YueLinkApplication
             YueLinkCore
             YueLinkInfrastructure
             Qt6::Core

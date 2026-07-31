@@ -1,34 +1,31 @@
 #include "lanchatmanager.h"
 
-#include "core/chatservice.h"
+#include "application/chatcoordinator.h"
+#include "conversationviewmodel.h"
 #include "desktopfilelauncher.h"
+#include "desktopintegration.h"
 #include "desktopnotificationservice.h"
-#include "ifilelauncher.h"
-#include "inotificationservice.h"
+#include "peerlistviewmodel.h"
 
-#include <QCryptographicHash>
-#include <QDate>
-#include <QFileInfo>
-#include <QGuiApplication>
 #include <QStringList>
 
 #include <utility>
 
-ChatService *LanChatManager::s_service = nullptr;
+ChatCoordinator *LanChatManager::s_coordinator = nullptr;
 
-void LanChatManager::setService(ChatService *service)
+void LanChatManager::setCoordinator(ChatCoordinator *coordinator)
 {
-    s_service = service;
+    s_coordinator = coordinator;
 }
 
 LanChatManager *LanChatManager::create(QQmlEngine *, QJSEngine *)
 {
-    Q_ASSERT(s_service);
-    return new LanChatManager(s_service);
+    Q_ASSERT(s_coordinator);
+    return new LanChatManager(s_coordinator);
 }
 
-LanChatManager::LanChatManager(ChatService *service, QObject *parent)
-: LanChatManager(service,
+LanChatManager::LanChatManager(ChatCoordinator *coordinator, QObject *parent)
+: LanChatManager(coordinator,
                  std::make_unique<DesktopFileLauncher>(),
                  std::make_unique<DesktopNotificationService>(),
                  parent)
@@ -36,159 +33,126 @@ LanChatManager::LanChatManager(ChatService *service, QObject *parent)
 }
 
 LanChatManager::LanChatManager(
-    ChatService *service,
+    ChatCoordinator *coordinator,
     std::unique_ptr<IFileLauncher> fileLauncher,
     std::unique_ptr<INotificationService> notificationService,
     QObject *parent)
 : QObject(parent)
-, m_service(service)
-, m_fileLauncher(std::move(fileLauncher))
-, m_notificationService(std::move(notificationService))
+, m_coordinator(coordinator)
+, m_peers(std::make_unique<PeerListViewModel>(coordinator))
+, m_conversation(std::make_unique<ConversationViewModel>(coordinator))
+, m_desktop(std::make_unique<DesktopIntegration>(coordinator,
+                                                 m_conversation.get(),
+                                                 std::move(fileLauncher),
+                                                 std::move(notificationService)))
 {
-    Q_ASSERT(m_service);
-    Q_ASSERT(m_fileLauncher);
-    Q_ASSERT(m_notificationService);
-    m_peerFilterModel.setSourceModel(&m_peerModel);
-    m_peerFilterModel.setFilterRole(PeerListModel::FriendNameRole);
-    m_peerFilterModel.setFilterCaseSensitivity(Qt::CaseInsensitive);
-    m_peerFilterModel.setDynamicSortFilter(true);
-    m_messageFilterModel.setSourceModel(&m_messageModel);
-    m_messageFilterModel.setFilterRole(ChatMessageModel::SearchTextRole);
-    m_messageFilterModel.setFilterCaseSensitivity(Qt::CaseInsensitive);
-    m_messageFilterModel.setDynamicSortFilter(true);
-    connectService();
-    synchronizePeers();
+    Q_ASSERT(m_coordinator);
+    Q_ASSERT(m_peers);
+    Q_ASSERT(m_conversation);
+    Q_ASSERT(m_desktop);
+    connectComponents();
 }
 
 LanChatManager::~LanChatManager() = default;
 
 QAbstractItemModel *LanChatManager::peers()
 {
-    return &m_peerFilterModel;
+    return m_peers->model();
 }
 
 QAbstractItemModel *LanChatManager::messages()
 {
-    return &m_messageFilterModel;
+    return m_conversation->model();
 }
 
 QString LanChatManager::peerSearchText() const
 {
-    return m_peerSearchText;
+    return m_peers->searchText();
 }
 
 void LanChatManager::setPeerSearchText(const QString &text)
 {
-    if (m_peerSearchText == text)
-    {
-        return;
-    }
-    m_peerSearchText = text;
-    m_peerFilterModel.setFilterFixedString(text.trimmed());
-    emit peerSearchTextChanged();
+    m_peers->setSearchText(text);
 }
 
 QString LanChatManager::messageSearchText() const
 {
-    return m_messageSearchText;
+    return m_conversation->searchText();
 }
 
 void LanChatManager::setMessageSearchText(const QString &text)
 {
-    if (m_messageSearchText == text)
-    {
-        return;
-    }
-    m_messageSearchText = text;
-    m_messageFilterModel.setFilterFixedString(text.trimmed());
-    emit messageSearchTextChanged();
+    m_conversation->setSearchText(text);
 }
 
 QString LanChatManager::localName() const
 {
-    return m_service->localIdentity().displayName;
+    return m_coordinator->localIdentity().displayName;
 }
 
 QString LanChatManager::localInitial() const
 {
-    return initialForName(localName());
+    return m_conversation->localInitial();
 }
 
 QString LanChatManager::currentPeerId() const
 {
-    return m_currentPeerId;
+    return m_conversation->currentPeerId();
 }
 
 int LanChatManager::onlineCount() const
 {
-    return m_peerModel.onlineCount();
+    return m_peers->onlineCount();
 }
 
 int LanChatManager::totalUnreadCount() const
 {
-    return m_peerModel.totalUnreadCount();
+    return m_peers->totalUnreadCount();
 }
 
 bool LanChatManager::running() const
 {
-    return m_service->running();
+    return m_coordinator->running();
 }
 
 QString LanChatManager::lastError() const
 {
-    return m_service->lastError();
+    return m_coordinator->lastError();
 }
 
 bool LanChatManager::start()
 {
-    return static_cast<bool>(m_service->start());
+    return static_cast<bool>(m_coordinator->start());
 }
 
 void LanChatManager::stop()
 {
-    m_service->stop();
+    m_coordinator->stop();
 }
 
 bool LanChatManager::selectPeer(const QString &peerId)
 {
-    Domain::Peer peer;
-    if (!m_service->peer(peerId, &peer))
-    {
-        return false;
-    }
-    const bool changed = m_currentPeerId != peerId;
-    m_currentPeerId = peerId;
-    if (changed)
-    {
-        setMessageSearchText({});
-    }
-    synchronizeConversation(peerId);
-    markConversationRead(peerId);
-    if (changed)
-    {
-        emit currentPeerIdChanged();
-    }
-    return true;
+    return m_conversation->selectPeer(peerId);
 }
 
 bool LanChatManager::markConversationRead(const QString &peerId)
 {
-    return static_cast<bool>(m_service->markConversationRead(peerId));
+    return static_cast<bool>(m_coordinator->markConversationRead(peerId));
 }
 
 QVariantMap LanChatManager::peerInfo(const QString &peerId) const
 {
-    return m_peerModel.peerInfo(peerId);
+    return m_peers->peerInfo(peerId);
 }
 
 bool LanChatManager::updateLocalProfile(const QString &displayName)
 {
-    return static_cast<bool>(m_service->updateLocalProfile(displayName));
+    return static_cast<bool>(m_coordinator->updateLocalProfile(displayName));
 }
 
 bool LanChatManager::sendMessage(const QString &peerId, const QString &text)
 {
-    return static_cast<bool>(m_service->sendText(peerId, text));
+    return static_cast<bool>(m_coordinator->sendText(peerId, text));
 }
 
 bool LanChatManager::sendFile(const QString &peerId, const QUrl &fileUrl)
@@ -198,7 +162,8 @@ bool LanChatManager::sendFile(const QString &peerId, const QUrl &fileUrl)
         emit fileTransferFailed(peerId, tr("仅支持发送本地文件。"));
         return false;
     }
-    return static_cast<bool>(m_service->sendFile(peerId, fileUrl.toLocalFile()));
+    return static_cast<bool>(m_coordinator->sendFile(peerId,
+                                                     fileUrl.toLocalFile()));
 }
 
 int LanChatManager::sendFiles(const QString &peerId,
@@ -213,19 +178,31 @@ int LanChatManager::sendFiles(const QString &peerId,
             paths.append(url.toLocalFile());
         }
     }
-    return m_service->sendFiles(peerId, paths);
+    return m_coordinator->sendFiles(peerId, paths);
+}
+
+QList<QUrl> LanChatManager::clipboardImageUrls()
+{
+    QString error;
+    const QList<QUrl> urls = m_desktop->clipboardImageUrls(&error);
+    if (!error.isEmpty())
+    {
+        emit operationFailed(error);
+    }
+    return urls;
 }
 
 bool LanChatManager::cancelFileTransfer(const QString &peerId,
                                         const QString &transferId)
 {
-    return static_cast<bool>(m_service->cancelFileTransfer(peerId, transferId));
+    return static_cast<bool>(m_coordinator->cancelFileTransfer(peerId,
+                                                               transferId));
 }
 
 bool LanChatManager::openFile(const QString &filePath)
 {
     QString error;
-    if (!m_fileLauncher->openFile(filePath, &error))
+    if (!m_desktop->openFile(filePath, &error))
     {
         emit operationFailed(error);
         return false;
@@ -236,7 +213,7 @@ bool LanChatManager::openFile(const QString &filePath)
 bool LanChatManager::revealFile(const QString &filePath)
 {
     QString error;
-    if (!m_fileLauncher->revealInFolder(filePath, &error))
+    if (!m_desktop->revealFile(filePath, &error))
     {
         emit operationFailed(error);
         return false;
@@ -246,274 +223,78 @@ bool LanChatManager::revealFile(const QString &filePath)
 
 void LanChatManager::setNotificationsEnabled(bool enabled)
 {
-    m_notificationService->setEnabled(enabled);
+    m_desktop->setNotificationsEnabled(enabled);
 }
 
-void LanChatManager::connectService()
+void LanChatManager::connectComponents()
 {
-    connect(&m_peerModel,
-            &PeerListModel::unreadCountChanged,
+    connect(m_peers.get(),
+            &PeerListViewModel::searchTextChanged,
+            this,
+            &LanChatManager::peerSearchTextChanged);
+    connect(m_peers.get(),
+            &PeerListViewModel::onlineCountChanged,
+            this,
+            &LanChatManager::onlineCountChanged);
+    connect(m_peers.get(),
+            &PeerListViewModel::totalUnreadCountChanged,
             this,
             &LanChatManager::totalUnreadCountChanged);
-    connect(m_notificationService.get(),
-            &INotificationService::notificationActivated,
+    connect(m_peers.get(),
+            &PeerListViewModel::peerDiscovered,
+            this,
+            &LanChatManager::peerDiscovered);
+    connect(m_peers.get(),
+            &PeerListViewModel::peerUpdated,
+            this,
+            &LanChatManager::peerUpdated);
+    connect(m_conversation.get(),
+            &ConversationViewModel::searchTextChanged,
+            this,
+            &LanChatManager::messageSearchTextChanged);
+    connect(m_conversation.get(),
+            &ConversationViewModel::currentPeerIdChanged,
+            this,
+            &LanChatManager::currentPeerIdChanged);
+    connect(m_desktop.get(),
+            &DesktopIntegration::notificationActivated,
             this,
             &LanChatManager::notificationActivated);
-    connect(m_service,
-            &ChatService::localIdentityChanged,
+
+    connect(m_coordinator,
+            &ChatCoordinator::localIdentityChanged,
             this,
             &LanChatManager::localProfileChanged);
-    connect(m_service,
-            &ChatService::peersChanged,
-            this,
-            &LanChatManager::synchronizePeers);
-    connect(m_service,
-            &ChatService::conversationChanged,
-            this,
-            [this](const QString &peerId) {
-                if (peerId == m_currentPeerId)
-                {
-                    synchronizeConversation(peerId);
-                    if (QGuiApplication::applicationState()
-                        == Qt::ApplicationActive)
-                    {
-                        static_cast<void>(
-                            m_service->markConversationRead(peerId));
-                    }
-                }
-            });
-    connect(m_service,
-            &ChatService::runningChanged,
+    connect(m_coordinator,
+            &ChatCoordinator::runningChanged,
             this,
             &LanChatManager::runningChanged);
-    connect(m_service,
-            &ChatService::lastErrorChanged,
+    connect(m_coordinator,
+            &ChatCoordinator::lastErrorChanged,
             this,
             &LanChatManager::lastErrorChanged);
-    connect(m_service,
-            &ChatService::peerDiscovered,
+    connect(m_coordinator,
+            &ChatCoordinator::messageReceived,
             this,
-            [this](const QString &peerId) {
-                synchronizePeers();
-                emit peerDiscovered(peerId);
-            });
-    connect(m_service,
-            &ChatService::peerUpdated,
-            this,
-            [this](const QString &peerId) {
-                synchronizePeers();
-                emit peerUpdated(peerId);
-            });
-    connect(m_service,
-            &ChatService::messageReceived,
-            this,
-            &LanChatManager::handleIncomingMessage);
-    connect(m_service,
-            &ChatService::sendFailed,
+            &LanChatManager::messageReceived);
+    connect(m_coordinator,
+            &ChatCoordinator::sendFailed,
             this,
             &LanChatManager::sendFailed);
-    connect(m_service,
-            &ChatService::fileReceived,
+    connect(m_coordinator,
+            &ChatCoordinator::fileReceived,
             this,
-            [this](const QString &peerId, const QString &filePath) {
-                if (QGuiApplication::applicationState() != Qt::ApplicationActive)
-                {
-                    showIncomingNotification(
-                        peerId,
-                        tr("文件已接收：%1").arg(QFileInfo(filePath).fileName()));
-                }
-                emit fileReceived(peerId, filePath);
-            });
-    connect(m_service,
-            &ChatService::fileTransferFailed,
+            &LanChatManager::fileReceived);
+    connect(m_coordinator,
+            &ChatCoordinator::fileTransferFailed,
             this,
             [this](const QString &peerId,
                    const QString &reason,
-                   bool incoming) {
-                if (incoming
-                    && QGuiApplication::applicationState()
-                           != Qt::ApplicationActive)
-                {
-                    showIncomingNotification(peerId, reason);
-                }
+                   bool) {
                 emit fileTransferFailed(peerId, reason);
             });
-    connect(m_service,
-            &ChatService::operationFailed,
+    connect(m_coordinator,
+            &ChatCoordinator::operationFailed,
             this,
             &LanChatManager::operationFailed);
-}
-
-void LanChatManager::synchronizePeers()
-{
-    const int previousOnlineCount = onlineCount();
-    QList<PeerListModel::Item> items;
-    const QList<Domain::Peer> peers = m_service->peers();
-    items.reserve(peers.size());
-    for (const Domain::Peer &peer : peers)
-    {
-        PeerListModel::Item item;
-        item.endpoint = peer.endpoint;
-        item.initial = initialForName(peer.endpoint.displayName);
-        item.statusText = peer.online ? tr("在线 · 局域网")
-                                      : tr("离线 · 局域网");
-        item.lastMessage = peer.lastMessage.isEmpty()
-                               ? tr("已通过局域网发现")
-                               : peer.lastMessage;
-        item.lastTime = displayTime(peer.lastActivity);
-        item.avatarColor = colorForId(peer.endpoint.peerId);
-        item.online = peer.online;
-        item.unread = peer.unreadCount;
-        items.append(std::move(item));
-    }
-    m_peerModel.setItems(std::move(items));
-    if (previousOnlineCount != onlineCount())
-    {
-        emit onlineCountChanged();
-    }
-}
-
-void LanChatManager::synchronizeConversation(const QString &peerId)
-{
-    QList<ChatMessageModel::Message> viewMessages;
-    const QList<Domain::Message> messages = m_service->messages(peerId);
-    viewMessages.reserve(messages.size());
-    for (const Domain::Message &message : messages)
-    {
-        viewMessages.append(toViewMessage(message));
-    }
-    m_messageModel.setConversation(peerId, std::move(viewMessages));
-    m_messageModel.selectPeer(peerId);
-}
-
-void LanChatManager::handleIncomingMessage(const QString &peerId,
-                                           const QString &text)
-{
-    if (peerId == m_currentPeerId
-        && QGuiApplication::applicationState() == Qt::ApplicationActive)
-    {
-        static_cast<void>(m_service->markConversationRead(peerId));
-    }
-    else
-    {
-        showIncomingNotification(peerId, text);
-    }
-    emit messageReceived(peerId, text);
-}
-
-void LanChatManager::showIncomingNotification(const QString &peerId,
-                                              const QString &message)
-{
-    if (QGuiApplication::applicationState() == Qt::ApplicationActive)
-    {
-        return;
-    }
-    Domain::Peer peer;
-    QString title = m_service->peer(peerId, &peer)
-                        ? peer.endpoint.displayName.trimmed()
-                        : QString();
-    if (title.isEmpty())
-    {
-        title = tr("YueLink 新消息");
-    }
-
-    QString preview = message.simplified();
-    constexpr qsizetype MaximumPreviewLength = 160;
-    if (preview.size() > MaximumPreviewLength)
-    {
-        preview = tr("%1…").arg(preview.left(MaximumPreviewLength - 1));
-    }
-    m_notificationService->showNotification(title, preview, peerId);
-}
-
-ChatMessageModel::Message LanChatManager::toViewMessage(
-    const Domain::Message &message) const
-{
-    Domain::Peer peer;
-    static_cast<void>(m_service->peer(message.peerId, &peer));
-    ChatMessageModel::Message view;
-    view.messageId = message.messageId;
-    view.senderInitial = message.fromMe
-                             ? localInitial()
-                             : initialForName(peer.endpoint.displayName);
-    view.senderColor = message.fromMe ? QStringLiteral("#4F7CFF")
-                                      : colorForId(message.peerId);
-    view.messageText = message.text;
-    view.messageTime = displayTime(message.timestamp);
-    view.deliveryStatus = Domain::deliveryStateName(message.deliveryState);
-    view.messageKind = Domain::messageKindName(message.kind);
-    view.fileName = message.fileName;
-    view.fileSizeText = displayFileSize(message.fileSize,
-                                        message.legacyFileSizeText);
-    view.fileProgress = message.fileProgress;
-    view.filePath = message.filePath;
-    view.fromMe = message.fromMe;
-    return view;
-}
-
-QString LanChatManager::displayFileSize(qint64 bytes, const QString &fallback)
-{
-    if (bytes <= 0)
-    {
-        return fallback;
-    }
-    constexpr qreal Kilobyte = 1024.0;
-    constexpr qreal Megabyte = Kilobyte * 1024.0;
-    constexpr qreal Gigabyte = Megabyte * 1024.0;
-    if (bytes < 1024)
-    {
-        return tr("%1 B").arg(bytes);
-    }
-    if (bytes < static_cast<qint64>(Megabyte))
-    {
-        return tr("%1 KB").arg(QString::number(bytes / Kilobyte, 'f', 1));
-    }
-    if (bytes < static_cast<qint64>(Gigabyte))
-    {
-        return tr("%1 MB").arg(QString::number(bytes / Megabyte, 'f', 1));
-    }
-    return tr("%1 GB").arg(QString::number(bytes / Gigabyte, 'f', 1));
-}
-
-QString LanChatManager::displayTime(const QDateTime &timestamp)
-{
-    if (!timestamp.isValid())
-    {
-        return {};
-    }
-    const QDateTime localTimestamp = timestamp.toLocalTime();
-    const QDate currentDate = QDate::currentDate();
-    if (localTimestamp.date() == currentDate)
-    {
-        return localTimestamp.toString(QStringLiteral("HH:mm"));
-    }
-    if (localTimestamp.date() == currentDate.addDays(-1))
-    {
-        return tr("昨天 %1").arg(localTimestamp.toString(QStringLiteral("HH:mm")));
-    }
-    return localTimestamp.toString(QStringLiteral("MM-dd HH:mm"));
-}
-
-QString LanChatManager::initialForName(const QString &name)
-{
-    const QString trimmed = name.trimmed();
-    return trimmed.isEmpty() ? QStringLiteral("?") : trimmed.left(1).toUpper();
-}
-
-QString LanChatManager::colorForId(const QString &peerId)
-{
-    static const QStringList colors = {QStringLiteral("#7C6EE6"),
-                                       QStringLiteral("#36A18B"),
-                                       QStringLiteral("#D86B87"),
-                                       QStringLiteral("#4F8EC9"),
-                                       QStringLiteral("#C17A3A"),
-                                       QStringLiteral("#6C8D3F")};
-    const QByteArray digest = QCryptographicHash::hash(peerId.toUtf8(),
-                                                       QCryptographicHash::Sha256);
-    if (digest.isEmpty())
-    {
-        return colors.first();
-    }
-    const qsizetype index = static_cast<unsigned char>(digest.at(0)) % colors.size();
-    return colors.at(index);
 }

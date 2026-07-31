@@ -1,6 +1,6 @@
 /**
  * @file lanchatmanager.h
- * @brief 声明共享聊天服务的 QML 适配器。
+ * @brief 声明聚合聊天视图模型与桌面服务的 QML 外观。
  * @author xili <1424858143@qq.com>
  * @date 2026-07-21
  */
@@ -8,28 +8,23 @@
 #ifndef LANCHATMANAGER_H
 #define LANCHATMANAGER_H
 
-#include "chatmessagemodel.h"
-#include "peerlistmodel.h"
-
 #include <QAbstractItemModel>
+#include <QList>
 #include <QObject>
-#include <QSortFilterProxyModel>
 #include <QUrl>
 #include <QVariantMap>
 #include <QtQml/qqmlregistration.h>
 
 #include <memory>
 
-class ChatService;
+class ChatCoordinator;
+class ConversationViewModel;
+class DesktopIntegration;
 class IFileLauncher;
 class INotificationService;
+class PeerListViewModel;
 class QJSEngine;
 class QQmlEngine;
-
-namespace Domain
-{
-struct Message;
-}
 
 class LanChatManager final : public QObject
 {
@@ -50,47 +45,47 @@ class LanChatManager final : public QObject
 
 public:
     /**
-     * @brief 设置 QML 单例工厂使用的共享聊天服务。
-     * @param service 由应用程序生命周期管理的聊天服务。
+     * @brief 设置 QML 单例工厂使用的聊天协调器。
+     * @param coordinator 由应用程序生命周期管理的聊天协调器。
      */
-    static void setService(ChatService *service);
+    static void setCoordinator(ChatCoordinator *coordinator);
     /**
      * @brief 为 QML 引擎创建聊天管理器单例。
      * @param qmlEngine 请求单例的 QML 引擎。
      * @param jsEngine 请求单例的 JavaScript 引擎。
-     * @return 使用已注入聊天服务创建的管理器实例。
+     * @return 使用已注入协调器创建的管理器实例。
      */
-    static LanChatManager *create(QQmlEngine *qmlEngine,
-                                  QJSEngine *jsEngine);
+    static LanChatManager *create(QQmlEngine *qmlEngine, QJSEngine *jsEngine);
 
     /**
      * @brief 使用默认桌面适配器构造 QML 聊天管理器。
-     * @param service 共享聊天服务。
+     * @param coordinator 共享聊天协调器。
      * @param parent 可选的 QObject 父对象。
      */
-    explicit LanChatManager(ChatService *service, QObject *parent = nullptr);
+    explicit LanChatManager(ChatCoordinator *coordinator,
+                            QObject *parent = nullptr);
     /**
      * @brief 使用指定桌面适配器构造 QML 聊天管理器。
-     * @param service 共享聊天服务。
-     * @param fileLauncher 由管理器接管所有权的文件启动器。
-     * @param notificationService 由管理器接管所有权的通知服务。
+     * @param coordinator 共享聊天协调器。
+     * @param fileLauncher 由桌面集成服务接管所有权的文件启动器。
+     * @param notificationService 由桌面集成服务接管所有权的通知服务。
      * @param parent 可选的 QObject 父对象。
      */
-    LanChatManager(ChatService *service,
+    LanChatManager(ChatCoordinator *coordinator,
                    std::unique_ptr<IFileLauncher> fileLauncher,
                    std::unique_ptr<INotificationService> notificationService,
                    QObject *parent = nullptr);
-    /** @brief 销毁 QML 聊天管理器及其桌面适配器。 */
+    /** @brief 销毁 QML 聊天管理器及其视图模型与桌面服务。 */
     ~LanChatManager() override;
 
     /**
-     * @brief 返回供 QML 使用的节点列表模型。
-     * @return 节点列表模型指针。
+     * @brief 返回供 QML 使用的好友列表模型。
+     * @return 好友列表模型指针。
      */
     [[nodiscard]] QAbstractItemModel *peers();
     /**
-     * @brief 返回供 QML 使用的消息列表模型。
-     * @return 当前会话消息列表模型指针。
+     * @brief 返回供 QML 使用的当前会话消息模型。
+     * @return 消息列表模型指针。
      */
     [[nodiscard]] QAbstractItemModel *messages();
     /**
@@ -100,7 +95,7 @@ public:
     [[nodiscard]] QString peerSearchText() const;
     /**
      * @brief 更新好友列表搜索文本。
-     * @param text 新的搜索文本；匹配时忽略大小写和首尾空白。
+     * @param text 新的搜索文本。
      */
     void setPeerSearchText(const QString &text);
     /**
@@ -110,7 +105,7 @@ public:
     [[nodiscard]] QString messageSearchText() const;
     /**
      * @brief 更新当前会话的消息搜索文本。
-     * @param text 新的搜索文本；匹配时忽略大小写和首尾空白。
+     * @param text 新的搜索文本。
      */
     void setMessageSearchText(const QString &text);
     /**
@@ -125,36 +120,36 @@ public:
     [[nodiscard]] QString localInitial() const;
     /**
      * @brief 返回当前选中会话的节点标识。
-     * @return 当前节点标识；未选择会话时返回空字符串。
+     * @return 当前节点标识；没有选择时返回空字符串。
      */
     [[nodiscard]] QString currentPeerId() const;
     /**
-     * @brief 返回当前在线的节点数量。
-     * @return 在线节点数量。
+     * @brief 返回当前在线好友数量。
+     * @return 在线好友数量。
      */
     [[nodiscard]] int onlineCount() const;
     /**
-     * @brief 返回所有节点的未读消息总数。
+     * @brief 返回所有好友未读消息总数。
      * @return 未读消息总数。
      */
     [[nodiscard]] int totalUnreadCount() const;
     /**
-     * @brief 返回共享聊天服务是否正在运行。
+     * @brief 返回聊天协调器是否正在运行。
      * @return 服务正在运行时返回 @c true。
      */
     [[nodiscard]] bool running() const;
     /**
-     * @brief 返回最近一次聊天服务错误。
+     * @brief 返回最近一次聊天协调错误。
      * @return 最近错误文本；没有错误时返回空字符串。
      */
     [[nodiscard]] QString lastError() const;
 
     /**
-     * @brief 启动共享聊天服务。
+     * @brief 启动聊天服务。
      * @return 服务启动成功时返回 @c true。
      */
     Q_INVOKABLE bool start();
-    /** @brief 停止共享聊天服务。 */
+    /** @brief 停止聊天服务。 */
     Q_INVOKABLE void stop();
     /**
      * @brief 选择需要显示的会话。
@@ -198,15 +193,19 @@ public:
      * @brief 向指定节点发送多个本地文件。
      * @param peerId 目标节点标识。
      * @param fileUrls 本地文件 URL 列表。
-     * @return 已接受发送的文件传输数量。
+     * @return 已接受发送的文件数量。
      */
-    Q_INVOKABLE int sendFiles(const QString &peerId,
-                              const QList<QUrl> &fileUrls);
+    Q_INVOKABLE int sendFiles(const QString &peerId, const QList<QUrl> &fileUrls);
+    /**
+     * @brief 返回剪贴板中可发送的本地图片 URL。
+     * @return 本地图片 URL 列表；没有图片或保存失败时返回空列表。
+     */
+    Q_INVOKABLE QList<QUrl> clipboardImageUrls();
     /**
      * @brief 取消正在进行的文件传输。
      * @param peerId 远端节点标识。
      * @param transferId 文件传输标识。
-     * @return 成功取消匹配的传输时返回 @c true。
+     * @return 成功取消匹配传输时返回 @c true。
      */
     Q_INVOKABLE bool cancelFileTransfer(const QString &peerId,
                                         const QString &transferId);
@@ -237,7 +236,7 @@ signals:
     void localProfileChanged();
     /** @brief 当前会话节点标识发生变化时发出。 */
     void currentPeerIdChanged();
-    /** @brief 在线节点数量发生变化时发出。 */
+    /** @brief 在线好友数量发生变化时发出。 */
     void onlineCountChanged();
     /** @brief 未读消息总数发生变化时发出。 */
     void totalUnreadCountChanged();
@@ -247,12 +246,12 @@ signals:
     void lastErrorChanged();
     /**
      * @brief 发现此前未知的节点时发出。
-     * @param peerId 已发现节点的标识。
+     * @param peerId 新节点标识。
      */
     void peerDiscovered(const QString &peerId);
     /**
-     * @brief 已知节点的信息发生变化时发出。
-     * @param peerId 已更新节点的标识。
+     * @brief 已知节点状态发生变化时发出。
+     * @param peerId 已更新节点标识。
      */
     void peerUpdated(const QString &peerId);
     /**
@@ -291,73 +290,14 @@ signals:
     void notificationActivated(const QString &peerId);
 
 private:
-    /** @brief 连接共享聊天服务与桌面适配器事件。 */
-    void connectService();
-    /** @brief 将服务中的节点状态同步到 QML 模型。 */
-    void synchronizePeers();
-    /**
-     * @brief 将指定会话同步到 QML 消息模型。
-     * @param peerId 会话对应的节点标识。
-     */
-    void synchronizeConversation(const QString &peerId);
-    /**
-     * @brief 处理收到的文本消息及已读、通知逻辑。
-     * @param peerId 发送方节点标识。
-     * @param text 收到的消息文本。
-     */
-    void handleIncomingMessage(const QString &peerId, const QString &text);
-    /**
-     * @brief 在允许时显示收到消息的桌面通知。
-     * @param peerId 发送方节点标识。
-     * @param message 通知预览文本。
-     */
-    void showIncomingNotification(const QString &peerId,
-                                  const QString &message);
-    /**
-     * @brief 将领域消息转换为 QML 视图消息。
-     * @param message 待转换的领域消息。
-     * @return 可供消息模型使用的视图消息。
-     */
-    [[nodiscard]] ChatMessageModel::Message toViewMessage(
-        const Domain::Message &message) const;
-    /**
-     * @brief 将文件字节数格式化为可读文本。
-     * @param bytes 文件字节数。
-     * @param fallback 字节数不可用时使用的旧文本。
-     * @return 格式化后的文件大小文本。
-     */
-    [[nodiscard]] static QString displayFileSize(qint64 bytes,
-                                                 const QString &fallback);
-    /**
-     * @brief 将时间戳格式化为会话显示文本。
-     * @param timestamp 待格式化的时间戳。
-     * @return 本地化的简短时间文本。
-     */
-    [[nodiscard]] static QString displayTime(const QDateTime &timestamp);
-    /**
-     * @brief 返回名称首字符的大写形式。
-     * @param name 待处理的显示名称。
-     * @return 名称首字符；名称为空时返回占位符。
-     */
-    [[nodiscard]] static QString initialForName(const QString &name);
-    /**
-     * @brief 为节点标识生成稳定的头像颜色。
-     * @param peerId 节点标识。
-     * @return 颜色表中的十六进制颜色字符串。
-     */
-    [[nodiscard]] static QString colorForId(const QString &peerId);
+    /** @brief 连接协调器、视图模型与桌面服务事件。 */
+    void connectComponents();
 
-    ChatService *m_service = nullptr;
-    std::unique_ptr<IFileLauncher> m_fileLauncher;
-    std::unique_ptr<INotificationService> m_notificationService;
-    PeerListModel m_peerModel;
-    QSortFilterProxyModel m_peerFilterModel;
-    ChatMessageModel m_messageModel;
-    QSortFilterProxyModel m_messageFilterModel;
-    QString m_peerSearchText;
-    QString m_messageSearchText;
-    QString m_currentPeerId;
-    static ChatService *s_service;
+    ChatCoordinator *m_coordinator = nullptr;
+    std::unique_ptr<PeerListViewModel> m_peers;
+    std::unique_ptr<ConversationViewModel> m_conversation;
+    std::unique_ptr<DesktopIntegration> m_desktop;
+    static ChatCoordinator *s_coordinator;
 };
 
 #endif // LANCHATMANAGER_H

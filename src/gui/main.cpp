@@ -6,10 +6,9 @@
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
 
-#include "core/chatservice.h"
+#include "application/chatcoordinator.h"
 #include "gui/lanchatmanager.h"
 #include "infrastructure/path.h"
-#include "infrastructure/qsettingsidentitystore.h"
 #include "infrastructure/runtimebootstrap.h"
 #include "infrastructure/sqlitechatrepository.h"
 #include "infrastructure/tcpchattransport.h"
@@ -47,11 +46,10 @@ int main(int argc, char *argv[])
         return 2;
     }
 
-    ChatService service(std::make_unique<UdpPeerDiscovery>(),
-                        std::make_unique<TcpChatTransport>(),
-                        std::make_unique<SqliteChatRepository>(),
-                        std::make_unique<QSettingsIdentityStore>());
-    LanChatManager::setService(&service);
+    ChatCoordinator coordinator(std::make_unique<UdpPeerDiscovery>(),
+                                std::make_unique<TcpChatTransport>(),
+                                std::make_unique<SqliteChatRepository>());
+    LanChatManager::setCoordinator(&coordinator);
 
     QQmlApplicationEngine engine;
     QObject::connect(
@@ -67,7 +65,7 @@ int main(int argc, char *argv[])
 
     if (!engine.rootObjects().isEmpty())
     {
-        const Domain::OperationResult startResult = service.start();
+        const Domain::OperationResult startResult = coordinator.start();
         if (!startResult)
         {
             spdlog::error("[应用程序] 服务启动失败 原因={}", startResult.message.toUtf8().toStdString());
@@ -75,7 +73,7 @@ int main(int argc, char *argv[])
     }
 
     const int exitCode = QCoreApplication::exec();
-    service.stop();
+    coordinator.stop();
     spdlog::info("[应用程序] YueLink 图形界面已停止 退出码={}", exitCode);
     RuntimeBootstrap::shutdown();
     return exitCode;

@@ -47,6 +47,8 @@ QVariant ChatMessageModel::data(const QModelIndex &index, int role) const
         return message.fileProgress;
     case FilePathRole:
         return message.filePath;
+    case FileUrlRole:
+        return message.fileUrl;
     case SearchTextRole:
         return message.messageKind == QStringLiteral("file") ? QStringLiteral("%1 %2").arg(message.fileName, message.messageText) : message.messageText;
     default:
@@ -68,6 +70,7 @@ QHash<int, QByteArray> ChatMessageModel::roleNames() const
             {FileSizeTextRole, "fileSizeText"},
             {FileProgressRole, "fileProgress"},
             {FilePathRole, "filePath"},
+            {FileUrlRole, "fileUrl"},
             {SearchTextRole, "searchText"}};
 }
 
@@ -148,11 +151,12 @@ void ChatMessageModel::updateFileTransfer(const QString &peerId, const QString &
         if (!filePath.isEmpty())
         {
             message.filePath = filePath;
+            message.fileUrl = QUrl::fromLocalFile(filePath);
         }
         if (peerId == m_currentPeerId)
         {
             const QModelIndex modelIndex = index(row);
-            emit dataChanged(modelIndex, modelIndex, {FileProgressRole, DeliveryStatusRole, FilePathRole});
+            emit dataChanged(modelIndex, modelIndex, {FileProgressRole, DeliveryStatusRole, FilePathRole, FileUrlRole});
         }
         return;
     }
