@@ -2,12 +2,15 @@
 
 #include "conversationstore.h"
 #include "transfercoordinator.h"
-#include "core/ichatrepository.h"
-#include "core/ichattransport.h"
-#include "core/ipeerdiscovery.h"
+#include "domain/ichatrepository.h"
+#include "domain/ichattransport.h"
+#include "domain/ipeerdiscovery.h"
 #include "infrastructure/config/configstore.h"
 
+#include <QColor>
 #include <QDateTime>
+#include <QFileInfo>
+#include <QImageReader>
 #include <QSysInfo>
 #include <QUuid>
 
@@ -43,6 +46,16 @@ ChatCoordinator::~ChatCoordinator()
 Network::LocalIdentity ChatCoordinator::localIdentity() const
 {
     return m_identity;
+}
+
+QString ChatCoordinator::localAvatarPath() const
+{
+    return m_localAvatarPath;
+}
+
+QString ChatCoordinator::localAvatarColor() const
+{
+    return m_localAvatarColor;
 }
 
 QList<Domain::Peer> ChatCoordinator::peers() const
@@ -132,12 +145,28 @@ void ChatCoordinator::stop()
     spdlog::info("[网络.应用] 局域网聊天服务已停止");
 }
 
+Domain::OperationResult ChatCoordinator::refreshPeerDiscovery()
+{
+    if (!m_running)
+    {
+        const QString error = tr("局域网服务未启动。");
+        setLastError(error);
+        return Domain::OperationResult::failure(QStringLiteral("discovery.not_running"), error);
+    }
+
+    m_discovery->probe();
+    setLastError({});
+    return Domain::OperationResult::success();
+}
+
 Domain::OperationResult ChatCoordinator::markConversationRead(const QString &peerId)
 {
     return m_conversations->markConversationRead(peerId);
 }
 
-Domain::OperationResult ChatCoordinator::updateLocalProfile(const QString &displayName)
+Domain::OperationResult ChatCoordinator::updateLocalProfile(const QString &displayName,
+                                                            const QString &avatarPath,
+                                                            const QString &avatarColor)
 {
     const QString normalizedName = displayName.trimmed();
     if (normalizedName.isEmpty() || normalizedName.size() > 64)
@@ -146,7 +175,32 @@ Domain::OperationResult ChatCoordinator::updateLocalProfile(const QString &displ
         setLastError(error);
         return Domain::OperationResult::failure(QStringLiteral("profile.invalid_name"), error);
     }
-    if (normalizedName == m_identity.displayName)
+    QString normalizedAvatarPath = avatarPath.trimmed();
+    if (!normalizedAvatarPath.isEmpty())
+    {
+        const QFileInfo avatarFileInfo(normalizedAvatarPath);
+        if (!avatarFileInfo.isFile()
+            || QImageReader::imageFormat(avatarFileInfo.absoluteFilePath()).isEmpty())
+        {
+            const QString error = tr("头像图片无效或不可读取。");
+            setLastError(error);
+            return Domain::OperationResult::failure(QStringLiteral("profile.invalid_avatar"), error);
+        }
+        normalizedAvatarPath = avatarFileInfo.absoluteFilePath();
+    }
+
+    const QColor parsedAvatarColor(avatarColor.trimmed());
+    if (!parsedAvatarColor.isValid())
+    {
+        const QString error = tr("头像颜色无效。");
+        setLastError(error);
+        return Domain::OperationResult::failure(QStringLiteral("profile.invalid_avatar_color"), error);
+    }
+    const QString normalizedAvatarColor = parsedAvatarColor.name(QColor::HexRgb);
+
+    if (normalizedName == m_identity.displayName
+        && normalizedAvatarPath == m_localAvatarPath
+        && normalizedAvatarColor == m_localAvatarColor)
     {
         setLastError({});
         return Domain::OperationResult::success();
@@ -156,6 +210,8 @@ Domain::OperationResult ChatCoordinator::updateLocalProfile(const QString &displ
     Config::IdentityConfig updated = previous;
     updated.device_id = m_identity.deviceId.toStdString();
     updated.display_name = normalizedName.toStdString();
+    updated.avatar_path = normalizedAvatarPath.toStdString();
+    updated.avatar_color = normalizedAvatarColor.toStdString();
     Config::identity.set(updated);
     const Config::Result result = Config::identity.save();
     if (!result)
@@ -167,6 +223,8 @@ Domain::OperationResult ChatCoordinator::updateLocalProfile(const QString &displ
     }
 
     m_identity.displayName = normalizedName;
+    m_localAvatarPath = normalizedAvatarPath;
+    m_localAvatarColor = normalizedAvatarColor;
     m_discovery->updateIdentity(m_identity);
     m_transport->updateIdentity(m_identity);
     setLastError({});
@@ -345,6 +403,8 @@ bool ChatCoordinator::initializeIdentity()
     Config::IdentityConfig config = Config::identity.get();
     QString deviceId = QString::fromStdString(config.device_id).trimmed();
     QString displayName = QString::fromStdString(config.display_name).trimmed();
+    QString avatarPath = QString::fromStdString(config.avatar_path).trimmed();
+    QString avatarColor = QString::fromStdString(config.avatar_color).trimmed();
     bool changed = false;
     if (deviceId.isEmpty())
     {
@@ -365,9 +425,35 @@ bool ChatCoordinator::initializeIdentity()
         displayName = displayName.left(64);
         changed = true;
     }
+    if (!avatarPath.isEmpty())
+    {
+        const QFileInfo avatarFileInfo(avatarPath);
+        if (!avatarFileInfo.isFile()
+            || QImageReader::imageFormat(avatarFileInfo.absoluteFilePath()).isEmpty())
+        {
+            avatarPath.clear();
+            changed = true;
+        }
+        else
+        {
+            avatarPath = avatarFileInfo.absoluteFilePath();
+        }
+    }
+    const QColor parsedAvatarColor(avatarColor);
+    if (!parsedAvatarColor.isValid())
+    {
+        avatarColor = QStringLiteral("#4f7cff");
+        changed = true;
+    }
+    else
+    {
+        avatarColor = parsedAvatarColor.name(QColor::HexRgb);
+    }
 
     m_identity.deviceId = deviceId;
     m_identity.displayName = displayName;
+    m_localAvatarPath = avatarPath;
+    m_localAvatarColor = avatarColor;
     if (!changed)
     {
         return true;
@@ -375,6 +461,8 @@ bool ChatCoordinator::initializeIdentity()
 
     config.device_id = deviceId.toStdString();
     config.display_name = displayName.toStdString();
+    config.avatar_path = avatarPath.toStdString();
+    config.avatar_color = avatarColor.toStdString();
     Config::identity.set(config);
     const Config::Result result = Config::identity.save();
     if (!result)

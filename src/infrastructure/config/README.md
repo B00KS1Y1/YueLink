@@ -15,7 +15,7 @@ Config::identity  // identity.json
 - `log.json`：日志配置，默认日志文件为 `system/logs/yuelink.log`；
 - `theme.json`：主题配置；
 - `database.json`：数据库配置，默认 SQLite 文件为 `system/database/yuelink.db`；
-- `application.json`：应用配置；
+- `application.json`：应用配置；其中 `download_directory` 为接收文件的下载目录，首次启动时默认为系统下载目录下的 `YueLink`；
 - `identity.json`：本机设备标识与昵称。
 
 相对日志路径始终以 `system/logs` 为基准，相对 SQLite 路径始终以

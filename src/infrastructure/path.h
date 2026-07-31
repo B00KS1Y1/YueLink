@@ -52,6 +52,11 @@ QString databaseDirectory();
  */
 QString databaseFile(const QString &fileName);
 /**
+ * @brief 返回用于接收文件的默认下载目录。
+ * @return 系统下载目录下的 YueLink 子目录；系统下载目录不可用时使用用户主目录下的 Downloads/YueLink。
+ */
+QString defaultDownloadDirectory();
+/**
  * @brief 返回应用数据目录的绝对路径。
  * @return 应用数据目录的绝对路径。
  */

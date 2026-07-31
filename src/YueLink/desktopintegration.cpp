@@ -1,7 +1,7 @@
 #include "desktopintegration.h"
 
 #include "application/chatcoordinator.h"
-#include "conversationviewmodel.h"
+#include "YueLink/conversationviewmodel.h"
 #include "ifilelauncher.h"
 #include "inotificationservice.h"
 
@@ -95,6 +95,20 @@ QList<QUrl> DesktopIntegration::clipboardImageUrls(QString *errorMessage)
         return {};
     }
     return {QUrl::fromLocalFile(imagePath)};
+}
+
+bool DesktopIntegration::copyText(const QString &text,
+                                  QString *errorMessage)
+{
+    if (text.isEmpty())
+    {
+        setError(errorMessage, tr("没有可复制的文本。"));
+        return false;
+    }
+
+    QGuiApplication::clipboard()->setText(text);
+    setError(errorMessage, {});
+    return true;
 }
 
 bool DesktopIntegration::openFile(const QString &filePath,

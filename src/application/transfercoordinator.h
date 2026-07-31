@@ -8,7 +8,7 @@
 #ifndef TRANSFERCOORDINATOR_H
 #define TRANSFERCOORDINATOR_H
 
-#include "core/chattypes.h"
+#include "domain/chattypes.h"
 
 #include <QObject>
 #include <QStringList>

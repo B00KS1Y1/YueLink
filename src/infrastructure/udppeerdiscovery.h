@@ -8,8 +8,9 @@
 #ifndef UDPPEERDISCOVERY_H
 #define UDPPEERDISCOVERY_H
 
-#include "core/ipeerdiscovery.h"
+#include "domain/ipeerdiscovery.h"
 
+#include <QByteArray>
 #include <QHash>
 #include <QTimer>
 #include <QUdpSocket>
@@ -41,6 +42,8 @@ public:
     void updateIdentity(const Network::LocalIdentity &identity) override;
     /** @brief 立即发送一次在线广播。 */
     void announce() override;
+    /** @brief 广播发现请求，并使在线节点立即单播在线状态回应。*/
+    void probe() override;
     /**
      * @brief 刷新指定节点的最近活动时间。
      * @param peerId 待刷新的节点标识。
@@ -68,6 +71,17 @@ private:
      * @param type 广播类型，例如在线或离线。
      */
     void sendPresence(const QString &type);
+    /**
+     * @brief 向指定地址单播在线状态回应。
+     * @param address 接收发现回应的 IPv4 地址。
+     */
+    void sendPresenceTo(const QHostAddress &address);
+    /**
+     * @brief 生成指定类型的节点状态报文。
+     * @param type 节点状态或发现请求的类型。
+     * @return 可发送的紧凑 JSON 报文；服务未运行时返回空字节数组。
+     */
+    [[nodiscard]] QByteArray presencePayload(const QString &type) const;
     /** @brief 将超过活动超时时间的节点标记为离线。 */
     void expirePeers();
     /**

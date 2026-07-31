@@ -408,7 +408,7 @@ Item {
                                 ? qsTr("%1 · 已发送").arg(messageDelegate.messageTime)
                                 : messageDelegate.messageKind === "file"
                                   && messageDelegate.deliveryStatus === "received"
-                                  ? qsTr("%1 · 已保存到下载/YueLink")
+                                  ? qsTr("%1 · 已保存到下载目录")
                                         .arg(messageDelegate.messageTime)
                           : messageDelegate.deliveryStatus === "sending"
                             ? qsTr("%1 · 发送中").arg(messageDelegate.messageTime)

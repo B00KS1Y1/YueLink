@@ -1,11 +1,11 @@
 #include "lanchatmanager.h"
 
 #include "application/chatcoordinator.h"
-#include "conversationviewmodel.h"
-#include "desktopfilelauncher.h"
-#include "desktopintegration.h"
-#include "desktopnotificationservice.h"
-#include "peerlistviewmodel.h"
+#include "YueLink/conversationviewmodel.h"
+#include "YueLink/desktopfilelauncher.h"
+#include "YueLink/desktopintegration.h"
+#include "YueLink/desktopnotificationservice.h"
+#include "YueLink/peerlistviewmodel.h"
 
 #include <QStringList>
 
@@ -95,6 +95,17 @@ QString LanChatManager::localInitial() const
     return m_conversation->localInitial();
 }
 
+QUrl LanChatManager::localAvatarUrl() const
+{
+    const QString avatarPath = m_coordinator->localAvatarPath();
+    return avatarPath.isEmpty() ? QUrl{} : QUrl::fromLocalFile(avatarPath);
+}
+
+QString LanChatManager::localAvatarColor() const
+{
+    return m_coordinator->localAvatarColor();
+}
+
 QString LanChatManager::currentPeerId() const
 {
     return m_conversation->currentPeerId();
@@ -130,6 +141,11 @@ void LanChatManager::stop()
     m_coordinator->stop();
 }
 
+bool LanChatManager::refreshPeers()
+{
+    return static_cast<bool>(m_coordinator->refreshPeerDiscovery());
+}
+
 bool LanChatManager::selectPeer(const QString &peerId)
 {
     return m_conversation->selectPeer(peerId);
@@ -145,9 +161,19 @@ QVariantMap LanChatManager::peerInfo(const QString &peerId) const
     return m_peers->peerInfo(peerId);
 }
 
-bool LanChatManager::updateLocalProfile(const QString &displayName)
+bool LanChatManager::updateLocalProfile(const QString &displayName,
+                                        const QUrl &avatarUrl,
+                                        const QString &avatarColor)
 {
-    return static_cast<bool>(m_coordinator->updateLocalProfile(displayName));
+    if (!avatarUrl.isEmpty() && !avatarUrl.isLocalFile())
+    {
+        emit operationFailed(tr("仅支持使用本地头像图片。"));
+        return false;
+    }
+    return static_cast<bool>(m_coordinator->updateLocalProfile(
+        displayName,
+        avatarUrl.isEmpty() ? QString{} : avatarUrl.toLocalFile(),
+        avatarColor));
 }
 
 bool LanChatManager::sendMessage(const QString &peerId, const QString &text)
@@ -214,6 +240,17 @@ bool LanChatManager::revealFile(const QString &filePath)
 {
     QString error;
     if (!m_desktop->revealFile(filePath, &error))
+    {
+        emit operationFailed(error);
+        return false;
+    }
+    return true;
+}
+
+bool LanChatManager::copyLocalDeviceId()
+{
+    QString error;
+    if (!m_desktop->copyText(m_coordinator->localIdentity().deviceId, &error))
     {
         emit operationFailed(error);
         return false;

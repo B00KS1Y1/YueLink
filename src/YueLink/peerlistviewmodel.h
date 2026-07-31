@@ -8,7 +8,7 @@
 #ifndef PEERLISTVIEWMODEL_H
 #define PEERLISTVIEWMODEL_H
 
-#include "peerlistmodel.h"
+#include "YueLink/peerlistmodel.h"
 
 #include <QDateTime>
 #include <QObject>

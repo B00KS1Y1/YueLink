@@ -1,18 +1,17 @@
 #include <QApplication>
 #include <QDir>
 #include <QIcon>
-#include <QLockFile>
 #include <QMessageBox>
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
 
 #include "application/chatcoordinator.h"
-#include "gui/lanchatmanager.h"
 #include "infrastructure/path.h"
 #include "infrastructure/runtimebootstrap.h"
 #include "infrastructure/sqlitechatrepository.h"
 #include "infrastructure/tcpchattransport.h"
 #include "infrastructure/udppeerdiscovery.h"
+#include "YueLink/lanchatmanager.h"
 
 #include <spdlog/spdlog.h>
 
@@ -25,7 +24,7 @@ int main(int argc, char *argv[])
     QQuickWindow::setGraphicsApi(QSGRendererInterface::OpenGL);
     QCoreApplication::setOrganizationName(QStringLiteral("YueLink"));
     QCoreApplication::setApplicationName(QStringLiteral("YueLink"));
-    QGuiApplication::setWindowIcon(QIcon(QStringLiteral(":/assets/yuelink-app-icon.png")));
+    QGuiApplication::setWindowIcon(QIcon(QStringLiteral(":/yuelink/assets/yuelink-app-icon.png")));
 
     RuntimeBootstrap::initialize();
     spdlog::info("[应用程序] YueLink 图形界面正在启动");
@@ -37,18 +36,7 @@ int main(int argc, char *argv[])
         RuntimeBootstrap::shutdown();
         return 3;
     }
-    QLockFile instanceLock(Utils::Path::dataFile(QStringLiteral("runtime.lock")));
-    if (!instanceLock.tryLock())
-    {
-        spdlog::error("[应用程序] 另一个 YueLink 实例正在使用当前配置");
-        QMessageBox::critical(nullptr, QObject::tr("YueLink"), QObject::tr("另一个 YueLink 实例正在使用当前配置。"));
-        RuntimeBootstrap::shutdown();
-        return 2;
-    }
-
-    ChatCoordinator coordinator(std::make_unique<UdpPeerDiscovery>(),
-                                std::make_unique<TcpChatTransport>(),
-                                std::make_unique<SqliteChatRepository>());
+    ChatCoordinator coordinator(std::make_unique<UdpPeerDiscovery>(), std::make_unique<TcpChatTransport>(), std::make_unique<SqliteChatRepository>());
     LanChatManager::setCoordinator(&coordinator);
 
     QQmlApplicationEngine engine;

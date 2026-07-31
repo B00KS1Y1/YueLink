@@ -8,7 +8,7 @@
 #ifndef SQLITECHATREPOSITORY_H
 #define SQLITECHATREPOSITORY_H
 
-#include "core/ichatrepository.h"
+#include "domain/ichatrepository.h"
 
 class QSqlDatabase;
 

@@ -8,7 +8,7 @@
 #ifndef TCPCHATTRANSPORT_H
 #define TCPCHATTRANSPORT_H
 
-#include "core/ichattransport.h"
+#include "domain/ichattransport.h"
 
 #include <QHash>
 #include <QQueue>

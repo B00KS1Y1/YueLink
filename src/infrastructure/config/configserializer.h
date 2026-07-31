@@ -17,10 +17,13 @@ namespace Config
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(IdentityConfig,
                                                 device_id,
-                                                display_name)
+                                                display_name,
+                                                avatar_path,
+                                                avatar_color)
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ApplicationConfig,
-                                                notifications_enabled)
+                                                notifications_enabled,
+                                                download_directory)
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ThemeConfig,
                                                 mode,

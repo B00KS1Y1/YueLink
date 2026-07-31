@@ -47,6 +47,13 @@ public:
      */
     [[nodiscard]] QList<QUrl> clipboardImageUrls(QString *errorMessage);
     /**
+     * @brief 将文本复制到系统剪贴板。
+     * @param text 待复制的非空文本。
+     * @param[out] errorMessage 操作失败时接收错误说明。
+     * @return 文本已写入剪贴板时返回 @c true。
+     */
+    [[nodiscard]] bool copyText(const QString &text, QString *errorMessage);
+    /**
      * @brief 使用系统默认应用打开文件。
      * @param filePath 待打开的本地文件路径。
      * @param[out] errorMessage 操作失败时接收错误说明。

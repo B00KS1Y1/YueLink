@@ -9,10 +9,12 @@ Item {
     id: root
 
     property string selectedPeerId: ""
+    property bool contactsMode: false
     readonly property string searchKeyword: LanChat.peerSearchText.trim()
 
     signal friendSelected(string peerId)
     signal networkStartRequested()
+    signal networkRefreshRequested()
 
     Item {
         id: searchSection
@@ -48,15 +50,23 @@ Item {
             }
 
             HusIconButton {
+                id: discoveryButton
+
                 Layout.preferredWidth: 34
                 Layout.preferredHeight: 34
-                visible: !LanChat.running
                 padding: 0
                 type: HusButton.Type_Filled
                 iconSource: HusIcon.ReloadOutlined
                 iconSize: 18
-                contentDescription: qsTr("重新启动局域网发现服务")
-                onClicked: root.networkStartRequested()
+                contentDescription: LanChat.running
+                                    ? qsTr("立即刷新局域网好友")
+                                    : qsTr("启动局域网发现服务")
+                onClicked: {
+                    if (LanChat.running)
+                        root.networkRefreshRequested();
+                    else
+                        root.networkStartRequested();
+                }
             }
         }
     }
@@ -78,7 +88,7 @@ Item {
             anchors.left: parent.left
             anchors.leftMargin: 20
             anchors.verticalCenter: parent.verticalCenter
-            text: qsTr("局域网好友")
+            text: root.contactsMode ? qsTr("联系人") : qsTr("消息")
             color: HusTheme.Primary.colorTextBase
             font.pixelSize: HusTheme.Primary.fontPrimarySize
             font.weight: Font.Medium
@@ -88,7 +98,7 @@ Item {
             anchors.right: parent.right
             anchors.rightMargin: 20
             anchors.verticalCenter: parent.verticalCenter
-            text: LanChat.totalUnreadCount > 0
+            text: !root.contactsMode && LanChat.totalUnreadCount > 0
                   ? qsTr("%1 条未读 · %2 人在线")
                         .arg(LanChat.totalUnreadCount)
                         .arg(LanChat.onlineCount)
@@ -183,7 +193,9 @@ Item {
 
                 HusText {
                     width: parent.width
-                    text: friendDelegate.lastMessage
+                    text: root.contactsMode
+                          ? friendDelegate.statusText
+                          : friendDelegate.lastMessage
                     color: HusTheme.Primary.colorTextTertiary
                     elide: Text.ElideRight
                     font.pixelSize: HusTheme.Primary.fontPrimarySize

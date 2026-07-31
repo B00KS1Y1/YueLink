@@ -8,7 +8,7 @@
 #ifndef WIREPROTOCOL_H
 #define WIREPROTOCOL_H
 
-#include "core/networktypes.h"
+#include "domain/networktypes.h"
 
 #include <QByteArray>
 #include <QJsonObject>

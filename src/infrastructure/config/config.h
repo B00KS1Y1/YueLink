@@ -19,11 +19,14 @@ struct IdentityConfig
 {
     std::string device_id;
     std::string display_name;
+    std::string avatar_path;
+    std::string avatar_color = "#4F7CFF";
 };
 
 struct ApplicationConfig
 {
     bool notifications_enabled = true;
+    std::string download_directory;
 };
 
 struct ThemeConfig
@@ -31,7 +34,7 @@ struct ThemeConfig
     std::string mode = "dark";
     std::string primary_color = "#4F7CFF";
     bool animations_enabled = true;
-    std::string navigation_mode = "relaxed";
+    std::string navigation_mode = "compact";
     std::string dark_background;
     std::string light_background;
 };

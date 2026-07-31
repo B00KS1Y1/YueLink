@@ -37,6 +37,8 @@ class LanChatManager final : public QObject
     Q_PROPERTY(QString messageSearchText READ messageSearchText WRITE setMessageSearchText NOTIFY messageSearchTextChanged)
     Q_PROPERTY(QString localName READ localName NOTIFY localProfileChanged)
     Q_PROPERTY(QString localInitial READ localInitial NOTIFY localProfileChanged)
+    Q_PROPERTY(QUrl localAvatarUrl READ localAvatarUrl NOTIFY localProfileChanged)
+    Q_PROPERTY(QString localAvatarColor READ localAvatarColor NOTIFY localProfileChanged)
     Q_PROPERTY(QString currentPeerId READ currentPeerId NOTIFY currentPeerIdChanged)
     Q_PROPERTY(int onlineCount READ onlineCount NOTIFY onlineCountChanged)
     Q_PROPERTY(int totalUnreadCount READ totalUnreadCount NOTIFY totalUnreadCountChanged)
@@ -119,6 +121,16 @@ public:
      */
     [[nodiscard]] QString localInitial() const;
     /**
+     * @brief 返回本机头像图片的本地 URL。
+     * @return 已配置且文件存在时返回本地文件 URL，否则返回空 URL。
+     */
+    [[nodiscard]] QUrl localAvatarUrl() const;
+    /**
+     * @brief 返回本机头像的背景色。
+     * @return 可直接供 QML 使用的十六进制颜色字符串。
+     */
+    [[nodiscard]] QString localAvatarColor() const;
+    /**
      * @brief 返回当前选中会话的节点标识。
      * @return 当前节点标识；没有选择时返回空字符串。
      */
@@ -152,6 +164,11 @@ public:
     /** @brief 停止聊天服务。 */
     Q_INVOKABLE void stop();
     /**
+     * @brief 立即发起一次局域网好友发现。
+     * @return 发现请求成功发出时返回 @c true。
+     */
+    Q_INVOKABLE bool refreshPeers();
+    /**
      * @brief 选择需要显示的会话。
      * @param peerId 会话对应的节点标识。
      * @return 节点存在且选择成功时返回 @c true。
@@ -170,11 +187,15 @@ public:
      */
     Q_INVOKABLE QVariantMap peerInfo(const QString &peerId) const;
     /**
-     * @brief 更新并保存本地显示名称。
+     * @brief 更新并保存本地资料。
      * @param displayName 新的显示名称。
+     * @param avatarUrl 本地头像图片 URL；空 URL 表示清除头像。
+     * @param avatarColor 头像背景色。
      * @return 更新成功时返回 @c true。
      */
-    Q_INVOKABLE bool updateLocalProfile(const QString &displayName);
+    Q_INVOKABLE bool updateLocalProfile(const QString &displayName,
+                                        const QUrl &avatarUrl,
+                                        const QString &avatarColor);
     /**
      * @brief 向指定节点发送文本消息。
      * @param peerId 目标节点标识。
@@ -221,6 +242,11 @@ public:
      * @return 已成功请求系统定位文件时返回 @c true。
      */
     Q_INVOKABLE bool revealFile(const QString &filePath);
+    /**
+     * @brief 将本机设备标识复制到系统剪贴板。
+     * @return 设备标识已复制时返回 @c true。
+     */
+    Q_INVOKABLE bool copyLocalDeviceId();
     /**
      * @brief 启用或禁用桌面通知。
      * @param enabled 是否允许显示通知。

@@ -8,8 +8,8 @@
 #ifndef CONVERSATIONVIEWMODEL_H
 #define CONVERSATIONVIEWMODEL_H
 
-#include "chatmessagemodel.h"
-#include "core/chattypes.h"
+#include "domain/chattypes.h"
+#include "YueLink/chatmessagemodel.h"
 
 #include <QDateTime>
 #include <QObject>

@@ -1,6 +1,6 @@
 #include "conversationstore.h"
 
-#include "core/ichatrepository.h"
+#include "domain/ichatrepository.h"
 
 #include <spdlog/spdlog.h>
 

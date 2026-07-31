@@ -39,9 +39,7 @@ public:
      * @param message 通知正文。
      * @param contextId 激活通知时返回的上下文标识。
      */
-    virtual void showNotification(const QString &title,
-                                  const QString &message,
-                                  const QString &contextId) = 0;
+    virtual void showNotification(const QString &title, const QString &message, const QString &contextId) = 0;
 
 signals:
     /**

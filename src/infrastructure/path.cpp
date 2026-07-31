@@ -81,4 +81,14 @@ QString databaseFile(const QString &fileName)
     return QDir::cleanPath(QDir(databaseDirectory()).filePath(relativePath));
 }
 
+QString defaultDownloadDirectory()
+{
+    QString downloadsPath = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
+    if (downloadsPath.isEmpty())
+    {
+        downloadsPath = QDir::home().filePath(QStringLiteral("Downloads"));
+    }
+    return QDir::cleanPath(QDir(downloadsPath).filePath(QStringLiteral("YueLink")));
+}
+
 } // namespace Utils::Path

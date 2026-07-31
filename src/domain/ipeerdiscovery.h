@@ -45,6 +45,8 @@ public:
     virtual void updateIdentity(const Network::LocalIdentity &identity) = 0;
     /** @brief 立即发送一次在线广播。 */
     virtual void announce() = 0;
+    /** @brief 广播一次发现请求，并请求在线节点立即单播回应。*/
+    virtual void probe() = 0;
     /**
      * @brief 刷新指定节点的最近活动时间。
      * @param peerId 待刷新的节点标识。

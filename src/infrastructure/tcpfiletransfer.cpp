@@ -1,5 +1,7 @@
 #include "tcpchattransport.h"
 
+#include "config/configstore.h"
+#include "infrastructure/path.h"
 #include "wireprotocol.h"
 
 #include <QDir>
@@ -7,7 +9,6 @@
 #include <QFileInfo>
 #include <QJsonObject>
 #include <QSaveFile>
-#include <QStandardPaths>
 #include <QTcpSocket>
 #include <QUuid>
 
@@ -460,13 +461,10 @@ void TcpChatTransport::expireFileTransfers()
 
 QString TcpChatTransport::uniqueReceivePath(const QString &fileName) const
 {
-    QString downloadPath = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
-    if (downloadPath.isEmpty())
-    {
-        downloadPath = QDir::home().filePath(QStringLiteral("Downloads"));
-    }
-
-    const QString receiveDirectory = QDir(downloadPath).filePath(QStringLiteral("YueLink"));
+    const QString configuredDirectory = QString::fromStdString(Config::application.get().download_directory).trimmed();
+    const QString receiveDirectory = QFileInfo(configuredDirectory).isAbsolute()
+                                       ? QDir::cleanPath(QDir::fromNativeSeparators(configuredDirectory))
+                                       : Utils::Path::defaultDownloadDirectory();
     if (!QDir().mkpath(receiveDirectory))
     {
         spdlog::error("[网络.文件] 创建文件接收目录失败");

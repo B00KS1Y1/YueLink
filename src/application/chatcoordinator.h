@@ -8,7 +8,7 @@
 #ifndef CHATCOORDINATOR_H
 #define CHATCOORDINATOR_H
 
-#include "core/chattypes.h"
+#include "domain/chattypes.h"
 
 #include <QList>
 #include <QObject>
@@ -46,6 +46,16 @@ public:
      * @return 当前本地身份。
      */
     [[nodiscard]] Network::LocalIdentity localIdentity() const;
+    /**
+     * @brief 返回本机头像文件的绝对路径。
+     * @return 已验证可用的头像路径；未设置或文件无效时返回空字符串。
+     */
+    [[nodiscard]] QString localAvatarPath() const;
+    /**
+     * @brief 返回本机头像背景色。
+     * @return 规范化后的不透明十六进制颜色。
+     */
+    [[nodiscard]] QString localAvatarColor() const;
     /**
      * @brief 返回全部已知节点。
      * @return 已知节点列表。
@@ -95,17 +105,26 @@ public:
     /** @brief 停止传输服务与节点发现。 */
     void stop();
     /**
+     * @brief 立即发起一次局域网节点发现。
+     * @return 服务未启动时返回失败；成功时在线节点会立即单播回应。
+     */
+    [[nodiscard]] Domain::OperationResult refreshPeerDiscovery();
+    /**
      * @brief 将指定会话标记为已读。
      * @param peerId 会话对应的节点标识。
      * @return 包含成功或失败信息的结构化结果。
      */
     [[nodiscard]] Domain::OperationResult markConversationRead(const QString &peerId);
     /**
-     * @brief 更新本地显示名称并保存到 identity.json。
+     * @brief 更新本地资料并保存到 identity.json。
      * @param displayName 新的显示名称。
+     * @param avatarPath 本机头像图片的绝对路径；传入空字符串时清除头像。
+     * @param avatarColor 头像背景色。
      * @return 包含成功或失败信息的结构化结果。
      */
-    [[nodiscard]] Domain::OperationResult updateLocalProfile(const QString &displayName);
+    [[nodiscard]] Domain::OperationResult updateLocalProfile(const QString &displayName,
+                                                              const QString &avatarPath,
+                                                              const QString &avatarColor);
     /**
      * @brief 向指定节点发送文本消息。
      * @param peerId 目标节点标识。
@@ -252,6 +271,8 @@ private:
     std::unique_ptr<ConversationStore> m_conversations;
     std::unique_ptr<TransferCoordinator> m_transfers;
     Network::LocalIdentity m_identity;
+    QString m_localAvatarPath;
+    QString m_localAvatarColor;
     QString m_lastError;
     bool m_identityReady = false;
     bool m_running = false;

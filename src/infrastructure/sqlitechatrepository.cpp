@@ -1,7 +1,7 @@
 #include "sqlitechatrepository.h"
 
-#include "config/configstore.h"
-#include "path.h"
+#include "infrastructure/config/configstore.h"
+#include "infrastructure/path.h"
 
 #include <QDir>
 #include <QFileInfo>

@@ -8,7 +8,7 @@
 #ifndef PEERLISTMODEL_H
 #define PEERLISTMODEL_H
 
-#include "core/networktypes.h"
+#include "domain/networktypes.h"
 
 #include <QAbstractListModel>
 #include <QDateTime>

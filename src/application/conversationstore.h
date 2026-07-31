@@ -8,7 +8,7 @@
 #ifndef CONVERSATIONSTORE_H
 #define CONVERSATIONSTORE_H
 
-#include "core/chattypes.h"
+#include "domain/chattypes.h"
 
 #include <QHash>
 #include <QList>

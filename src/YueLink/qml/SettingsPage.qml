@@ -17,7 +17,9 @@ Item {
     function loadSettings(): void {
         themeModeSelect.currentIndex = themeModeSelect.indexOfValue(AppSettings.themeMode);
         animationsSwitch.checked = AppSettings.animationsEnabled;
+        navigationModeSelect.currentIndex = navigationModeSelect.indexOfValue(AppSettings.navigationMode);
         notificationsSwitch.checked = AppSettings.notificationsEnabled;
+        downloadDirectoryInput.text = AppSettings.downloadDirectory;
         logLevelSelect.currentIndex = logLevelSelect.indexOfValue(AppSettings.logLevel);
         logFilePathInput.text = AppSettings.logFilePath;
         root.errorText = "";
@@ -27,7 +29,9 @@ Item {
         if (AppSettings.save(themeModeSelect.currentValue,
                              primaryColorPicker.toHexString(primaryColorPicker.value),
                              animationsSwitch.checked,
+                             navigationModeSelect.currentValue,
                              notificationsSwitch.checked,
+                             downloadDirectoryInput.text,
                              logLevelSelect.currentValue,
                              logFilePathInput.text)) {
             root.errorText = "";
@@ -46,6 +50,47 @@ Item {
         return "";
     }
 
+    function encodedPath(filePath: string): string {
+        return encodeURIComponent(filePath).replace(/%2F/gi, "/");
+    }
+
+    function localFileUrl(filePath: string): url {
+        const normalizedPath = filePath.trim().replace(/\\/g, "/");
+        if (normalizedPath.startsWith("//"))
+            return "file://" + root.encodedPath(normalizedPath.substring(2));
+        if (/^[A-Za-z]:\//.test(normalizedPath))
+            return "file:///" + normalizedPath.substring(0, 2)
+                    + root.encodedPath(normalizedPath.substring(2));
+        if (normalizedPath.startsWith("/"))
+            return "file://" + root.encodedPath(normalizedPath);
+        return "";
+    }
+
+    function containingDirectoryPath(filePath: string): string {
+        const normalizedPath = filePath.trim().replace(/\\/g, "/");
+        const separatorIndex = normalizedPath.lastIndexOf("/");
+        if (/^[A-Za-z]:\//.test(normalizedPath) && separatorIndex === 2)
+            return normalizedPath.substring(0, 3);
+        if (separatorIndex === 0)
+            return "/";
+        return separatorIndex > 0 ? normalizedPath.substring(0, separatorIndex) : "";
+    }
+
+    function openLogFileDialog(): void {
+        const currentDirectoryUrl = root.localFileUrl(
+                                        root.containingDirectoryPath(logFilePathInput.text));
+        if (currentDirectoryUrl.toString().length > 0)
+            logFileDialog.currentFolder = currentDirectoryUrl;
+        logFileDialog.open();
+    }
+
+    function openDownloadDirectoryDialog(): void {
+        const currentDirectoryUrl = root.localFileUrl(downloadDirectoryInput.text);
+        if (currentDirectoryUrl.toString().length > 0)
+            downloadDirectoryDialog.currentFolder = currentDirectoryUrl;
+        downloadDirectoryDialog.open();
+    }
+
     Component.onCompleted: root.loadSettings()
 
     FileDialog {
@@ -56,6 +101,13 @@ Item {
         defaultSuffix: "log"
         nameFilters: [qsTr("日志文件 (*.log)"), qsTr("所有文件 (*)")]
         onAccepted: logFilePathInput.text = root.localFilePath(selectedFile)
+    }
+
+    FolderDialog {
+        id: downloadDirectoryDialog
+
+        title: qsTr("选择下载目录")
+        onAccepted: downloadDirectoryInput.text = root.localFilePath(selectedFolder)
     }
 
     Flickable {
@@ -100,6 +152,33 @@ Item {
                         color: HusTheme.Primary.colorTextBase
                         font.pixelSize: HusTheme.Primary.fontPrimarySizeHeading4
                         font.weight: Font.Medium
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 16
+
+                        HusText {
+                            Layout.fillWidth: true
+                            text: qsTr("导航布局")
+                            color: HusTheme.Primary.colorTextBase
+                            font.pixelSize: HusTheme.Primary.fontPrimarySize
+                            font.weight: Font.Medium
+                        }
+
+                        HusSelect {
+                            id: navigationModeSelect
+
+                            Layout.preferredWidth: 150
+                            Layout.preferredHeight: 34
+                            clearEnabled: false
+                            contentDescription: qsTr("导航布局")
+                            model: [
+                                { "label": qsTr("宽松"), "value": "relaxed" },
+                                { "label": qsTr("标准"), "value": "standard" },
+                                { "label": qsTr("紧凑"), "value": "compact" }
+                            ]
+                        }
                     }
 
                     RowLayout {
@@ -307,7 +386,66 @@ Item {
                             iconSource: HusIcon.FolderOpenOutlined
                             iconSize: 16
                             contentDescription: qsTr("选择日志文件路径")
-                            onClicked: logFileDialog.open()
+                            onClicked: root.openLogFileDialog()
+                        }
+                    }
+
+                }
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: downloadLayout.implicitHeight + 40
+                radius: 12
+                color: HusTheme.Primary.colorBgContainer
+                border.width: 1
+                border.color: HusTheme.Primary.colorBorderSecondary
+
+                ColumnLayout {
+                    id: downloadLayout
+
+                    anchors.fill: parent
+                    anchors.margins: 20
+                    spacing: 15
+
+                    HusText {
+                        Layout.fillWidth: true
+                        text: qsTr("文件接收")
+                        color: HusTheme.Primary.colorTextBase
+                        font.pixelSize: HusTheme.Primary.fontPrimarySizeHeading4
+                        font.weight: Font.Medium
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 16
+
+                        HusText {
+                            Layout.preferredWidth: 112
+                            text: qsTr("下载目录")
+                            color: HusTheme.Primary.colorTextBase
+                            font.pixelSize: HusTheme.Primary.fontPrimarySize
+                            font.weight: Font.Medium
+                        }
+
+                        HusInput {
+                            id: downloadDirectoryInput
+
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 34
+                            selectByMouse: true
+                            verticalAlignment: TextInput.AlignVCenter
+                            contentDescription: qsTr("下载目录")
+                        }
+
+                        HusIconButton {
+                            Layout.preferredWidth: 96
+                            Layout.preferredHeight: 34
+                            text: qsTr("浏览")
+                            iconSource: HusIcon.FolderOpenOutlined
+                            iconSize: 16
+                            contentDescription: qsTr("选择下载目录")
+                            onClicked: root.openDownloadDirectoryDialog()
                         }
                     }
                 }
@@ -401,7 +539,9 @@ Item {
                 type: HusButton.Type_Primary
                 text: qsTr("保存设置")
                 enabled: logFilePathInput.text.trim().length > 0
+                         && downloadDirectoryInput.text.trim().length > 0
                          && themeModeSelect.currentIndex >= 0
+                         && navigationModeSelect.currentIndex >= 0
                          && logLevelSelect.currentIndex >= 0
                 contentDescription: qsTr("保存应用设置")
                 onClicked: root.saveSettings()

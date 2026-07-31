@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
+import QtQuick.Dialogs
 import QtQuick.Layouts
 import HuskarUI.Basic
 
@@ -8,12 +9,15 @@ Item {
     id: root
 
     property string errorText: ""
+    property url avatarUrl: LanChat.localAvatarUrl
 
     signal closeRequested()
     signal saved()
 
     function saveProfile(): void {
-        if (LanChat.updateLocalProfile(displayNameInput.text)) {
+        if (LanChat.updateLocalProfile(displayNameInput.text,
+                                       root.avatarUrl,
+                                       avatarColorPicker.toHexString(avatarColorPicker.value))) {
             root.errorText = "";
             root.saved();
         } else {
@@ -21,14 +25,23 @@ Item {
         }
     }
 
+    FileDialog {
+        id: avatarFileDialog
+
+        title: qsTr("选择头像图片")
+        fileMode: FileDialog.OpenFile
+        nameFilters: [qsTr("图片文件 (*.png *.jpg *.jpeg *.bmp *.webp)"), qsTr("所有文件 (*)")]
+        onAccepted: root.avatarUrl = selectedFile
+    }
+
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 28
-        spacing: 20
+        anchors.margins: 20
+        spacing: 14
 
         Rectangle {
             Layout.fillWidth: true
-            Layout.preferredHeight: 132
+            Layout.preferredHeight: 116
             radius: 12
             color: HusTheme.Primary.colorFillQuaternary
             border.width: 1
@@ -36,17 +49,18 @@ Item {
 
             RowLayout {
                 anchors.fill: parent
-                anchors.margins: 22
+                anchors.margins: 18
                 spacing: 18
 
                 HusAvatar {
                     Layout.preferredWidth: 76
                     Layout.preferredHeight: 76
                     size: 76
+                    imageSource: root.avatarUrl.toString()
                     textSource: displayNameInput.text.trim().length > 0
                                 ? displayNameInput.text.trim().slice(0, 1).toUpperCase()
                                 : "?"
-                    colorBg: AppSettings.primaryColor
+                    colorBg: avatarColorPicker.toHexString(avatarColorPicker.value)
                     textSize: HusAvatar.Size_Auto
                 }
 
@@ -117,6 +131,68 @@ Item {
             }
         }
 
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 16
+
+            HusText {
+                Layout.fillWidth: true
+                text: qsTr("头像颜色")
+                color: HusTheme.Primary.colorTextBase
+                font.pixelSize: HusTheme.Primary.fontPrimarySize
+                font.weight: Font.Medium
+            }
+
+            HusColorPicker {
+                id: avatarColorPicker
+
+                Layout.preferredWidth: 160
+                Layout.preferredHeight: 34
+                defaultValue: LanChat.localAvatarColor
+                showText: true
+                alphaEnabled: false
+                format: "hex"
+                title: qsTr("选择头像颜色")
+                Accessible.name: qsTr("头像颜色")
+            }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 10
+
+            HusText {
+                Layout.fillWidth: true
+                text: root.avatarUrl.toString().length > 0
+                      ? qsTr("已选择本地头像图片")
+                      : qsTr("未选择图片，将显示昵称首字母")
+                color: HusTheme.Primary.colorTextSecondary
+                elide: Text.ElideRight
+                font.pixelSize: HusTheme.Primary.fontPrimarySize
+            }
+
+            HusIconButton {
+                Layout.preferredWidth: 86
+                Layout.preferredHeight: 34
+                text: qsTr("选择")
+                iconSource: HusIcon.PictureOutlined
+                iconSize: 16
+                contentDescription: qsTr("选择本地头像图片")
+                onClicked: avatarFileDialog.open()
+            }
+
+            HusIconButton {
+                Layout.preferredWidth: 72
+                Layout.preferredHeight: 34
+                visible: root.avatarUrl.toString().length > 0
+                text: qsTr("清除")
+                iconSource: HusIcon.DeleteOutlined
+                iconSize: 16
+                contentDescription: qsTr("清除头像图片")
+                onClicked: root.avatarUrl = ""
+            }
+        }
+
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 76
@@ -138,7 +214,7 @@ Item {
 
                 HusText {
                     Layout.fillWidth: true
-                    text: qsTr("保存后会立即向局域网好友广播新的昵称，不会中断当前聊天。")
+                    text: qsTr("昵称变更会立即广播给局域网好友；头像图片和颜色仅保存在当前设备。")
                     color: HusTheme.Primary.colorTextSecondary
                     wrapMode: Text.Wrap
                     font.pixelSize: HusTheme.Primary.fontPrimarySize

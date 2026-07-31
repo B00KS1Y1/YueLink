@@ -101,6 +101,11 @@ void UdpPeerDiscovery::announce()
     sendPresence(QStringLiteral("presence"));
 }
 
+void UdpPeerDiscovery::probe()
+{
+    sendPresence(QStringLiteral("probe"));
+}
+
 void UdpPeerDiscovery::recordPeerActivity(const QString &peerId)
 {
     if (m_running && !peerId.isEmpty() && peerId != m_identity.deviceId)
@@ -164,7 +169,12 @@ void UdpPeerDiscovery::readPendingDatagrams()
             }
             continue;
         }
-        if (type != QLatin1String("presence"))
+        if (type == QLatin1String("probe"))
+        {
+            sendPresenceTo(datagram.senderAddress());
+        }
+        if (type != QLatin1String("presence")
+            && type != QLatin1String("probe"))
         {
             continue;
         }
@@ -188,19 +198,11 @@ void UdpPeerDiscovery::readPendingDatagrams()
 
 void UdpPeerDiscovery::sendPresence(const QString &type)
 {
-    if (!m_running || m_tcpPort == 0)
+    const QByteArray payload = presencePayload(type);
+    if (payload.isEmpty())
     {
         return;
     }
-
-    const QJsonObject object{{QStringLiteral("app"), QString::fromLatin1(ProtocolName)},
-                             {QStringLiteral("version"), ProtocolVersion},
-                             {QStringLiteral("type"), type},
-                             {QStringLiteral("id"), m_identity.deviceId},
-                             {QStringLiteral("name"), m_identity.displayName},
-                             {QStringLiteral("tcpPort"), m_tcpPort},
-                             {QStringLiteral("timestamp"), QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs)}};
-    const QByteArray payload = QJsonDocument(object).toJson(QJsonDocument::Compact);
 
     QSet<QHostAddress> destinations;
     destinations.insert(QHostAddress::Broadcast);
@@ -229,6 +231,38 @@ void UdpPeerDiscovery::sendPresence(const QString &type)
         }
     }
     spdlog::trace("[网络.发现] 在线状态已广播 类型={} 目标数={}", type.toUtf8().toStdString(), destinations.size());
+}
+
+void UdpPeerDiscovery::sendPresenceTo(const QHostAddress &address)
+{
+    const QByteArray payload = presencePayload(QStringLiteral("presence"));
+    if (payload.isEmpty())
+    {
+        return;
+    }
+    if (m_socket.writeDatagram(payload, address, DiscoveryPort) < 0)
+    {
+        spdlog::warn("[网络.发现] UDP 发现回应失败 目标地址={} 原因={}",
+                     address.toString().toUtf8().toStdString(),
+                     m_socket.errorString().toUtf8().toStdString());
+    }
+}
+
+QByteArray UdpPeerDiscovery::presencePayload(const QString &type) const
+{
+    if (!m_running || m_tcpPort == 0)
+    {
+        return {};
+    }
+
+    const QJsonObject object{{QStringLiteral("app"), QString::fromLatin1(ProtocolName)},
+                             {QStringLiteral("version"), ProtocolVersion},
+                             {QStringLiteral("type"), type},
+                             {QStringLiteral("id"), m_identity.deviceId},
+                             {QStringLiteral("name"), m_identity.displayName},
+                             {QStringLiteral("tcpPort"), m_tcpPort},
+                             {QStringLiteral("timestamp"), QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs)}};
+    return QJsonDocument(object).toJson(QJsonDocument::Compact);
 }
 
 void UdpPeerDiscovery::expirePeers()

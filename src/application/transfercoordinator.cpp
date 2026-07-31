@@ -1,7 +1,7 @@
 #include "transfercoordinator.h"
 
 #include "conversationstore.h"
-#include "core/ichattransport.h"
+#include "domain/ichattransport.h"
 
 #include <QFileInfo>
 #include <QUrl>
