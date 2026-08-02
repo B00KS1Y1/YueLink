@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Dialogs
 import HuskarUI.Basic
 
-Rectangle {
+Item {
     id: root
 
     property string peerId: ""
@@ -11,6 +11,12 @@ Rectangle {
     property bool draggingFiles: false
     property var drafts: ({})
     property string draftPeerId: ""
+    readonly property color surfaceColor: HusThemeFunctions.alpha(
+                                              HusTheme.Primary.colorBgContainer,
+                                              HusTheme.isDark ? 0.8 : 0.88)
+    readonly property color inputSurfaceColor: HusThemeFunctions.alpha(
+                                                   HusTheme.Primary.colorBgBase,
+                                                   HusTheme.isDark ? 0.54 : 0.62)
 
     signal filesSelected(var fileUrls)
 
@@ -58,21 +64,21 @@ Rectangle {
     }
 
     implicitHeight: 176
-    color: HusTheme.Primary.colorBgContainer
 
     Rectangle {
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: parent.top
-        height: 1
-        color: HusTheme.Primary.colorBorderSecondary
+        anchors.fill: parent
+        radius: 14
+        color: root.surfaceColor
+        border.width: 1
+        border.color: HusTheme.Primary.colorBorderSecondary
+        Accessible.ignored: true
     }
 
     Row {
         id: composerTools
 
         anchors.left: parent.left
-        anchors.leftMargin: 18
+        anchors.leftMargin: 14
         anchors.top: parent.top
         anchors.topMargin: 10
         spacing: 2
@@ -128,13 +134,14 @@ Rectangle {
         anchors.right: sendButton.left
         anchors.top: composerTools.bottom
         anchors.bottom: parent.bottom
-        anchors.leftMargin: 18
-        anchors.rightMargin: 18
-        anchors.bottomMargin: 18
+        anchors.leftMargin: 14
+        anchors.rightMargin: 14
+        anchors.bottomMargin: 14
         maxLength: 2000
         enabled: root.sendEnabled
-        colorBg: "transparent"
-        colorBorder: "transparent"
+        colorBg: root.inputSurfaceColor
+        colorBorder: HusTheme.Primary.colorBorderSecondary
+        radiusBg.all: 10
         placeholderText: root.sendEnabled
                          ? qsTr("输入消息，按 Ctrl+Enter 发送")
                          : root.peerId.length === 0
@@ -154,11 +161,11 @@ Rectangle {
         id: sendButton
 
         anchors.right: parent.right
-        anchors.rightMargin: 20
+        anchors.rightMargin: 14
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: 20
+        anchors.bottomMargin: 14
         width: 94
-        height: 38
+        height: 40
         type: HusButton.Type_Primary
         text: qsTr("发送")
         iconSource: HusIcon.SendOutlined
@@ -184,7 +191,7 @@ Rectangle {
         anchors.fill: parent
         visible: root.draggingFiles
         z: 10
-        radius: 10
+        radius: 14
         color: HusTheme.Primary.colorPrimaryBg
         border.width: 2
         border.color: HusTheme.Primary.colorPrimary

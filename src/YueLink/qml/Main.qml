@@ -15,14 +15,31 @@ HusWindow {
     property string operationError: ""
     property string activePanel: ""
     property string currentPage: "messages"
+    readonly property color glassPanelColor: HusThemeFunctions.alpha(
+                                                  HusTheme.Primary.colorBgContainer,
+                                                  HusTheme.isDark ? 0.68 : 0.76)
+    readonly property color glassPanelStrongColor: HusThemeFunctions.alpha(
+                                                        HusTheme.Primary.colorBgContainer,
+                                                        HusTheme.isDark ? 0.78 : 0.84)
+    readonly property color navigationActiveBackgroundColor: HusTheme.Primary.colorPrimary
+    readonly property color navigationHoverBackgroundColor: HusThemeFunctions.alpha(
+                                                                 HusTheme.Primary.colorPrimary,
+                                                                 HusTheme.isDark ? 0.12 : 0.08)
     readonly property color navigationActiveTextColor: {
         const primary = Qt.color(AppSettings.primaryColor);
         const luminance = primary.r * 0.299 + primary.g * 0.587 + primary.b * 0.114;
         return luminance > 0.55 ? "#1F1F1F" : "#FFFFFF";
     }
     readonly property var navigationMenuTheme: Object.assign({}, HusTheme.HusMenu, {
-                                                                  colorTextActive: navigationActiveTextColor
+                                                                  colorTextActive: navigationActiveTextColor,
+                                                                  colorBgActive: navigationActiveBackgroundColor,
+                                                                  colorBgHover: navigationHoverBackgroundColor,
+                                                                  radiusMenuBg: 10
                                                               })
+    readonly property var settingsMenuTheme: Object.assign({}, navigationMenuTheme, {
+                                                                colorTextActive: HusTheme.Primary.colorPrimary,
+                                                                colorBgActive: "transparent"
+                                                            })
     readonly property int navigationCompactMode: {
         switch (AppSettings.navigationMode) {
         case "relaxed":
@@ -45,6 +62,7 @@ HusWindow {
     }
 
     captionBar.height: 52
+    captionBar.color: "transparent"
     captionBar.showWinIcon: false
     captionBar.winTitle: qsTr("YueLink")
     captionBar.winTitleDelegate: Item {
@@ -304,10 +322,37 @@ HusWindow {
     title: LanChat.totalUnreadCount > 0
            ? qsTr("YueLink（%1 条未读）").arg(LanChat.totalUnreadCount)
            : qsTr("YueLink")
+    color: HusTheme.Primary.colorBgBase
 
     onActiveChanged: {
         if (active && selectedPeerId.length > 0)
             LanChat.markConversationRead(selectedPeerId);
+    }
+
+    Rectangle {
+        id: applicationBackground
+
+        anchors.fill: parent
+        color: HusTheme.Primary.colorBgBase
+        Accessible.ignored: true
+        gradient: Gradient {
+            GradientStop {
+                position: 0
+                color: HusThemeFunctions.alpha(HusTheme.Primary.colorPrimary,
+                                               HusTheme.isDark ? 0.26 : 0.12)
+            }
+
+            GradientStop {
+                position: 0.52
+                color: HusTheme.Primary.colorBgBase
+            }
+
+            GradientStop {
+                position: 1
+                color: HusThemeFunctions.alpha(HusTheme.Primary.colorInfo,
+                                               HusTheme.isDark ? 0.2 : 0.08)
+            }
+        }
     }
 
     Item {
@@ -320,8 +365,14 @@ HusWindow {
             anchors.left: parent.left
             anchors.top: parent.top
             anchors.bottom: parent.bottom
+            anchors.leftMargin: 12
+            anchors.topMargin: 12
+            anchors.bottomMargin: 12
             width: root.navigationWidth
-            color: HusTheme.Primary.colorBgContainer
+            radius: 16
+            color: root.glassPanelStrongColor
+            border.width: 1
+            border.color: HusTheme.Primary.colorBorderSecondary
 
             HusMenu {
                 id: primaryNavigation
@@ -369,7 +420,7 @@ HusWindow {
                 anchors.margins: 6
                 height: implicitHeight
                 compactMode: root.navigationCompactMode
-                themeSource: root.navigationMenuTheme
+                themeSource: root.settingsMenuTheme
                 showToolTip: root.navigationCompactMode !== HusMenu.Mode_Relaxed
                 defaultMenuWidth: 176
                 defaultMenuTopPadding: 10
@@ -390,23 +441,19 @@ HusWindow {
         }
 
         Rectangle {
-            id: navigationDivider
+            id: friendPanel
 
             anchors.left: navigationRail.right
             anchors.top: parent.top
             anchors.bottom: parent.bottom
-            width: 1
-            color: HusTheme.Primary.colorBorderSecondary
-        }
-
-        Rectangle {
-            id: friendPanel
-
-            anchors.left: navigationDivider.right
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
+            anchors.leftMargin: 12
+            anchors.topMargin: 12
+            anchors.bottomMargin: 12
             width: 304
-            color: HusTheme.Primary.colorBgContainer
+            radius: 16
+            color: root.glassPanelColor
+            border.width: 1
+            border.color: HusTheme.Primary.colorBorderSecondary
 
             FriendListPanel {
                 id: friendList
@@ -421,21 +468,20 @@ HusWindow {
         }
 
         Rectangle {
-            id: mainDivider
+            id: conversationPanel
 
             anchors.left: friendPanel.right
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            width: 1
-            color: HusTheme.Primary.colorBorderSecondary
-        }
-
-        Rectangle {
-            anchors.left: mainDivider.right
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.bottom: parent.bottom
-            color: HusTheme.Primary.colorFillQuaternary
+            anchors.leftMargin: 12
+            anchors.rightMargin: 12
+            anchors.topMargin: 12
+            anchors.bottomMargin: 12
+            radius: 16
+            color: root.glassPanelColor
+            border.width: 1
+            border.color: HusTheme.Primary.colorBorderSecondary
 
             ChatContent {
                 id: chatContent
@@ -444,6 +490,7 @@ HusWindow {
                 anchors.right: parent.right
                 anchors.top: parent.top
                 anchors.bottom: messageComposer.top
+                anchors.bottomMargin: 8
                 friendName: root.selectedFriendName
                 friendInitial: root.selectedFriendInitial
                 friendStatus: root.selectedFriendStatus
@@ -464,7 +511,10 @@ HusWindow {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                height: 176
+                anchors.leftMargin: 14
+                anchors.rightMargin: 14
+                anchors.bottomMargin: 14
+                height: 158
                 peerId: root.selectedPeerId
                 sendEnabled: root.selectedFriendOnline
                 errorText: root.operationError

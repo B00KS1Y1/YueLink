@@ -15,6 +15,12 @@ Item {
     property bool peerSelected: false
     property bool searchOpen: false
     readonly property string messageSearchKeyword: LanChat.messageSearchText.trim()
+    readonly property color headerSurfaceColor: HusThemeFunctions.alpha(
+                                                      HusTheme.Primary.colorBgContainer,
+                                                      HusTheme.isDark ? 0.7 : 0.78)
+    readonly property color messageBubbleColor: HusThemeFunctions.alpha(
+                                                     HusTheme.Primary.colorBgContainer,
+                                                     HusTheme.isDark ? 0.84 : 0.92)
 
     signal cancelFileRequested(string messageId)
     signal openFileRequested(string filePath)
@@ -63,15 +69,21 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        height: 78
-        color: HusTheme.Primary.colorBgContainer
+        anchors.leftMargin: 12
+        anchors.rightMargin: 12
+        anchors.topMargin: 12
+        height: 72
+        radius: 12
+        color: root.headerSurfaceColor
+        border.width: 1
+        border.color: HusTheme.Primary.colorBorderSecondary
 
         Row {
             id: friendSummary
 
             anchors.left: parent.left
             anchors.right: headerActions.left
-            anchors.leftMargin: 24
+            anchors.leftMargin: 18
             anchors.rightMargin: 12
             anchors.verticalCenter: parent.verticalCenter
             spacing: 12
@@ -118,7 +130,7 @@ Item {
             id: headerActions
 
             anchors.right: parent.right
-            anchors.rightMargin: 18
+            anchors.rightMargin: 14
             anchors.verticalCenter: parent.verticalCenter
             spacing: 4
 
@@ -126,7 +138,7 @@ Item {
                 width: 40
                 height: 40
                 padding: 0
-                type: HusButton.Type_Text
+                type: HusButton.Type_Filled
                 iconSource: HusIcon.SearchOutlined
                 iconSize: 20
                 enabled: root.peerSelected
@@ -144,7 +156,10 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: chatHeader.bottom
-        height: active ? 56 : 0
+        anchors.leftMargin: 12
+        anchors.rightMargin: 12
+        anchors.topMargin: active ? 8 : 0
+        height: active ? 52 : 0
         active: root.searchOpen
         sourceComponent: messageSearchComponent
     }
@@ -155,7 +170,10 @@ Item {
         Rectangle {
             id: searchPanel
 
-            color: HusTheme.Primary.colorBgContainer
+            radius: 12
+            color: root.headerSurfaceColor
+            border.width: 1
+            border.color: HusTheme.Primary.colorBorderSecondary
 
             function focusInput(): void {
                 messageSearchInput.forceActiveFocus();
@@ -177,7 +195,7 @@ Item {
 
                 anchors.left: parent.left
                 anchors.right: resultCount.left
-                anchors.leftMargin: 24
+                anchors.leftMargin: 14
                 anchors.rightMargin: 12
                 anchors.verticalCenter: parent.verticalCenter
                 height: 38
@@ -196,7 +214,7 @@ Item {
                 id: resultCount
 
                 anchors.right: parent.right
-                anchors.rightMargin: 24
+                anchors.rightMargin: 14
                 anchors.verticalCenter: parent.verticalCenter
                 width: 74
                 text: qsTr("%1 条结果").arg(messageList.count)
@@ -207,27 +225,17 @@ Item {
         }
     }
 
-    Rectangle {
-        id: chatHeaderDivider
-
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: messageSearchLoader.bottom
-        height: 1
-        color: HusTheme.Primary.colorBorderSecondary
-    }
-
     ListView {
         id: messageList
 
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.top: chatHeaderDivider.bottom
+        anchors.top: messageSearchLoader.bottom
         anchors.bottom: parent.bottom
-        anchors.leftMargin: 24
-        anchors.rightMargin: 18
-        anchors.topMargin: 18
-        anchors.bottomMargin: 12
+        anchors.leftMargin: 20
+        anchors.rightMargin: 16
+        anchors.topMargin: 12
+        anchors.bottomMargin: 10
         model: LanChat.messages
         spacing: 8
         boundsBehavior: Flickable.StopAtBounds
@@ -301,10 +309,10 @@ Item {
                               + (messageDelegate.messageKind === "file" ? 44 : 28)
                             : messageTextItem.implicitHeight
                             + (messageDelegate.messageKind === "file" ? 36 : 20)
-                    radius: 10
+                    radius: 14
                     color: messageDelegate.fromMe
                            ? HusTheme.Primary.colorPrimaryBg
-                           : HusTheme.Primary.colorBgContainer
+                           : root.messageBubbleColor
                     border.width: messageDelegate.fromMe ? 0 : 1
                     border.color: HusTheme.Primary.colorBorderSecondary
 
@@ -466,16 +474,58 @@ Item {
         }
     }
 
-    HusText {
+    Column {
         anchors.centerIn: messageList
+        width: Math.min(360, Math.max(0, messageList.width - 48))
+        spacing: 10
         visible: messageList.count === 0
-        text: root.peerSelected
-              ? root.messageSearchKeyword.length > 0
-                ? qsTr("没有找到与“%1”匹配的消息").arg(root.messageSearchKeyword)
-                : qsTr("还没有消息，发一句问候吧")
-              : qsTr("从左侧选择一个局域网好友开始聊天")
-        color: HusTheme.Primary.colorTextTertiary
-        font.pixelSize: HusTheme.Primary.fontPrimarySize
+
+        Rectangle {
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: 64
+            height: 64
+            radius: 20
+            color: HusThemeFunctions.alpha(HusTheme.Primary.colorPrimary,
+                                           HusTheme.isDark ? 0.2 : 0.12)
+            border.width: 1
+            border.color: HusTheme.Primary.colorBorderSecondary
+            Accessible.ignored: true
+
+            HusIconText {
+                anchors.centerIn: parent
+                iconSource: root.peerSelected
+                            ? HusIcon.MessageOutlined
+                            : HusIcon.ContactsOutlined
+                iconSize: 28
+                colorIcon: HusTheme.Primary.colorPrimary
+            }
+        }
+
+        HusText {
+            width: parent.width
+            text: root.peerSelected
+                  ? root.messageSearchKeyword.length > 0
+                    ? qsTr("没有找到消息")
+                    : qsTr("开始聊天")
+                  : qsTr("发现身边的好友")
+            color: HusTheme.Primary.colorTextBase
+            horizontalAlignment: Text.AlignHCenter
+            font.pixelSize: HusTheme.Primary.fontPrimarySizeHeading5
+            font.weight: Font.Medium
+        }
+
+        HusText {
+            width: parent.width
+            text: root.peerSelected
+                  ? root.messageSearchKeyword.length > 0
+                    ? qsTr("没有找到与“%1”匹配的消息").arg(root.messageSearchKeyword)
+                    : qsTr("还没有消息，发一句问候吧")
+                  : qsTr("从左侧选择一个局域网好友，即可开始安全、快速地聊天")
+            color: HusTheme.Primary.colorTextTertiary
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.Wrap
+            font.pixelSize: HusTheme.Primary.fontPrimarySize
+        }
     }
 
     Shortcut {

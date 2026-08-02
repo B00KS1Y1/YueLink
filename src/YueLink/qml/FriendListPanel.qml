@@ -140,12 +140,12 @@ Item {
             required property int unread
 
             width: friendList.width
-            height: 72
+            height: 76
 
             Rectangle {
                 anchors.fill: parent
-                anchors.margins: 2
-                radius: 8
+                anchors.margins: 3
+                radius: 12
                 color: root.selectedPeerId === friendDelegate.peerId
                        ? HusTheme.Primary.colorPrimaryBg
                        : friendMouse.containsMouse
@@ -153,6 +153,18 @@ Item {
                          : "transparent"
                 border.width: friendMouse.activeFocus ? 1 : 0
                 border.color: HusTheme.Primary.colorPrimary
+            }
+
+            Rectangle {
+                anchors.left: parent.left
+                anchors.leftMargin: 3
+                anchors.verticalCenter: parent.verticalCenter
+                width: 3
+                height: 32
+                radius: width * 0.5
+                visible: root.selectedPeerId === friendDelegate.peerId
+                color: HusTheme.Primary.colorPrimary
+                Accessible.ignored: true
             }
 
             HusAvatar {
@@ -257,20 +269,59 @@ Item {
         }
     }
 
-    HusText {
+    Column {
         anchors.centerIn: friendList
         width: Math.max(0, friendList.width - 40)
+        spacing: 8
         visible: friendList.count === 0
-        text: root.searchKeyword.length > 0
-              ? qsTr("没有找到与“%1”匹配的好友").arg(root.searchKeyword)
-              : LanChat.running
-                ? qsTr("正在自动发现同一局域网内的好友…")
-                : LanChat.lastError.length > 0
-                  ? LanChat.lastError
-                  : qsTr("局域网服务未启动")
-        color: HusTheme.Primary.colorTextTertiary
-        horizontalAlignment: Text.AlignHCenter
-        wrapMode: Text.Wrap
-        font.pixelSize: HusTheme.Primary.fontPrimarySize
+
+        Rectangle {
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: 52
+            height: 52
+            radius: 16
+            color: HusThemeFunctions.alpha(HusTheme.Primary.colorPrimary,
+                                           HusTheme.isDark ? 0.18 : 0.1)
+            border.width: 1
+            border.color: HusTheme.Primary.colorBorderSecondary
+            Accessible.ignored: true
+
+            HusIconText {
+                anchors.centerIn: parent
+                iconSource: HusIcon.ContactsOutlined
+                iconSize: 23
+                colorIcon: HusTheme.Primary.colorPrimary
+            }
+        }
+
+        HusText {
+            width: parent.width
+            text: root.searchKeyword.length > 0
+                  ? qsTr("未找到好友")
+                  : LanChat.running
+                    ? qsTr("正在发现好友")
+                    : LanChat.lastError.length > 0
+                      ? qsTr("网络服务不可用")
+                      : qsTr("开始发现好友")
+            color: HusTheme.Primary.colorTextBase
+            horizontalAlignment: Text.AlignHCenter
+            font.pixelSize: HusTheme.Primary.fontPrimarySizeHeading5
+            font.weight: Font.Medium
+        }
+
+        HusText {
+            width: parent.width
+            text: root.searchKeyword.length > 0
+                  ? qsTr("没有找到与“%1”匹配的好友").arg(root.searchKeyword)
+                  : LanChat.running
+                    ? qsTr("正在自动发现同一局域网内的好友…")
+                    : LanChat.lastError.length > 0
+                      ? LanChat.lastError
+                      : qsTr("点击上方刷新按钮启动局域网发现")
+            color: HusTheme.Primary.colorTextTertiary
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.Wrap
+            font.pixelSize: HusTheme.Primary.fontPrimarySize
+        }
     }
 }
