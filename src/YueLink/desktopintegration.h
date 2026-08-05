@@ -76,40 +76,42 @@ public:
 signals:
     /**
      * @brief 用户激活聊天通知时发出。
-     * @param peerId 通知关联的节点标识。
+     * @param conversationId 通知关联的统一会话标识。
      */
-    void notificationActivated(const QString &peerId);
+    void notificationActivated(const QString &conversationId);
 
 private:
     /** @brief 连接聊天事件与桌面通知策略。 */
     void connectServices();
     /**
      * @brief 处理收到的文本消息及前台已读策略。
-     * @param peerId 发送方节点标识。
+     * @param conversationId 消息所属统一会话标识。
      * @param text 收到的消息文本。
      */
-    void handleIncomingMessage(const QString &peerId, const QString &text);
+    void handleIncomingMessage(const QString &conversationId,
+                               const QString &text);
     /**
      * @brief 处理已接收文件的通知。
-     * @param peerId 发送方节点标识。
+     * @param conversationId 文件所属直接会话标识。
      * @param filePath 接收文件的本地路径。
      */
-    void handleFileReceived(const QString &peerId, const QString &filePath);
+    void handleFileReceived(const QString &conversationId,
+                            const QString &filePath);
     /**
      * @brief 处理文件传输失败通知。
-     * @param peerId 远端节点标识。
+     * @param conversationId 文件所属直接会话标识。
      * @param reason 失败原因。
      * @param incoming 是否为接收方向。
      */
-    void handleFileTransferFailed(const QString &peerId,
+    void handleFileTransferFailed(const QString &conversationId,
                                   const QString &reason,
                                   bool incoming);
     /**
      * @brief 在应用处于后台时显示聊天通知。
-     * @param peerId 消息来源节点标识。
+     * @param conversationId 消息所属统一会话标识。
      * @param message 通知预览文本。
      */
-    void showIncomingNotification(const QString &peerId,
+    void showIncomingNotification(const QString &conversationId,
                                   const QString &message);
 
     ChatCoordinator *m_coordinator = nullptr;

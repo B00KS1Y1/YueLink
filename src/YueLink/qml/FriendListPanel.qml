@@ -8,13 +8,14 @@ import HuskarUI.Basic
 Item {
     id: root
 
-    property string selectedPeerId: ""
+    property string selectedConversationId: ""
     property bool contactsMode: false
-    readonly property string searchKeyword: LanChat.peerSearchText.trim()
+    readonly property string searchKeyword: (contactsMode
+                                              ? LanChat.peerSearchText
+                                              : LanChat.conversationSearchText).trim()
 
-    signal friendSelected(string peerId)
-    signal networkStartRequested()
-    signal networkRefreshRequested()
+    signal conversationSelected(string conversationId)
+    signal createGroupRequested()
 
     Item {
         id: searchSection
@@ -22,7 +23,7 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        height: 54
+        height: 62
 
         RowLayout {
             anchors.left: parent.left
@@ -36,36 +37,58 @@ Item {
                 id: searchInput
 
                 Layout.fillWidth: true
-                Layout.preferredHeight: 34
+                Layout.preferredHeight: 40
                 iconSource: HusIcon.SearchOutlined
                 iconSize: 16
                 iconPosition: HusInput.Position_Left
                 clearEnabled: "active"
                 type: HusInput.Type_Filled
                 verticalAlignment: TextInput.AlignVCenter
-                placeholderText: qsTr("搜索好友")
-                contentDescription: qsTr("搜索好友")
-                text: LanChat.peerSearchText
-                onTextChanged: LanChat.peerSearchText = text
+                placeholderText: root.contactsMode
+                                 ? qsTr("搜索联系人")
+                                 : qsTr("搜索会话")
+                contentDescription: placeholderText
+                text: root.contactsMode
+                      ? LanChat.peerSearchText
+                      : LanChat.conversationSearchText
+                onTextChanged: {
+                    if (root.contactsMode)
+                        LanChat.peerSearchText = text;
+                    else
+                        LanChat.conversationSearchText = text;
+                }
             }
 
             HusIconButton {
-                id: discoveryButton
+                id: quickActionsButton
 
-                Layout.preferredWidth: 34
-                Layout.preferredHeight: 34
+                Layout.preferredWidth: 40
+                Layout.preferredHeight: 40
+                visible: !root.contactsMode
                 padding: 0
                 type: HusButton.Type_Filled
-                iconSource: HusIcon.ReloadOutlined
+                iconSource: HusIcon.PlusOutlined
                 iconSize: 18
-                contentDescription: LanChat.running
-                                    ? qsTr("立即刷新局域网好友")
-                                    : qsTr("启动局域网发现服务")
-                onClicked: {
-                    if (LanChat.running)
-                        root.networkRefreshRequested();
-                    else
-                        root.networkStartRequested();
+                contentDescription: qsTr("打开快捷操作菜单")
+                onClicked: quickActionsMenu.open()
+
+                HusContextMenu {
+                    id: quickActionsMenu
+
+                    x: quickActionsButton.width - implicitWidth
+                    y: quickActionsButton.height + 4
+                    defaultMenuWidth: 148
+                    initModel: [
+                        {
+                            key: "createGroup",
+                            label: qsTr("创建群聊"),
+                            iconSource: HusIcon.UsergroupAddOutlined
+                        }
+                    ]
+                    onClickMenu: (deep, key) => {
+                        if (deep === 0 && key === "createGroup")
+                            root.createGroupRequested();
+                    }
                 }
             }
         }
@@ -82,11 +105,11 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: searchSection.bottom
-        height: 42
+        height: 40
 
         HusText {
             anchors.left: parent.left
-            anchors.leftMargin: 20
+            anchors.leftMargin: 16
             anchors.verticalCenter: parent.verticalCenter
             text: root.contactsMode ? qsTr("联系人") : qsTr("消息")
             color: HusTheme.Primary.colorTextBase
@@ -96,20 +119,31 @@ Item {
 
         HusText {
             anchors.right: parent.right
-            anchors.rightMargin: 20
+            anchors.rightMargin: 16
             anchors.verticalCenter: parent.verticalCenter
             text: !root.contactsMode && LanChat.totalUnreadCount > 0
-                  ? qsTr("%1 条未读 · %2 人在线")
+                  ? qsTr("%1 未读 · %2 在线")
                         .arg(LanChat.totalUnreadCount)
                         .arg(LanChat.onlineCount)
-                  : qsTr("%1 人在线").arg(LanChat.onlineCount)
+                  : qsTr("%1 在线").arg(LanChat.onlineCount)
             color: HusTheme.Primary.colorTextTertiary
-            font.pixelSize: HusTheme.Primary.fontPrimarySize
+            font.pixelSize: Math.max(11, HusTheme.Primary.fontPrimarySize - 1)
+        }
+
+        Rectangle {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.leftMargin: 16
+            anchors.rightMargin: 16
+            height: 1
+            color: HusTheme.Primary.colorBorderSecondary
+            Accessible.ignored: true
         }
     }
 
     ListView {
-        id: friendList
+        id: conversationList
 
         anchors.left: parent.left
         anchors.right: parent.right
@@ -118,7 +152,7 @@ Item {
         anchors.leftMargin: 8
         anchors.rightMargin: 8
         anchors.bottomMargin: 10
-        model: LanChat.peers
+        model: root.contactsMode ? LanChat.peers : LanChat.conversations
         currentIndex: -1
         boundsBehavior: Flickable.StopAtBounds
         reuseItems: true
@@ -126,11 +160,12 @@ Item {
         ScrollBar.vertical: HusScrollBar { }
 
         delegate: Item {
-            id: friendDelegate
+            id: conversationDelegate
 
             required property int index
-            required property string peerId
-            required property string friendName
+            required property string itemId
+            required property string itemKind
+            required property string title
             required property string initial
             required property string statusText
             required property string lastMessage
@@ -138,57 +173,71 @@ Item {
             required property color avatarColor
             required property bool online
             required property int unread
+            required property string peerId
+            required property int memberCount
+            required property int onlineCount
+            readonly property bool selected: root.selectedConversationId
+                                             === conversationDelegate.itemId
 
-            width: friendList.width
+            width: conversationList.width
             height: 76
 
             Rectangle {
                 anchors.fill: parent
-                anchors.margins: 3
+                anchors.margins: 4
                 radius: 12
-                color: root.selectedPeerId === friendDelegate.peerId
-                       ? HusTheme.Primary.colorPrimaryBg
-                       : friendMouse.containsMouse
+                color: conversationDelegate.selected
+                       ? HusThemeFunctions.alpha(HusTheme.Primary.colorPrimary,
+                                                 HusTheme.isDark ? 0.2 : 0.12)
+                       : conversationMouse.containsMouse
                          ? HusTheme.Primary.colorFillTertiary
                          : "transparent"
-                border.width: friendMouse.activeFocus ? 1 : 0
+                border.width: conversationMouse.activeFocus ? 1 : 0
                 border.color: HusTheme.Primary.colorPrimary
+
+                Behavior on color {
+                    enabled: HusTheme.animationEnabled
+                    ColorAnimation {
+                        duration: HusTheme.Primary.durationFast
+                    }
+                }
             }
 
             Rectangle {
                 anchors.left: parent.left
-                anchors.leftMargin: 3
+                anchors.leftMargin: 4
                 anchors.verticalCenter: parent.verticalCenter
                 width: 3
-                height: 32
+                height: 28
                 radius: width * 0.5
-                visible: root.selectedPeerId === friendDelegate.peerId
+                visible: conversationDelegate.selected
                 color: HusTheme.Primary.colorPrimary
                 Accessible.ignored: true
             }
 
             HusAvatar {
-                id: friendAvatar
+                id: conversationAvatar
 
                 anchors.left: parent.left
-                anchors.leftMargin: 12
+                anchors.leftMargin: 14
                 anchors.verticalCenter: parent.verticalCenter
                 size: 44
-                textSource: friendDelegate.initial
-                colorBg: friendDelegate.avatarColor
+                textSource: conversationDelegate.initial
+                colorBg: conversationDelegate.avatarColor
                 textSize: HusAvatar.Size_Auto
 
                 HusBadge {
                     dot: true
-                    badgeState: friendDelegate.online
+                    visible: conversationDelegate.itemKind === "direct"
+                    badgeState: conversationDelegate.online
                                 ? HusBadge.State_Success
                                 : HusBadge.State_Default
                 }
             }
 
             Column {
-                anchors.left: friendAvatar.right
-                anchors.right: friendMeta.left
+                anchors.left: conversationAvatar.right
+                anchors.right: conversationMeta.left
                 anchors.leftMargin: 12
                 anchors.rightMargin: 10
                 anchors.verticalCenter: parent.verticalCenter
@@ -196,8 +245,10 @@ Item {
 
                 HusText {
                     width: parent.width
-                    text: friendDelegate.friendName
-                    color: HusTheme.Primary.colorTextBase
+                    text: conversationDelegate.title
+                    color: conversationDelegate.selected
+                           ? HusTheme.Primary.colorPrimary
+                           : HusTheme.Primary.colorTextBase
                     elide: Text.ElideRight
                     font.pixelSize: HusTheme.Primary.fontPrimarySize
                     font.weight: Font.Medium
@@ -206,33 +257,33 @@ Item {
                 HusText {
                     width: parent.width
                     text: root.contactsMode
-                          ? friendDelegate.statusText
-                          : friendDelegate.lastMessage
+                          ? conversationDelegate.statusText
+                          : conversationDelegate.lastMessage
                     color: HusTheme.Primary.colorTextTertiary
                     elide: Text.ElideRight
                     font.pixelSize: HusTheme.Primary.fontPrimarySize
-                    font.weight: friendDelegate.unread > 0
+                    font.weight: conversationDelegate.unread > 0
                                  ? Font.Medium
                                  : Font.Normal
                 }
             }
 
             Column {
-                id: friendMeta
+                id: conversationMeta
 
                 anchors.right: parent.right
-                anchors.rightMargin: 12
+                anchors.rightMargin: 14
                 anchors.verticalCenter: parent.verticalCenter
                 width: 54
                 spacing: 7
 
                 HusText {
                     width: parent.width
-                    text: friendDelegate.lastTime
+                    text: conversationDelegate.lastTime
                     color: HusTheme.Primary.colorTextTertiary
                     horizontalAlignment: Text.AlignRight
-                    font.pixelSize: HusTheme.Primary.fontPrimarySize
-                    font.weight: friendDelegate.unread > 0
+                    font.pixelSize: Math.max(11, HusTheme.Primary.fontPrimarySize - 1)
+                    font.weight: conversationDelegate.unread > 0
                                  ? Font.Medium
                                  : Font.Normal
                 }
@@ -243,37 +294,38 @@ Item {
 
                     HusBadge {
                         anchors.right: parent.right
-                        count: friendDelegate.unread
+                        count: conversationDelegate.unread
                     }
                 }
             }
 
             MouseArea {
-                id: friendMouse
+                id: conversationMouse
 
                 anchors.fill: parent
                 activeFocusOnTab: true
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
                 Accessible.role: Accessible.ListItem
-                Accessible.name: qsTr("%1，%2").arg(friendDelegate.friendName)
-                                                .arg(friendDelegate.statusText)
-                Accessible.description: friendDelegate.unread > 0
+                Accessible.name: qsTr("%1，%2")
+                                     .arg(conversationDelegate.title)
+                                     .arg(conversationDelegate.statusText)
+                Accessible.description: conversationDelegate.unread > 0
                                         ? qsTr("%1 条未读消息")
-                                              .arg(friendDelegate.unread)
+                                              .arg(conversationDelegate.unread)
                                         : qsTr("没有未读消息")
-                onClicked: root.friendSelected(friendDelegate.peerId)
-                Keys.onReturnPressed: root.friendSelected(friendDelegate.peerId)
-                Keys.onSpacePressed: root.friendSelected(friendDelegate.peerId)
+                onClicked: root.conversationSelected(conversationDelegate.itemId)
+                Keys.onReturnPressed: root.conversationSelected(conversationDelegate.itemId)
+                Keys.onSpacePressed: root.conversationSelected(conversationDelegate.itemId)
             }
         }
     }
 
     Column {
-        anchors.centerIn: friendList
-        width: Math.max(0, friendList.width - 40)
+        anchors.centerIn: conversationList
+        width: Math.max(0, conversationList.width - 40)
         spacing: 8
-        visible: friendList.count === 0
+        visible: conversationList.count === 0
 
         Rectangle {
             anchors.horizontalCenter: parent.horizontalCenter
@@ -288,7 +340,9 @@ Item {
 
             HusIconText {
                 anchors.centerIn: parent
-                iconSource: HusIcon.ContactsOutlined
+                iconSource: root.contactsMode
+                            ? HusIcon.ContactsOutlined
+                            : HusIcon.MessageOutlined
                 iconSize: 23
                 colorIcon: HusTheme.Primary.colorPrimary
             }
@@ -297,12 +351,12 @@ Item {
         HusText {
             width: parent.width
             text: root.searchKeyword.length > 0
-                  ? qsTr("未找到好友")
-                  : LanChat.running
-                    ? qsTr("正在发现好友")
-                    : LanChat.lastError.length > 0
-                      ? qsTr("网络服务不可用")
-                      : qsTr("开始发现好友")
+                  ? qsTr("没有匹配结果")
+                  : root.contactsMode
+                    ? LanChat.running
+                      ? qsTr("正在发现联系人")
+                      : qsTr("开始发现联系人")
+                    : qsTr("还没有会话")
             color: HusTheme.Primary.colorTextBase
             horizontalAlignment: Text.AlignHCenter
             font.pixelSize: HusTheme.Primary.fontPrimarySizeHeading5
@@ -312,12 +366,14 @@ Item {
         HusText {
             width: parent.width
             text: root.searchKeyword.length > 0
-                  ? qsTr("没有找到与“%1”匹配的好友").arg(root.searchKeyword)
-                  : LanChat.running
-                    ? qsTr("正在自动发现同一局域网内的好友…")
-                    : LanChat.lastError.length > 0
-                      ? LanChat.lastError
-                      : qsTr("点击上方刷新按钮启动局域网发现")
+                  ? qsTr("没有找到与“%1”匹配的内容").arg(root.searchKeyword)
+                  : root.contactsMode
+                    ? LanChat.running
+                      ? qsTr("正在自动发现同一局域网内的联系人…")
+                      : LanChat.lastError.length > 0
+                        ? LanChat.lastError
+                        : qsTr("点击左侧刷新好友按钮启动局域网发现")
+                    : qsTr("从联系人页开始单聊，或点击上方按钮创建群聊")
             color: HusTheme.Primary.colorTextTertiary
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.Wrap

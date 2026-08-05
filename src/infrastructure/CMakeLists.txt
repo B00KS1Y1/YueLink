@@ -70,8 +70,8 @@ target_link_libraries(YueLinkPersistence
     PUBLIC
         YueLink::Domain
         Qt6::Core
+        Qt6::Sql
     PRIVATE
         YueLink::Runtime
-        Qt6::Sql
         spdlog::spdlog
 )

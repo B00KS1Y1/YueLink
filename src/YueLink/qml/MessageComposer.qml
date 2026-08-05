@@ -5,12 +5,13 @@ import HuskarUI.Basic
 Item {
     id: root
 
-    property string peerId: ""
+    property string conversationId: ""
     property bool sendEnabled: false
+    property bool filesEnabled: false
     property string errorText: ""
     property bool draggingFiles: false
     property var drafts: ({})
-    property string draftPeerId: ""
+    property string draftConversationId: ""
     readonly property color surfaceColor: HusThemeFunctions.alpha(
                                               HusTheme.Primary.colorBgContainer,
                                               HusTheme.isDark ? 0.8 : 0.88)
@@ -22,27 +23,30 @@ Item {
 
     function submitMessage(): void {
         const content = composer.text.trim();
-        if (content.length === 0 || peerId.length === 0 || !sendEnabled)
+        if (content.length === 0 || conversationId.length === 0 || !sendEnabled)
             return;
 
-        if (!LanChat.sendMessage(peerId, content))
+        if (!LanChat.sendMessage(conversationId, content))
             return;
 
         composer.clear();
-        drafts[draftPeerId] = "";
+        drafts[draftConversationId] = "";
     }
 
-    function switchDraft(nextPeerId: string): void {
-        if (draftPeerId.length > 0)
-            drafts[draftPeerId] = composer.text;
+    function switchDraft(nextConversationId: string): void {
+        if (draftConversationId.length > 0)
+            drafts[draftConversationId] = composer.text;
 
-        draftPeerId = nextPeerId;
-        composer.text = nextPeerId.length > 0 && drafts[nextPeerId] !== undefined
-                ? drafts[nextPeerId]
+        draftConversationId = nextConversationId;
+        composer.text = nextConversationId.length > 0
+                && drafts[nextConversationId] !== undefined
+                ? drafts[nextConversationId]
                 : "";
     }
 
     function sendClipboardImages(): bool {
+        if (!filesEnabled)
+            return false;
         const imageUrls = LanChat.clipboardImageUrls();
         if (imageUrls.length === 0)
             return false;
@@ -51,11 +55,11 @@ Item {
         return true;
     }
 
-    onPeerIdChanged: switchDraft(peerId)
+    onConversationIdChanged: switchDraft(conversationId)
 
     Component.onDestruction: {
-        if (draftPeerId.length > 0)
-            drafts[draftPeerId] = composer.text;
+        if (draftConversationId.length > 0)
+            drafts[draftConversationId] = composer.text;
     }
 
     onSendEnabledChanged: {
@@ -63,11 +67,16 @@ Item {
             draggingFiles = false;
     }
 
-    implicitHeight: 176
+    onFilesEnabledChanged: {
+        if (!filesEnabled)
+            draggingFiles = false;
+    }
+
+    implicitHeight: 164
 
     Rectangle {
         anchors.fill: parent
-        radius: 14
+        radius: 16
         color: root.surfaceColor
         border.width: 1
         border.color: HusTheme.Primary.colorBorderSecondary
@@ -78,32 +87,36 @@ Item {
         id: composerTools
 
         anchors.left: parent.left
-        anchors.leftMargin: 14
+        anchors.leftMargin: 12
         anchors.top: parent.top
-        anchors.topMargin: 10
+        anchors.topMargin: 8
         spacing: 2
 
         HusIconButton {
-            width: 36
-            height: 36
+            width: 40
+            height: 40
             padding: 0
             type: HusButton.Type_Text
             iconSource: HusIcon.PictureOutlined
             iconSize: 20
-            enabled: root.sendEnabled
-            contentDescription: qsTr("发送图片")
+            enabled: root.filesEnabled
+            contentDescription: root.filesEnabled
+                                ? qsTr("发送图片")
+                                : qsTr("当前会话暂不支持发送图片")
             onClicked: imageFileDialog.open()
         }
 
         HusIconButton {
-            width: 36
-            height: 36
+            width: 40
+            height: 40
             padding: 0
             type: HusButton.Type_Text
             iconSource: HusIcon.FolderOpenOutlined
             iconSize: 20
-            enabled: root.sendEnabled
-            contentDescription: qsTr("发送文件")
+            enabled: root.filesEnabled
+            contentDescription: root.filesEnabled
+                                ? qsTr("发送文件")
+                                : qsTr("当前会话暂不支持发送文件")
             onClicked: fileDialog.open()
         }
     }
@@ -134,19 +147,19 @@ Item {
         anchors.right: sendButton.left
         anchors.top: composerTools.bottom
         anchors.bottom: parent.bottom
-        anchors.leftMargin: 14
-        anchors.rightMargin: 14
-        anchors.bottomMargin: 14
+        anchors.leftMargin: 12
+        anchors.rightMargin: 12
+        anchors.bottomMargin: 12
         maxLength: 2000
         enabled: root.sendEnabled
         colorBg: root.inputSurfaceColor
         colorBorder: HusTheme.Primary.colorBorderSecondary
-        radiusBg.all: 10
+        radiusBg.all: 12
         placeholderText: root.sendEnabled
                          ? qsTr("输入消息，按 Ctrl+Enter 发送")
-                         : root.peerId.length === 0
-                           ? qsTr("请先选择一个好友")
-                           : qsTr("好友离线，暂时无法发送消息")
+                         : root.conversationId.length === 0
+                           ? qsTr("请先选择一个会话")
+                           : qsTr("联系人离线，暂时无法发送消息")
         contentDescription: qsTr("消息输入框")
         textArea.wrapMode: TextEdit.Wrap
         textArea.Keys.onPressed: event => {
@@ -161,11 +174,11 @@ Item {
         id: sendButton
 
         anchors.right: parent.right
-        anchors.rightMargin: 14
+        anchors.rightMargin: 12
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: 14
-        width: 94
-        height: 40
+        anchors.bottomMargin: 12
+        width: 92
+        height: 42
         type: HusButton.Type_Primary
         text: qsTr("发送")
         iconSource: HusIcon.SendOutlined
@@ -191,7 +204,7 @@ Item {
         anchors.fill: parent
         visible: root.draggingFiles
         z: 10
-        radius: 14
+        radius: 16
         color: HusTheme.Primary.colorPrimaryBg
         border.width: 2
         border.color: HusTheme.Primary.colorPrimary
@@ -209,7 +222,7 @@ Item {
         id: fileDropArea
 
         anchors.fill: parent
-        enabled: root.sendEnabled
+        enabled: root.filesEnabled
         onEntered: drag => {
             const acceptable = drag.hasUrls;
             drag.accepted = acceptable;

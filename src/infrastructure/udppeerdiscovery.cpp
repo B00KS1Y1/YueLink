@@ -12,7 +12,7 @@
 namespace
 {
 constexpr auto ProtocolName = "YueLink";
-constexpr int ProtocolVersion = 1;
+constexpr int ProtocolVersion = 2;
 
 bool isUsableInterface(QNetworkInterface::InterfaceFlags flags)
 {

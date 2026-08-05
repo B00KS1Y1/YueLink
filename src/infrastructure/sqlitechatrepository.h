@@ -1,6 +1,6 @@
 /**
  * @file sqlitechatrepository.h
- * @brief 声明聊天数据仓储的 SQLite 实现。
+ * @brief 声明 SQLite 统一会话、群组、消息与逐成员投递仓储。
  * @author xili <1424858143@qq.com>
  * @date 2026-07-21
  */
@@ -10,119 +10,201 @@
 
 #include "domain/ichatrepository.h"
 
-class QSqlDatabase;
+#include <QSqlDatabase>
+#include <QString>
 
 class SqliteChatRepository final : public IChatRepository
 {
 public:
-    /** @brief 构造 SQLite 聊天数据仓储。 */
+    /** @brief 构造使用独立连接名的 SQLite 仓储。 */
     SqliteChatRepository();
-    /** @brief 关闭数据库连接并销毁数据仓储。 */
+    /** @brief 关闭数据库连接并销毁仓储。 */
     ~SqliteChatRepository() override;
 
     /**
-     * @brief 初始化数据库连接并迁移数据结构。
-     * @param[out] errorMessage 初始化失败时接收错误说明。
-     * @return 数据仓储可用时返回 @c true。
+     * @brief 打开数据库并在版本不匹配时清空开发数据后重建架构。
+     * @param[out] errorMessage 失败时接收错误说明。
+     * @return 初始化成功时返回 @c true。
      */
     [[nodiscard]] bool initialize(QString *errorMessage) override;
     /**
-     * @brief 加载全部节点摘要。
-     * @param[out] peers 接收节点记录。
-     * @param[out] errorMessage 加载失败时接收错误说明。
-     * @return 记录加载成功时返回 @c true。
+     * @brief 加载联系人。
+     * @param[out] peers 接收联系人。
+     * @param[out] errorMessage 失败时接收错误说明。
+     * @return 加载成功时返回 @c true。
      */
-    [[nodiscard]] bool loadPeers(QList<Storage::PeerRecord> *peers, QString *errorMessage) override;
+    [[nodiscard]] bool loadPeers(QList<Domain::Peer> *peers,
+                                 QString *errorMessage) override;
+    /**
+     * @brief 加载会话摘要。
+     * @param[out] conversations 接收会话摘要。
+     * @param[out] errorMessage 失败时接收错误说明。
+     * @return 加载成功时返回 @c true。
+     */
+    [[nodiscard]] bool loadConversations(
+        QList<Domain::Conversation> *conversations,
+        QString *errorMessage) override;
+    /**
+     * @brief 加载群组及成员。
+     * @param[out] groups 接收群组。
+     * @param[out] errorMessage 失败时接收错误说明。
+     * @return 加载成功时返回 @c true。
+     */
+    [[nodiscard]] bool loadGroups(QList<Domain::Group> *groups,
+                                  QString *errorMessage) override;
     /**
      * @brief 加载指定会话的最近消息。
-     * @param peerId 会话对应的节点标识。
-     * @param limit 最多返回的消息数量。
-     * @param[out] messages 接收消息记录。
-     * @param[out] errorMessage 加载失败时接收错误说明。
-     * @return 记录加载成功时返回 @c true。
+     * @param conversationId 会话标识。
+     * @param limit 最大消息数量。
+     * @param[out] messages 接收消息。
+     * @param[out] errorMessage 失败时接收错误说明。
+     * @return 加载成功时返回 @c true。
      */
-    [[nodiscard]] bool loadMessages(const QString &peerId, int limit, QList<Storage::MessageRecord> *messages, QString *errorMessage) override;
-
+    [[nodiscard]] bool loadMessages(const QString &conversationId,
+                                    int limit,
+                                    QList<Domain::Message> *messages,
+                                    QString *errorMessage) override;
     /**
-     * @brief 新增或更新节点信息。
-     * @param peer 待持久化的节点信息。
-     * @param[out] errorMessage 保存失败时接收错误说明。
-     * @return 节点保存成功时返回 @c true。
-     */
-    [[nodiscard]] bool upsertPeer(const Network::PeerEndpoint &peer, QString *errorMessage) override;
-    /**
-     * @brief 更新会话摘要及未读计数。
-     * @param peerId 会话对应的节点标识。
-     * @param lastMessage 最新消息预览。
-     * @param timestamp 最近活动时间。
-     * @param incrementUnread 是否增加未读计数。
-     * @param[out] errorMessage 更新失败时接收错误说明。
-     * @return 摘要更新成功时返回 @c true。
-     */
-    [[nodiscard]] bool
-    updateConversation(const QString &peerId, const QString &lastMessage, const QDateTime &timestamp, bool incrementUnread, QString *errorMessage) override;
-    /**
-     * @brief 清空指定会话的未读计数。
-     * @param peerId 会话对应的节点标识。
-     * @param[out] errorMessage 清空失败时接收错误说明。
-     * @return 未读计数清空成功时返回 @c true。
-     */
-    [[nodiscard]] bool clearUnread(const QString &peerId, QString *errorMessage) override;
-
-    /**
-     * @brief 保存消息记录。
-     * @param message 待保存的消息记录。
-     * @param[out] errorMessage 保存失败时接收错误说明。
-     * @return 消息保存成功时返回 @c true。
-     */
-    [[nodiscard]] bool saveMessage(const Storage::MessageRecord &message, QString *errorMessage) override;
-    /**
-     * @brief 更新消息投递状态。
-     * @param peerId 会话对应的节点标识。
+     * @brief 根据标识加载单条消息。
      * @param messageId 消息标识。
-     * @param status 新的投递状态。
-     * @param[out] errorMessage 更新失败时接收错误说明。
-     * @return 状态更新成功时返回 @c true。
+     * @param[out] message 接收消息。
+     * @param[out] errorMessage 失败时接收错误说明。
+     * @return 找到消息时返回 @c true。
      */
-    [[nodiscard]] bool updateDeliveryStatus(const QString &peerId, const QString &messageId, const QString &status, QString *errorMessage) override;
+    [[nodiscard]] bool loadMessage(const QString &messageId,
+                                   Domain::Message *message,
+                                   QString *errorMessage) override;
     /**
-     * @brief 更新文件传输进度与状态。
-     * @param peerId 会话对应的节点标识。
-     * @param messageId 文件传输消息标识。
-     * @param progress 取值范围为 0.0 到 1.0 的传输进度。
-     * @param status 新的传输状态。
-     * @param filePath 可用时提供本地文件路径。
-     * @param[out] errorMessage 更新失败时接收错误说明。
-     * @return 传输状态更新成功时返回 @c true。
+     * @brief 加载全部逐成员投递。
+     * @param[out] deliveries 接收投递记录。
+     * @param[out] errorMessage 失败时接收错误说明。
+     * @return 加载成功时返回 @c true。
+     */
+    [[nodiscard]] bool loadDeliveries(
+        QList<Domain::MessageDelivery> *deliveries,
+        QString *errorMessage) override;
+
+    /**
+     * @brief 新增或更新联系人。
+     * @param peer 联系人记录。
+     * @param[out] errorMessage 失败时接收错误说明。
+     * @return 保存成功时返回 @c true。
+     */
+    [[nodiscard]] bool upsertPeer(const Domain::Peer &peer,
+                                  QString *errorMessage) override;
+    /**
+     * @brief 新增或更新会话。
+     * @param conversation 会话记录。
+     * @param[out] errorMessage 失败时接收错误说明。
+     * @return 保存成功时返回 @c true。
+     */
+    [[nodiscard]] bool saveConversation(
+        const Domain::Conversation &conversation,
+        QString *errorMessage) override;
+    /**
+     * @brief 原子保存群组及完整成员快照。
+     * @param group 群组记录。
+     * @param[out] errorMessage 失败时接收错误说明。
+     * @return 保存成功时返回 @c true。
+     */
+    [[nodiscard]] bool saveGroup(const Domain::Group &group,
+                                 QString *errorMessage) override;
+    /**
+     * @brief 更新会话摘要和未读数。
+     * @param conversationId 会话标识。
+     * @param lastMessage 最新消息摘要。
+     * @param timestamp 最近活动时间。
+     * @param incrementUnread 是否增加未读数。
+     * @param[out] errorMessage 失败时接收错误说明。
+     * @return 更新成功时返回 @c true。
+     */
+    [[nodiscard]] bool updateConversation(const QString &conversationId,
+                                          const QString &lastMessage,
+                                          const QDateTime &timestamp,
+                                          bool incrementUnread,
+                                          QString *errorMessage) override;
+    /**
+     * @brief 清空会话未读数。
+     * @param conversationId 会话标识。
+     * @param[out] errorMessage 失败时接收错误说明。
+     * @return 更新成功时返回 @c true。
+     */
+    [[nodiscard]] bool clearUnread(const QString &conversationId,
+                                   QString *errorMessage) override;
+    /**
+     * @brief 新增或更新消息。
+     * @param message 消息记录。
+     * @param[out] errorMessage 失败时接收错误说明。
+     * @return 保存成功时返回 @c true。
+     */
+    [[nodiscard]] bool saveMessage(const Domain::Message &message,
+                                   QString *errorMessage) override;
+    /**
+     * @brief 更新消息状态。
+     * @param conversationId 会话标识。
+     * @param messageId 消息标识。
+     * @param state 新状态。
+     * @param[out] errorMessage 失败时接收错误说明。
+     * @return 更新成功时返回 @c true。
+     */
+    [[nodiscard]] bool updateMessageState(
+        const QString &conversationId,
+        const QString &messageId,
+        Domain::DeliveryState state,
+        QString *errorMessage) override;
+    /**
+     * @brief 更新文件消息传输状态。
+     * @param conversationId 会话标识。
+     * @param messageId 消息标识。
+     * @param progress 传输进度。
+     * @param state 新状态。
+     * @param filePath 可用时提供本地路径。
+     * @param[out] errorMessage 失败时接收错误说明。
+     * @return 更新成功时返回 @c true。
      */
     [[nodiscard]] bool updateFileTransfer(
-        const QString &peerId, const QString &messageId, qreal progress, const QString &status, const QString &filePath, QString *errorMessage) override;
+        const QString &conversationId,
+        const QString &messageId,
+        qreal progress,
+        Domain::DeliveryState state,
+        const QString &filePath,
+        QString *errorMessage) override;
+    /**
+     * @brief 新增或更新逐成员投递记录。
+     * @param delivery 投递记录。
+     * @param[out] errorMessage 失败时接收错误说明。
+     * @return 保存成功时返回 @c true。
+     */
+    [[nodiscard]] bool saveDelivery(
+        const Domain::MessageDelivery &delivery,
+        QString *errorMessage) override;
 
 private:
     /**
-     * @brief 返回当前线程使用的数据库连接。
-     * @return 当前数据仓储使用的数据库连接。
+     * @brief 返回当前独立数据库连接。
+     * @return SQLite 数据库连接。
      */
     [[nodiscard]] QSqlDatabase database() const;
     /**
-     * @brief 根据配置设置数据库连接参数。
-     * @param[out] errorMessage 配置失败时接收错误说明。
-     * @return 数据库配置成功时返回 @c true。
+     * @brief 应用 busy timeout、WAL、外键与同步模式配置。
+     * @param[out] errorMessage 失败时接收错误说明。
+     * @return 配置成功时返回 @c true。
      */
     [[nodiscard]] bool configureDatabase(QString *errorMessage);
     /**
-     * @brief 将数据库结构迁移到当前版本。
-     * @param[out] errorMessage 迁移失败时接收错误说明。
-     * @return 数据结构可用时返回 @c true。
+     * @brief 检查架构版本并按需清空后重建全部聊天表。
+     * @param[out] errorMessage 失败时接收错误说明。
+     * @return 架构可用时返回 @c true。
      */
-    [[nodiscard]] bool migrateSchema(QString *errorMessage);
+    [[nodiscard]] bool ensureSchema(QString *errorMessage);
     /**
-     * @brief 执行不返回结果集的 SQL 语句。
-     * @param statement 待执行的 SQL 语句。
-     * @param[out] errorMessage 执行失败时接收错误说明。
-     * @return 语句执行成功时返回 @c true。
+     * @brief 执行单条无参数 SQL。
+     * @param statement SQL 文本。
+     * @param[out] errorMessage 失败时接收错误说明。
+     * @return 执行成功时返回 @c true。
      */
-    [[nodiscard]] bool executeStatement(const QString &statement, QString *errorMessage) const;
+    [[nodiscard]] bool executeStatement(const QString &statement,
+                                        QString *errorMessage);
 
     QString m_connectionName;
     QString m_databasePath;

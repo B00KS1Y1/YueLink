@@ -1,13 +1,12 @@
 #include "lanchatmanager.h"
 
 #include "application/chatcoordinator.h"
+#include "YueLink/conversationlistviewmodel.h"
 #include "YueLink/conversationviewmodel.h"
 #include "YueLink/desktopfilelauncher.h"
 #include "YueLink/desktopintegration.h"
 #include "YueLink/desktopnotificationservice.h"
 #include "YueLink/peerlistviewmodel.h"
-
-#include <QStringList>
 
 #include <utility>
 
@@ -39,6 +38,7 @@ LanChatManager::LanChatManager(
     QObject *parent)
 : QObject(parent)
 , m_coordinator(coordinator)
+, m_conversations(std::make_unique<ConversationListViewModel>(coordinator))
 , m_peers(std::make_unique<PeerListViewModel>(coordinator))
 , m_conversation(std::make_unique<ConversationViewModel>(coordinator))
 , m_desktop(std::make_unique<DesktopIntegration>(coordinator,
@@ -47,6 +47,7 @@ LanChatManager::LanChatManager(
                                                  std::move(notificationService)))
 {
     Q_ASSERT(m_coordinator);
+    Q_ASSERT(m_conversations);
     Q_ASSERT(m_peers);
     Q_ASSERT(m_conversation);
     Q_ASSERT(m_desktop);
@@ -54,6 +55,11 @@ LanChatManager::LanChatManager(
 }
 
 LanChatManager::~LanChatManager() = default;
+
+QAbstractItemModel *LanChatManager::conversations()
+{
+    return m_conversations->model();
+}
 
 QAbstractItemModel *LanChatManager::peers()
 {
@@ -63,6 +69,16 @@ QAbstractItemModel *LanChatManager::peers()
 QAbstractItemModel *LanChatManager::messages()
 {
     return m_conversation->model();
+}
+
+QString LanChatManager::conversationSearchText() const
+{
+    return m_conversations->searchText();
+}
+
+void LanChatManager::setConversationSearchText(const QString &text)
+{
+    m_conversations->setSearchText(text);
 }
 
 QString LanChatManager::peerSearchText() const
@@ -106,9 +122,9 @@ QString LanChatManager::localAvatarColor() const
     return m_coordinator->localAvatarColor();
 }
 
-QString LanChatManager::currentPeerId() const
+QString LanChatManager::currentConversationId() const
 {
-    return m_conversation->currentPeerId();
+    return m_conversation->currentConversationId();
 }
 
 int LanChatManager::onlineCount() const
@@ -118,7 +134,7 @@ int LanChatManager::onlineCount() const
 
 int LanChatManager::totalUnreadCount() const
 {
-    return m_peers->totalUnreadCount();
+    return m_conversations->totalUnreadCount();
 }
 
 bool LanChatManager::running() const
@@ -146,19 +162,66 @@ bool LanChatManager::refreshPeers()
     return static_cast<bool>(m_coordinator->refreshPeerDiscovery());
 }
 
-bool LanChatManager::selectPeer(const QString &peerId)
+bool LanChatManager::selectConversation(const QString &conversationId)
 {
-    return m_conversation->selectPeer(peerId);
+    return m_conversation->selectConversation(conversationId);
 }
 
-bool LanChatManager::markConversationRead(const QString &peerId)
+bool LanChatManager::markConversationRead(const QString &conversationId)
 {
-    return static_cast<bool>(m_coordinator->markConversationRead(peerId));
+    return static_cast<bool>(m_coordinator->markConversationRead(conversationId));
 }
 
-QVariantMap LanChatManager::peerInfo(const QString &peerId) const
+QVariantMap LanChatManager::conversationInfo(const QString &conversationId) const
 {
-    return m_peers->peerInfo(peerId);
+    return m_conversations->conversationInfo(conversationId);
+}
+
+QVariantList LanChatManager::groupMembers(const QString &groupId) const
+{
+    QVariantList result;
+    const QString localId = m_coordinator->localIdentity().deviceId;
+    for (const Domain::GroupMember &member : m_coordinator->groupMembers(groupId))
+    {
+        Domain::Peer peer;
+        const bool local = member.peerId == localId;
+        const bool online = local
+                                ? m_coordinator->running()
+                                : m_coordinator->peer(member.peerId, &peer) && peer.online;
+        const QString displayName = member.displayName.trimmed();
+        const QVariantMap contact = m_peers->peerInfo(member.peerId);
+        QString avatarColor = local
+                                  ? m_coordinator->localAvatarColor()
+                                  : contact.value(QStringLiteral("avatarColor"))
+                                        .toString();
+        if (avatarColor.isEmpty())
+            avatarColor = QStringLiteral("#65758B");
+        result.append(QVariantMap{
+            {QStringLiteral("peerId"), member.peerId},
+            {QStringLiteral("displayName"), displayName},
+            {QStringLiteral("initial"), displayName.isEmpty()
+                                            ? QStringLiteral("?")
+                                            : displayName.left(1).toUpper()},
+            {QStringLiteral("avatarColor"), avatarColor},
+            {QStringLiteral("role"), Domain::groupRoleName(member.role)},
+            {QStringLiteral("owner"), member.role == Domain::GroupRole::Owner},
+            {QStringLiteral("online"), online},
+            {QStringLiteral("local"), local}});
+    }
+    return result;
+}
+
+QString LanChatManager::createGroup(const QString &name,
+                                    const QStringList &memberIds)
+{
+    const Domain::OperationResult result = m_coordinator->createGroup(name,
+                                                                      memberIds);
+    if (!result)
+    {
+        emit operationFailed(result.message);
+        return {};
+    }
+    return result.value;
 }
 
 bool LanChatManager::updateLocalProfile(const QString &displayName,
@@ -176,23 +239,25 @@ bool LanChatManager::updateLocalProfile(const QString &displayName,
         avatarColor));
 }
 
-bool LanChatManager::sendMessage(const QString &peerId, const QString &text)
+bool LanChatManager::sendMessage(const QString &conversationId,
+                                 const QString &text)
 {
-    return static_cast<bool>(m_coordinator->sendText(peerId, text));
+    return static_cast<bool>(m_coordinator->sendText(conversationId, text));
 }
 
-bool LanChatManager::sendFile(const QString &peerId, const QUrl &fileUrl)
+bool LanChatManager::sendFile(const QString &conversationId,
+                              const QUrl &fileUrl)
 {
     if (!fileUrl.isLocalFile())
     {
-        emit fileTransferFailed(peerId, tr("仅支持发送本地文件。"));
+        emit fileTransferFailed(conversationId, tr("仅支持发送本地文件。"));
         return false;
     }
-    return static_cast<bool>(m_coordinator->sendFile(peerId,
+    return static_cast<bool>(m_coordinator->sendFile(conversationId,
                                                      fileUrl.toLocalFile()));
 }
 
-int LanChatManager::sendFiles(const QString &peerId,
+int LanChatManager::sendFiles(const QString &conversationId,
                               const QList<QUrl> &fileUrls)
 {
     QStringList paths;
@@ -200,11 +265,9 @@ int LanChatManager::sendFiles(const QString &peerId,
     for (const QUrl &url : fileUrls)
     {
         if (url.isLocalFile())
-        {
             paths.append(url.toLocalFile());
-        }
     }
-    return m_coordinator->sendFiles(peerId, paths);
+    return m_coordinator->sendFiles(conversationId, paths);
 }
 
 QList<QUrl> LanChatManager::clipboardImageUrls()
@@ -212,16 +275,14 @@ QList<QUrl> LanChatManager::clipboardImageUrls()
     QString error;
     const QList<QUrl> urls = m_desktop->clipboardImageUrls(&error);
     if (!error.isEmpty())
-    {
         emit operationFailed(error);
-    }
     return urls;
 }
 
-bool LanChatManager::cancelFileTransfer(const QString &peerId,
+bool LanChatManager::cancelFileTransfer(const QString &conversationId,
                                         const QString &transferId)
 {
-    return static_cast<bool>(m_coordinator->cancelFileTransfer(peerId,
+    return static_cast<bool>(m_coordinator->cancelFileTransfer(conversationId,
                                                                transferId));
 }
 
@@ -265,6 +326,14 @@ void LanChatManager::setNotificationsEnabled(bool enabled)
 
 void LanChatManager::connectComponents()
 {
+    connect(m_conversations.get(),
+            &ConversationListViewModel::searchTextChanged,
+            this,
+            &LanChatManager::conversationSearchTextChanged);
+    connect(m_conversations.get(),
+            &ConversationListViewModel::totalUnreadCountChanged,
+            this,
+            &LanChatManager::totalUnreadCountChanged);
     connect(m_peers.get(),
             &PeerListViewModel::searchTextChanged,
             this,
@@ -273,10 +342,6 @@ void LanChatManager::connectComponents()
             &PeerListViewModel::onlineCountChanged,
             this,
             &LanChatManager::onlineCountChanged);
-    connect(m_peers.get(),
-            &PeerListViewModel::totalUnreadCountChanged,
-            this,
-            &LanChatManager::totalUnreadCountChanged);
     connect(m_peers.get(),
             &PeerListViewModel::peerDiscovered,
             this,
@@ -290,9 +355,9 @@ void LanChatManager::connectComponents()
             this,
             &LanChatManager::messageSearchTextChanged);
     connect(m_conversation.get(),
-            &ConversationViewModel::currentPeerIdChanged,
+            &ConversationViewModel::currentConversationIdChanged,
             this,
-            &LanChatManager::currentPeerIdChanged);
+            &LanChatManager::currentConversationIdChanged);
     connect(m_desktop.get(),
             &DesktopIntegration::notificationActivated,
             this,
@@ -325,10 +390,10 @@ void LanChatManager::connectComponents()
     connect(m_coordinator,
             &ChatCoordinator::fileTransferFailed,
             this,
-            [this](const QString &peerId,
+            [this](const QString &conversationId,
                    const QString &reason,
                    bool) {
-                emit fileTransferFailed(peerId, reason);
+                emit fileTransferFailed(conversationId, reason);
             });
     connect(m_coordinator,
             &ChatCoordinator::operationFailed,

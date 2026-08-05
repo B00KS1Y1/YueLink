@@ -2,6 +2,8 @@
 
 #include "domain/ichatrepository.h"
 
+#include <QDateTime>
+
 #include <spdlog/spdlog.h>
 
 #include <utility>
@@ -21,25 +23,30 @@ bool ConversationStore::initialize()
     QString error;
     if (!m_repository->initialize(&error))
     {
-        reportRepositoryError("初始化", error);
+        reportRepositoryError("initialize", error);
         return false;
     }
     m_repositoryReady = true;
 
-    QList<Storage::PeerRecord> records;
-    if (!m_repository->loadPeers(&records, &error))
+    QList<Domain::Group> groups;
+    QList<Domain::MessageDelivery> deliveries;
+    if (!m_repository->loadPeers(&m_peers, &error)
+        || !m_repository->loadConversations(&m_conversationList, &error)
+        || !m_repository->loadGroups(&groups, &error)
+        || !m_repository->loadDeliveries(&deliveries, &error))
     {
-        reportRepositoryError("加载好友列表", error);
+        reportRepositoryError("restore", error);
         return false;
     }
-    for (const Storage::PeerRecord &record : records)
+    for (Domain::Group &group : groups)
+        m_groups.insert(group.groupId, std::move(group));
+    for (Domain::MessageDelivery &delivery : deliveries)
     {
-        Domain::Peer peer;
-        peer.endpoint = record.endpoint;
-        peer.lastMessage = record.lastMessage;
-        peer.lastActivity = record.lastActivity;
-        peer.unreadCount = record.unreadCount;
-        m_peers.append(std::move(peer));
+        if (delivery.state != Domain::DeliveryState::Sent)
+            delivery.state = Domain::DeliveryState::Pending;
+        m_deliveries[delivery.messageId].insert(delivery.recipientId, delivery);
+        if (delivery.state == Domain::DeliveryState::Pending)
+            static_cast<void>(m_repository->saveDelivery(delivery, &error));
     }
     return true;
 }
@@ -49,96 +56,212 @@ QList<Domain::Peer> ConversationStore::peers() const
     return m_peers;
 }
 
+QList<Domain::Conversation> ConversationStore::conversations() const
+{
+    return m_conversationList;
+}
+
 bool ConversationStore::peer(const QString &peerId, Domain::Peer *result) const
 {
     const int index = peerIndex(peerId);
     if (index < 0)
-    {
         return false;
-    }
     if (result)
-    {
         *result = m_peers.at(index);
-    }
     return true;
 }
 
-QList<Domain::Message> ConversationStore::messages(const QString &peerId, int limit)
+bool ConversationStore::conversation(const QString &conversationId,
+                                     Domain::Conversation *result) const
 {
-    loadConversation(peerId);
-    const QList<Domain::Message> conversation = m_conversations.value(peerId);
+    const int index = conversationIndex(conversationId);
+    if (index < 0)
+        return false;
+    if (result)
+        *result = m_conversationList.at(index);
+    return true;
+}
+
+bool ConversationStore::group(const QString &groupId, Domain::Group *result) const
+{
+    const auto iterator = m_groups.constFind(groupId);
+    if (iterator == m_groups.cend())
+        return false;
+    if (result)
+        *result = iterator.value();
+    return true;
+}
+
+QList<Domain::GroupMember> ConversationStore::groupMembers(
+    const QString &groupId) const
+{
+    const auto iterator = m_groups.constFind(groupId);
+    return iterator == m_groups.cend() ? QList<Domain::GroupMember>{}
+                                      : iterator->members;
+}
+
+QList<Domain::Message> ConversationStore::messages(const QString &conversationId,
+                                                   int limit)
+{
+    if (!m_loadedConversations.contains(conversationId))
+        loadConversation(conversationId);
+    const QList<Domain::Message> values = m_messages.value(conversationId);
     const int boundedLimit = qBound(1, limit, 5000);
-    return conversation.mid(qMax(0, conversation.size() - boundedLimit));
+    return values.size() <= boundedLimit ? values : values.sliced(values.size() - boundedLimit);
+}
+
+bool ConversationStore::message(const QString &messageId, Domain::Message *result)
+{
+    for (const QList<Domain::Message> &conversationMessages : std::as_const(m_messages))
+    {
+        for (const Domain::Message &candidate : conversationMessages)
+        {
+            if (candidate.messageId == messageId)
+            {
+                if (result)
+                    *result = candidate;
+                return true;
+            }
+        }
+    }
+    if (!m_repositoryReady)
+        return false;
+    QString error;
+    Domain::Message stored;
+    if (!m_repository->loadMessage(messageId, &stored, &error))
+    {
+        if (!error.isEmpty())
+            reportRepositoryError("loadMessage", error);
+        return false;
+    }
+    if (result)
+        *result = stored;
+    return true;
+}
+
+QList<Domain::MessageDelivery> ConversationStore::pendingDeliveriesForPeer(
+    const QString &peerId) const
+{
+    QList<Domain::MessageDelivery> result;
+    for (const auto &byRecipient : m_deliveries)
+    {
+        const auto iterator = byRecipient.constFind(peerId);
+        if (iterator != byRecipient.cend()
+            && iterator->state == Domain::DeliveryState::Pending)
+        {
+            result.append(iterator.value());
+        }
+    }
+    return result;
+}
+
+void ConversationStore::deliveryCounts(const QString &messageId,
+                                       int *deliveredCount,
+                                       int *totalCount) const
+{
+    const auto iterator = m_deliveries.constFind(messageId);
+    int delivered = 0;
+    int total = 0;
+    if (iterator != m_deliveries.cend())
+    {
+        total = iterator->size();
+        for (const Domain::MessageDelivery &delivery : iterator.value())
+            delivered += delivery.state == Domain::DeliveryState::Sent ? 1 : 0;
+    }
+    if (deliveredCount)
+        *deliveredCount = delivered;
+    if (totalCount)
+        *totalCount = total;
 }
 
 int ConversationStore::onlineCount() const
 {
     int count = 0;
     for (const Domain::Peer &peer : m_peers)
-    {
         count += peer.online ? 1 : 0;
-    }
     return count;
 }
 
 int ConversationStore::totalUnreadCount() const
 {
     int count = 0;
-    for (const Domain::Peer &peer : m_peers)
-    {
-        count += peer.unreadCount;
-    }
+    for (const Domain::Conversation &conversation : m_conversationList)
+        count += conversation.unreadCount;
     return count;
 }
 
 void ConversationStore::observePeer(const Network::PeerEndpoint &endpoint)
 {
-    if (m_repositoryReady)
-    {
-        QString error;
-        if (!m_repository->upsertPeer(endpoint, &error))
-        {
-            reportRepositoryError("保存好友", error);
-        }
-    }
-
-    const int index = peerIndex(endpoint.peerId);
-    if (index < 0)
+    if (!endpoint.isValid())
+        return;
+    const int existingIndex = peerIndex(endpoint.peerId);
+    const bool discovered = existingIndex < 0;
+    if (discovered)
     {
         Domain::Peer peer;
         peer.endpoint = endpoint;
-        peer.lastActivity = QDateTime::currentDateTimeUtc();
         peer.online = true;
-        m_peers.append(std::move(peer));
-        emit peersChanged();
-        emit peerDiscovered(endpoint.peerId);
-        return;
+        m_peers.append(peer);
+    }
+    else
+    {
+        const Domain::Peer &existing = m_peers.at(existingIndex);
+        const bool changed = !existing.online
+                             || existing.endpoint.displayName != endpoint.displayName
+                             || existing.endpoint.address != endpoint.address
+                             || existing.endpoint.tcpPort != endpoint.tcpPort;
+        if (!changed)
+            return;
+        m_peers[existingIndex].endpoint = endpoint;
+        m_peers[existingIndex].online = true;
     }
 
-    Domain::Peer &peer = m_peers[index];
-    const bool changed = peer.endpoint.displayName != endpoint.displayName
-                         || peer.endpoint.address != endpoint.address
-                         || peer.endpoint.tcpPort != endpoint.tcpPort
-                         || !peer.online;
-    peer.endpoint = endpoint;
-    peer.online = true;
-    if (changed)
+    QString error;
+    const Domain::Peer &peerRecord = m_peers.at(peerIndex(endpoint.peerId));
+    if (m_repositoryReady && !m_repository->upsertPeer(peerRecord, &error))
+        reportRepositoryError("upsertPeer", error);
+
+    const QString directId = Domain::directConversationId(endpoint.peerId);
+    Domain::Conversation *direct = mutableConversation(directId);
+    if (!direct)
     {
-        emit peersChanged();
-        emit peerUpdated(endpoint.peerId);
+        Domain::Conversation conversation;
+        conversation.conversationId = directId;
+        conversation.kind = Domain::ConversationKind::Direct;
+        conversation.peerId = endpoint.peerId;
+        conversation.title = endpoint.displayName;
+        conversation.lastActivity = QDateTime::currentDateTimeUtc();
+        conversation.memberCount = 2;
+        m_conversationList.append(conversation);
+        if (m_repositoryReady
+            && !m_repository->saveConversation(conversation, &error))
+            reportRepositoryError("saveConversation", error);
+        emit conversationsChanged();
     }
+    else if (direct->title != endpoint.displayName)
+    {
+        direct->title = endpoint.displayName;
+        if (m_repositoryReady && !m_repository->saveConversation(*direct, &error))
+            reportRepositoryError("saveConversation", error);
+        emit conversationsChanged();
+    }
+
+    emit peersChanged();
+    if (discovered)
+        emit peerDiscovered(endpoint.peerId);
+    else
+        emit peerUpdated(endpoint.peerId);
 }
 
 void ConversationStore::markPeerOffline(const QString &peerId)
 {
-    Domain::Peer *peer = mutablePeer(peerId);
-    if (!peer || !peer->online)
-    {
+    Domain::Peer *record = mutablePeer(peerId);
+    if (!record || !record->online)
         return;
-    }
-    peer->online = false;
+    record->online = false;
     emit peersChanged();
     emit peerUpdated(peerId);
+    emit conversationsChanged();
 }
 
 void ConversationStore::markAllPeersOffline()
@@ -152,228 +275,232 @@ void ConversationStore::markAllPeersOffline()
     if (changed)
     {
         emit peersChanged();
+        emit conversationsChanged();
     }
 }
 
-Domain::OperationResult ConversationStore::markConversationRead(const QString &peerId)
+bool ConversationStore::upsertGroup(const Domain::Group &group)
 {
-    Domain::Peer *peer = mutablePeer(peerId);
-    if (!peer)
+    if (!group.groupId.startsWith(QLatin1String("group:"))
+        || group.name.isEmpty() || group.ownerId.isEmpty()
+        || group.members.size() < 2 || group.members.size() > 32)
+        return false;
+    QSet<QString> memberIds;
+    int ownerCount = 0;
+    for (const Domain::GroupMember &member : group.members)
     {
-        return Domain::OperationResult::failure(QStringLiteral("peer.not_found"),
-                                                tr("找不到指定好友。"));
+        if (member.peerId.isEmpty() || member.displayName.trimmed().isEmpty()
+            || memberIds.contains(member.peerId)
+            || (member.role == Domain::GroupRole::Owner
+                && member.peerId != group.ownerId))
+            return false;
+        memberIds.insert(member.peerId);
+        ownerCount += member.role == Domain::GroupRole::Owner ? 1 : 0;
     }
-    if (peer->unreadCount == 0)
-    {
-        return Domain::OperationResult::success();
-    }
+    if (ownerCount != 1 || !memberIds.contains(group.ownerId))
+        return false;
+    const auto current = m_groups.constFind(group.groupId);
+    if (current != m_groups.cend() && current->revision >= group.revision)
+        return true;
 
-    if (m_repositoryReady)
+    Domain::Conversation conversation;
+    if (!this->conversation(group.groupId, &conversation))
     {
-        QString error;
-        if (!m_repository->clearUnread(peerId, &error))
-        {
-            reportRepositoryError("清除未读消息", error);
-            return Domain::OperationResult::failure(QStringLiteral("storage.clear_unread"),
-                                                    error.isEmpty() ? tr("清除未读消息失败。") : error);
-        }
+        conversation.conversationId = group.groupId;
+        conversation.kind = Domain::ConversationKind::Group;
+        conversation.lastActivity = group.createdAt;
     }
-    peer->unreadCount = 0;
-    emit peersChanged();
+    conversation.title = group.name;
+    conversation.memberCount = group.members.size();
+
+    QString error;
+    if (m_repositoryReady
+        && (!m_repository->saveConversation(conversation, &error)
+            || !m_repository->saveGroup(group, &error)))
+    {
+        reportRepositoryError("saveGroup", error);
+        return false;
+    }
+    const int index = conversationIndex(group.groupId);
+    if (index < 0)
+        m_conversationList.append(conversation);
+    else
+        m_conversationList[index] = conversation;
+    m_groups.insert(group.groupId, group);
+    emit conversationsChanged();
+    emit groupChanged(group.groupId);
+    return true;
+}
+
+Domain::OperationResult ConversationStore::markConversationRead(
+    const QString &conversationId)
+{
+    Domain::Conversation *record = mutableConversation(conversationId);
+    if (!record)
+        return Domain::OperationResult::failure(QStringLiteral("conversation.unknown"),
+                                                tr("会话不存在。"));
+    if (record->unreadCount == 0)
+        return Domain::OperationResult::success();
+    QString error;
+    if (m_repositoryReady && !m_repository->clearUnread(conversationId, &error))
+    {
+        reportRepositoryError("clearUnread", error);
+        return Domain::OperationResult::failure(QStringLiteral("storage.clear_unread"),
+                                                error);
+    }
+    record->unreadCount = 0;
+    emit conversationsChanged();
     return Domain::OperationResult::success();
 }
 
-void ConversationStore::appendMessage(Domain::Message message,
+bool ConversationStore::appendMessage(Domain::Message message,
                                       const QString &summary,
                                       bool incrementUnread)
 {
-    persistMessage(message);
-    const QString peerId = message.peerId;
-    const QDateTime timestamp = message.timestamp;
-    m_conversations[peerId].append(message);
-    updateConversation(peerId, summary, timestamp, incrementUnread);
+    Domain::Message duplicate;
+    if (this->message(message.messageId, &duplicate))
+        return false;
+    if (!mutableConversation(message.conversationId))
+        return false;
+
+    QString error;
+    if (m_repositoryReady && !m_repository->saveMessage(message, &error))
+    {
+        reportRepositoryError("saveMessage", error);
+        return false;
+    }
+    m_loadedConversations.insert(message.conversationId);
+    m_messages[message.conversationId].append(message);
+    updateConversationSummary(message.conversationId,
+                              summary,
+                              message.timestamp,
+                              incrementUnread);
     emit messageAdded(message);
+    return true;
 }
 
-void ConversationStore::updateMessageState(const QString &peerId,
+void ConversationStore::updateMessageState(const QString &conversationId,
                                            const QString &messageId,
                                            Domain::DeliveryState state)
 {
-    QList<Domain::Message> &messages = m_conversations[peerId];
-    for (int index = messages.size() - 1; index >= 0; --index)
+    if (!m_loadedConversations.contains(conversationId))
+        loadConversation(conversationId);
+    QList<Domain::Message> &values = m_messages[conversationId];
+    for (Domain::Message &message : values)
     {
-        if (messages[index].messageId == messageId)
-        {
-            messages[index].deliveryState = state;
-            break;
-        }
-    }
-
-    if (m_repositoryReady)
-    {
+        if (message.messageId != messageId || message.deliveryState == state)
+            continue;
+        message.deliveryState = state;
         QString error;
-        if (!m_repository->updateDeliveryStatus(peerId,
-                                                messageId,
-                                                Domain::deliveryStateName(state),
-                                                &error))
-        {
-            reportRepositoryError("更新投递状态", error);
-        }
+        if (m_repositoryReady
+            && !m_repository->updateMessageState(conversationId,
+                                                 messageId,
+                                                 state,
+                                                 &error))
+            reportRepositoryError("updateMessageState", error);
+        emit messageStateChanged(conversationId, messageId, state);
+        return;
     }
-    emit messageStateChanged(peerId, messageId, state);
 }
 
-void ConversationStore::updateFileTransfer(const QString &peerId,
+void ConversationStore::updateFileTransfer(const QString &conversationId,
                                            const QString &messageId,
                                            qreal progress,
                                            Domain::DeliveryState state,
                                            const QString &filePath)
 {
-    const qreal boundedProgress = qBound(0.0, progress, 1.0);
-    QList<Domain::Message> &messages = m_conversations[peerId];
-    for (int index = messages.size() - 1; index >= 0; --index)
+    if (!m_loadedConversations.contains(conversationId))
+        loadConversation(conversationId);
+    QList<Domain::Message> &values = m_messages[conversationId];
+    for (Domain::Message &message : values)
     {
-        Domain::Message &message = messages[index];
         if (message.messageId != messageId)
-        {
             continue;
-        }
-        message.fileProgress = boundedProgress;
+        message.fileProgress = qBound(0.0, progress, 1.0);
         message.deliveryState = state;
         if (!filePath.isEmpty())
-        {
             message.filePath = filePath;
-        }
-        break;
-    }
-
-    if (m_repositoryReady)
-    {
         QString error;
-        if (!m_repository->updateFileTransfer(peerId,
-                                              messageId,
-                                              boundedProgress,
-                                              Domain::deliveryStateName(state),
-                                              filePath,
-                                              &error))
-        {
-            reportRepositoryError("更新文件传输", error);
-        }
-    }
-    emit fileTransferChanged(peerId, messageId, boundedProgress, state, filePath);
-}
-
-void ConversationStore::loadConversation(const QString &peerId)
-{
-    if (!m_repositoryReady || m_loadedConversations.contains(peerId))
-    {
+        if (m_repositoryReady
+            && !m_repository->updateFileTransfer(conversationId,
+                                                 messageId,
+                                                 message.fileProgress,
+                                                 state,
+                                                 filePath,
+                                                 &error))
+            reportRepositoryError("updateFileTransfer", error);
+        emit fileTransferChanged(conversationId,
+                                 messageId,
+                                 message.fileProgress,
+                                 state,
+                                 message.filePath);
         return;
     }
+}
 
+void ConversationStore::saveDelivery(Domain::MessageDelivery delivery)
+{
+    delivery.lastAttempt = QDateTime::currentDateTimeUtc();
+    m_deliveries[delivery.messageId].insert(delivery.recipientId, delivery);
     QString error;
-    QList<Storage::MessageRecord> records;
-    if (!m_repository->loadMessages(peerId, 500, &records, &error))
-    {
-        reportRepositoryError("加载消息", error);
-        return;
-    }
-
-    QList<Domain::Message> messages;
-    messages.reserve(records.size());
-    for (Storage::MessageRecord &record : records)
-    {
-        Domain::DeliveryState state = Domain::deliveryStateFromName(record.deliveryStatus);
-        if (state == Domain::DeliveryState::Sending
-            || state == Domain::DeliveryState::Transferring
-            || state == Domain::DeliveryState::Receiving)
-        {
-            state = Domain::DeliveryState::Failed;
-            if (!m_repository->updateDeliveryStatus(record.peerId,
-                                                    record.messageId,
-                                                    Domain::deliveryStateName(state),
-                                                    &error))
-            {
-                reportRepositoryError("恢复中断消息", error);
-            }
-        }
-
-        Domain::Message message;
-        message.messageId = record.messageId;
-        message.peerId = record.peerId;
-        message.text = record.text;
-        message.timestamp = record.timestamp;
-        message.deliveryState = state;
-        message.kind = Domain::messageKindFromName(record.messageKind);
-        message.fileName = record.fileName;
-        message.filePath = record.filePath;
-        message.legacyFileSizeText = record.fileSizeText;
-        message.fileSize = record.fileSize;
-        message.fileProgress = record.fileProgress;
-        message.fromMe = record.fromMe;
-        messages.append(std::move(message));
-    }
-    m_conversations.insert(peerId, std::move(messages));
-    m_loadedConversations.insert(peerId);
+    if (m_repositoryReady && !m_repository->saveDelivery(delivery, &error))
+        reportRepositoryError("saveDelivery", error);
+    recomputeAggregateState(delivery.conversationId, delivery.messageId);
 }
 
-void ConversationStore::updateConversation(const QString &peerId,
-                                           const QString &lastMessage,
-                                           const QDateTime &timestamp,
-                                           bool incrementUnread)
+void ConversationStore::loadConversation(const QString &conversationId)
 {
-    const int index = peerIndex(peerId);
-    if (index < 0)
-    {
-        return;
-    }
-    Domain::Peer peer = m_peers.takeAt(index);
-    peer.lastMessage = lastMessage;
-    peer.lastActivity = timestamp;
-    if (incrementUnread)
-    {
-        ++peer.unreadCount;
-    }
-    m_peers.prepend(std::move(peer));
-
-    if (m_repositoryReady)
-    {
-        QString error;
-        if (!m_repository->updateConversation(peerId,
-                                              lastMessage,
-                                              timestamp,
-                                              incrementUnread,
-                                              &error))
-        {
-            reportRepositoryError("更新会话", error);
-        }
-    }
-    emit peersChanged();
-}
-
-void ConversationStore::persistMessage(const Domain::Message &message)
-{
+    m_loadedConversations.insert(conversationId);
     if (!m_repositoryReady)
+        return;
+    QString error;
+    QList<Domain::Message> values;
+    if (!m_repository->loadMessages(conversationId, 500, &values, &error))
     {
+        reportRepositoryError("loadMessages", error);
         return;
     }
-    Storage::MessageRecord record;
-    record.messageId = message.messageId;
-    record.peerId = message.peerId;
-    record.text = message.text;
-    record.timestamp = message.timestamp;
-    record.deliveryStatus = Domain::deliveryStateName(message.deliveryState);
-    record.messageKind = Domain::messageKindName(message.kind);
-    record.fileName = message.fileName;
-    record.fileSize = message.fileSize;
-    record.fileSizeText = message.legacyFileSizeText;
-    record.filePath = message.filePath;
-    record.fileProgress = message.fileProgress;
-    record.fromMe = message.fromMe;
+    m_messages.insert(conversationId, std::move(values));
+}
+
+void ConversationStore::updateConversationSummary(const QString &conversationId,
+                                                  const QString &lastMessage,
+                                                  const QDateTime &timestamp,
+                                                  bool incrementUnread)
+{
+    Domain::Conversation *record = mutableConversation(conversationId);
+    if (!record)
+        return;
+    record->lastMessage = lastMessage;
+    record->lastActivity = timestamp;
+    if (incrementUnread)
+        ++record->unreadCount;
     QString error;
-    if (!m_repository->saveMessage(record, &error))
+    if (m_repositoryReady
+        && !m_repository->updateConversation(conversationId,
+                                             lastMessage,
+                                             timestamp,
+                                             incrementUnread,
+                                             &error))
+        reportRepositoryError("updateConversation", error);
+    emit conversationsChanged();
+}
+
+void ConversationStore::recomputeAggregateState(const QString &conversationId,
+                                                const QString &messageId)
+{
+    int delivered = 0;
+    int total = 0;
+    deliveryCounts(messageId, &delivered, &total);
+    if (total > 0)
     {
-        reportRepositoryError("保存消息", error);
+        const Domain::DeliveryState state =
+            delivered == total ? Domain::DeliveryState::Sent
+                               : delivered > 0 ? Domain::DeliveryState::Partial
+                                               : Domain::DeliveryState::Sending;
+        updateMessageState(conversationId, messageId, state);
     }
+    emit deliveryChanged(conversationId, messageId, delivered, total);
 }
 
 int ConversationStore::peerIndex(const QString &peerId) const
@@ -381,9 +508,17 @@ int ConversationStore::peerIndex(const QString &peerId) const
     for (int index = 0; index < m_peers.size(); ++index)
     {
         if (m_peers.at(index).endpoint.peerId == peerId)
-        {
             return index;
-        }
+    }
+    return -1;
+}
+
+int ConversationStore::conversationIndex(const QString &conversationId) const
+{
+    for (int index = 0; index < m_conversationList.size(); ++index)
+    {
+        if (m_conversationList.at(index).conversationId == conversationId)
+            return index;
     }
     return -1;
 }
@@ -394,14 +529,21 @@ Domain::Peer *ConversationStore::mutablePeer(const QString &peerId)
     return index < 0 ? nullptr : &m_peers[index];
 }
 
+Domain::Conversation *ConversationStore::mutableConversation(
+    const QString &conversationId)
+{
+    const int index = conversationIndex(conversationId);
+    return index < 0 ? nullptr : &m_conversationList[index];
+}
+
 void ConversationStore::reportRepositoryError(const char *operation,
-                                               const QString &error)
+                                              const QString &error)
 {
     const QString reason = error.isEmpty()
-                               ? tr("数据仓储操作失败：%1").arg(QString::fromUtf8(operation))
-                               : error;
-    spdlog::warn("[存储.仓储] 操作失败 操作={} 原因={}",
-                 operation,
-                 reason.toUtf8().toStdString());
+                               ? tr("聊天数据操作失败。")
+                               : tr("聊天数据操作失败：%1").arg(error);
+    spdlog::error("[存储.会话] 操作失败 操作={} 原因={}",
+                  operation,
+                  reason.toUtf8().toStdString());
     emit operationFailed(reason);
 }

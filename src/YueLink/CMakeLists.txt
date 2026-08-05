@@ -22,6 +22,8 @@ qt_add_qml_module(YueLink
         qml/AboutWindow.qml
         qml/ChatContent.qml
         qml/FriendListPanel.qml
+        qml/GroupCreateDialog.qml
+        qml/GroupInfoPanel.qml
         qml/Main.qml
         qml/MessageComposer.qml
         qml/ProfileEditPage.qml
@@ -32,6 +34,8 @@ qt_add_qml_module(YueLink
         appsettings.h
         chatmessagemodel.cpp
         chatmessagemodel.h
+        conversationlistviewmodel.cpp
+        conversationlistviewmodel.h
         conversationviewmodel.cpp
         conversationviewmodel.h
         desktopfilelauncher.cpp
@@ -44,10 +48,10 @@ qt_add_qml_module(YueLink
         inotificationservice.h
         lanchatmanager.cpp
         lanchatmanager.h
-        peerlistmodel.cpp
-        peerlistmodel.h
         peerlistviewmodel.cpp
         peerlistviewmodel.h
+        sidebaritemmodel.cpp
+        sidebaritemmodel.h
 )
 
 set_target_properties(YueLink PROPERTIES

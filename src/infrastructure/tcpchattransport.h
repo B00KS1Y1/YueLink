@@ -65,13 +65,22 @@ public:
      * @brief 向指定节点发送文本消息。
      * @param peer 目标节点。
      * @param messageId 唯一消息标识。
+     * @param groupId 群聊标识；直接会话传入空字符串。
      * @param text 消息内容。
      * @param timestamp 消息创建时间。
      */
     void sendText(const Network::PeerEndpoint &peer,
                   const QString &messageId,
+                  const QString &groupId,
                   const QString &text,
                   const QDateTime &timestamp) override;
+    /**
+     * @brief 向指定节点发送完整群组快照。
+     * @param peer 目标节点。
+     * @param snapshot 群组元数据与成员快照。
+     */
+    void sendGroupSnapshot(const Network::PeerEndpoint &peer,
+                           const Network::GroupSnapshot &snapshot) override;
     /**
      * @brief 开始向指定节点发送文件。
      * @param peer 目标节点。
@@ -111,6 +120,13 @@ private:
      */
     void handleIncomingText(const QJsonObject &object, QTcpSocket *socket);
     /**
+     * @brief 处理收到的群组快照帧。
+     * @param object 已解析的群组快照对象。
+     * @param socket 消息来源套接字。
+     */
+    void handleIncomingGroupSnapshot(const QJsonObject &object,
+                                     QTcpSocket *socket);
+    /**
      * @brief 处理收到的文件头帧。
      * @param object 已解析的文件头对象。
      * @param socket 文件来源套接字。
@@ -145,6 +161,17 @@ private:
      * @param reason 发送失败原因。
      */
     void failOutgoingText(QTcpSocket *socket, const QString &reason);
+    /**
+     * @brief 创建短连接并发送一个已编码事件帧。
+     * @param peer 目标节点。
+     * @param eventId 文本消息或群组标识。
+     * @param frameType 事件类型。
+     * @param frame 已编码帧。
+     */
+    void sendFramedEvent(const Network::PeerEndpoint &peer,
+                         const QString &eventId,
+                         const QString &frameType,
+                         const QByteArray &frame);
     /**
      * @brief 向套接字持续写入待发送的文件数据。
      * @param socket 文件发送使用的套接字。

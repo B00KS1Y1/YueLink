@@ -2,12 +2,15 @@
 
 #include "wireprotocol.h"
 
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QTcpSocket>
 #include <QtEndian>
 
 #include <spdlog/spdlog.h>
+
+#include <utility>
 
 TcpChatTransport::TcpChatTransport(QObject *parent)
 : IChatTransport(parent)
@@ -118,6 +121,7 @@ QString TcpChatTransport::lastError() const
 
 void TcpChatTransport::sendText(const Network::PeerEndpoint &peer,
                                 const QString &messageId,
+                                const QString &groupId,
                                 const QString &text,
                                 const QDateTime &timestamp)
 {
@@ -128,16 +132,41 @@ void TcpChatTransport::sendText(const Network::PeerEndpoint &peer,
         peer.address.toString().toStdString(),
         peer.tcpPort,
         text.size());
+    sendFramedEvent(peer,
+                    messageId,
+                    QStringLiteral("message"),
+                    Network::WireProtocol::textFrame(m_identity,
+                                                     listeningPort(),
+                                                     peer,
+                                                     messageId,
+                                                     groupId,
+                                                     text,
+                                                     timestamp));
+}
+
+void TcpChatTransport::sendGroupSnapshot(
+    const Network::PeerEndpoint &peer,
+    const Network::GroupSnapshot &snapshot)
+{
+    sendFramedEvent(peer,
+                    snapshot.groupId,
+                    QStringLiteral("group.snapshot"),
+                    Network::WireProtocol::groupSnapshotFrame(m_identity,
+                                                              listeningPort(),
+                                                              peer,
+                                                              snapshot));
+}
+
+void TcpChatTransport::sendFramedEvent(const Network::PeerEndpoint &peer,
+                                       const QString &eventId,
+                                       const QString &frameType,
+                                       const QByteArray &frame)
+{
     auto *socket = new QTcpSocket(this);
     socket->setProperty("peerId", peer.peerId);
-    socket->setProperty("messageId", messageId);
-    socket->setProperty("frame",
-                        Network::WireProtocol::textFrame(m_identity,
-                                                         listeningPort(),
-                                                         peer,
-                                                         messageId,
-                                                         text,
-                                                         timestamp));
+    socket->setProperty("messageId", eventId);
+    socket->setProperty("frameType", frameType);
+    socket->setProperty("frame", frame);
     m_outgoingTextSockets.insert(socket);
 
     connect(socket, &QTcpSocket::connected, this, [this, socket]() {
@@ -274,6 +303,10 @@ void TcpChatTransport::readIncomingData(QTcpSocket *socket)
         {
             handleIncomingText(object, socket);
         }
+        else if (type == QLatin1String("group.snapshot"))
+        {
+            handleIncomingGroupSnapshot(object, socket);
+        }
         else if (type == QLatin1String("file")
                  && !handleIncomingFileHeader(object, socket))
         {
@@ -301,9 +334,13 @@ void TcpChatTransport::handleIncomingText(const QJsonObject &object, QTcpSocket 
     }
     const Network::PeerEndpoint peer = incomingPeer(object, socket);
     const QString messageId = object.value(QStringLiteral("messageId")).toString();
+    const QString groupId = object.value(QStringLiteral("groupId")).toString();
     const QString text = object.value(QStringLiteral("text")).toString();
     if (!peer.isValid() || peer.peerId == m_identity.deviceId || messageId.isEmpty()
-        || text.isEmpty() || text.size() > 2000 || !rememberEventId(messageId))
+        || groupId.size() > 128
+        || (!groupId.isEmpty() && !groupId.startsWith(QLatin1String("group:")))
+        || text.isEmpty() || text.size() > 2000
+        || !rememberEventId(messageId))
     {
         spdlog::debug("[网络.传输] 已拒绝无效或重复的文本消息 地址={}",
                       socket->peerAddress().toString().toStdString());
@@ -316,7 +353,76 @@ void TcpChatTransport::handleIncomingText(const QJsonObject &object, QTcpSocket 
         messageId.toUtf8().toStdString(),
         text.size());
     emit peerObserved(peer);
-    emit textReceived({messageId, peer, text, timestampFrom(object)});
+    emit textReceived({messageId, groupId, peer, text, timestampFrom(object)});
+}
+
+void TcpChatTransport::handleIncomingGroupSnapshot(const QJsonObject &object,
+                                                   QTcpSocket *socket)
+{
+    if (!Network::WireProtocol::isEnvelopeFor(object, m_identity))
+    {
+        return;
+    }
+
+    Network::GroupSnapshot snapshot;
+    snapshot.sender = incomingPeer(object, socket);
+    snapshot.groupId = object.value(QStringLiteral("groupId")).toString();
+    snapshot.name = object.value(QStringLiteral("name")).toString().trimmed().left(64);
+    snapshot.ownerId = object.value(QStringLiteral("ownerId")).toString();
+    snapshot.revision = object.value(QStringLiteral("revision")).toVariant().toULongLong();
+    snapshot.createdAt = QDateTime::fromString(
+        object.value(QStringLiteral("createdAt")).toString(),
+        Qt::ISODateWithMs);
+
+    const QJsonArray members = object.value(QStringLiteral("members")).toArray();
+    if (!snapshot.sender.isValid()
+        || !snapshot.groupId.startsWith(QLatin1String("group:"))
+        || snapshot.groupId.size() > 128 || snapshot.name.isEmpty()
+        || snapshot.ownerId != snapshot.sender.peerId || snapshot.revision == 0
+        || members.size() < 2 || members.size() > 32)
+    {
+        return;
+    }
+
+    bool includesLocalUser = false;
+    bool includesOwner = false;
+    QSet<QString> memberIds;
+    for (const QJsonValue &value : members)
+    {
+        const QJsonObject memberObject = value.toObject();
+        Network::GroupMemberInfo member;
+        member.peerId = memberObject.value(QStringLiteral("peerId")).toString();
+        member.displayName = memberObject.value(QStringLiteral("displayName"))
+                                 .toString()
+                                 .trimmed()
+                                 .left(64);
+        member.owner = memberObject.value(QStringLiteral("owner")).toBool();
+        if (member.peerId.isEmpty() || member.displayName.isEmpty()
+            || memberIds.contains(member.peerId)
+            || (member.owner && member.peerId != snapshot.ownerId))
+        {
+            return;
+        }
+        memberIds.insert(member.peerId);
+        includesLocalUser = includesLocalUser || member.peerId == m_identity.deviceId;
+        includesOwner = includesOwner
+                        || (member.peerId == snapshot.ownerId && member.owner);
+        snapshot.members.append(std::move(member));
+    }
+    if (!includesLocalUser || !includesOwner
+        || !rememberEventId(QStringLiteral("%1:%2")
+                                .arg(snapshot.groupId)
+                                .arg(snapshot.revision)))
+    {
+        return;
+    }
+
+    if (!snapshot.createdAt.isValid())
+    {
+        snapshot.createdAt = QDateTime::currentDateTimeUtc();
+    }
+    emit peerObserved(snapshot.sender);
+    emit groupSnapshotReceived(snapshot);
 }
 
 void TcpChatTransport::finishOutgoingText(QTcpSocket *socket)
@@ -328,8 +434,11 @@ void TcpChatTransport::finishOutgoingText(QTcpSocket *socket)
     spdlog::debug("[网络.传输] 文本消息已发送 好友标识={} 消息标识={}",
                   socket->property("peerId").toString().toUtf8().toStdString(),
                   socket->property("messageId").toString().toUtf8().toStdString());
-    emit textSent(socket->property("peerId").toString(),
-                  socket->property("messageId").toString());
+    if (socket->property("frameType").toString() == QLatin1String("message"))
+    {
+        emit textSent(socket->property("peerId").toString(),
+                      socket->property("messageId").toString());
+    }
     socket->disconnectFromHost();
 }
 
@@ -343,9 +452,18 @@ void TcpChatTransport::failOutgoingText(QTcpSocket *socket, const QString &reaso
                  socket->property("peerId").toString().toUtf8().toStdString(),
                  socket->property("messageId").toString().toUtf8().toStdString(),
                  reason.toUtf8().toStdString());
-    emit textSendFailed(socket->property("peerId").toString(),
-                        socket->property("messageId").toString(),
-                        reason);
+    if (socket->property("frameType").toString() == QLatin1String("group.snapshot"))
+    {
+        emit groupSnapshotSendFailed(socket->property("peerId").toString(),
+                                     socket->property("messageId").toString(),
+                                     reason);
+    }
+    else
+    {
+        emit textSendFailed(socket->property("peerId").toString(),
+                            socket->property("messageId").toString(),
+                            reason);
+    }
     socket->abort();
     socket->deleteLater();
 }

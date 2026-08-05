@@ -10,13 +10,16 @@
 
 TransferCoordinator::TransferCoordinator(IChatTransport *transport,
                                          ConversationStore *conversations,
+                                         const Network::LocalIdentity *localIdentity,
                                          QObject *parent)
 : QObject(parent)
 , m_transport(transport)
 , m_conversations(conversations)
+, m_localIdentity(localIdentity)
 {
     Q_ASSERT(m_transport);
     Q_ASSERT(m_conversations);
+    Q_ASSERT(m_localIdentity);
     connect(m_transport,
             &IChatTransport::fileTransferStarted,
             this,
@@ -88,7 +91,8 @@ void TransferCoordinator::handleStarted(const Network::FileTransferInfo &transfe
 
     Domain::Message message;
     message.messageId = transfer.transferId;
-    message.peerId = transfer.peer.peerId;
+    message.conversationId = Domain::directConversationId(transfer.peer.peerId);
+    message.senderId = outgoing ? m_localIdentity->deviceId : transfer.peer.peerId;
     message.timestamp = transfer.timestamp;
     message.deliveryState = outgoing ? Domain::DeliveryState::Transferring
                                      : Domain::DeliveryState::Receiving;
@@ -96,10 +100,10 @@ void TransferCoordinator::handleStarted(const Network::FileTransferInfo &transfe
     message.fileName = transfer.fileName;
     message.filePath = transfer.filePath;
     message.fileSize = transfer.fileSize;
-    message.fromMe = outgoing;
-    m_conversations->appendMessage(std::move(message),
-                                   tr("[文件] %1").arg(transfer.fileName),
-                                   !outgoing);
+    static_cast<void>(m_conversations->appendMessage(
+        std::move(message),
+        tr("[文件] %1").arg(transfer.fileName),
+        !outgoing));
 }
 
 void TransferCoordinator::handleProgress(const Network::FileTransferProgress &progress)
@@ -108,7 +112,7 @@ void TransferCoordinator::handleProgress(const Network::FileTransferProgress &pr
         progress.direction == Network::TransferDirection::Outgoing
             ? Domain::DeliveryState::Transferring
             : Domain::DeliveryState::Receiving;
-    m_conversations->updateFileTransfer(progress.peerId,
+    m_conversations->updateFileTransfer(Domain::directConversationId(progress.peerId),
                                         progress.transferId,
                                         progress.progress,
                                         state);
@@ -121,7 +125,7 @@ void TransferCoordinator::handleFinished(const Network::FileTransferResult &resu
         const bool outgoing = result.direction == Network::TransferDirection::Outgoing;
         const Domain::DeliveryState state = outgoing ? Domain::DeliveryState::Sent
                                                      : Domain::DeliveryState::Received;
-        m_conversations->updateFileTransfer(result.peerId,
+        m_conversations->updateFileTransfer(Domain::directConversationId(result.peerId),
                                             result.transferId,
                                             1.0,
                                             state,
@@ -136,7 +140,9 @@ void TransferCoordinator::handleFinished(const Network::FileTransferResult &resu
     const Domain::DeliveryState state = result.cancelled
                                             ? Domain::DeliveryState::Cancelled
                                             : Domain::DeliveryState::Failed;
-    m_conversations->updateMessageState(result.peerId, result.transferId, state);
+    m_conversations->updateMessageState(Domain::directConversationId(result.peerId),
+                                        result.transferId,
+                                        state);
     if (!result.cancelled)
     {
         const bool incoming = result.direction == Network::TransferDirection::Incoming;

@@ -25,10 +25,12 @@ public:
      * @brief 构造文件传输协调器。
      * @param transport 非拥有的聊天传输对象；必须覆盖本对象生命周期。
      * @param conversations 非拥有的会话存储；必须覆盖本对象生命周期。
+     * @param localIdentity 非拥有的本地身份；必须覆盖本对象生命周期。
      * @param parent 可选的 QObject 父对象。
      */
     TransferCoordinator(IChatTransport *transport,
                         ConversationStore *conversations,
+                        const Network::LocalIdentity *localIdentity,
                         QObject *parent = nullptr);
     /** @brief 销毁文件传输协调器。 */
     ~TransferCoordinator() override;
@@ -99,6 +101,7 @@ private:
 
     IChatTransport *m_transport = nullptr;
     ConversationStore *m_conversations = nullptr;
+    const Network::LocalIdentity *m_localIdentity = nullptr;
 };
 
 #endif // TRANSFERCOORDINATOR_H

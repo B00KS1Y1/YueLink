@@ -3,8 +3,7 @@
 #include "application/chatcoordinator.h"
 
 #include <QCryptographicHash>
-#include <QDate>
-#include <QStringList>
+#include <QLocale>
 #include <QUrl>
 
 #include <utility>
@@ -18,47 +17,32 @@ ConversationViewModel::ConversationViewModel(ChatCoordinator *coordinator,
     m_filterModel.setSourceModel(&m_model);
     m_filterModel.setFilterRole(ChatMessageModel::SearchTextRole);
     m_filterModel.setFilterCaseSensitivity(Qt::CaseInsensitive);
-    m_filterModel.setDynamicSortFilter(true);
-    connect(m_coordinator,
-            &ChatCoordinator::messageAdded,
-            this,
-            &ConversationViewModel::handleMessageAdded);
-    connect(m_coordinator,
-            &ChatCoordinator::messageStateChanged,
-            this,
-            &ConversationViewModel::handleMessageStateChanged);
-    connect(m_coordinator,
-            &ChatCoordinator::fileTransferChanged,
-            this,
-            &ConversationViewModel::handleFileTransferChanged);
+    connect(m_coordinator, &ChatCoordinator::messageAdded,
+            this, &ConversationViewModel::handleMessageAdded);
+    connect(m_coordinator, &ChatCoordinator::messageStateChanged,
+            this, &ConversationViewModel::handleMessageStateChanged);
+    connect(m_coordinator, &ChatCoordinator::deliveryChanged,
+            this, &ConversationViewModel::handleDeliveryChanged);
+    connect(m_coordinator, &ChatCoordinator::fileTransferChanged,
+            this, &ConversationViewModel::handleFileTransferChanged);
 }
 
 ConversationViewModel::~ConversationViewModel() = default;
-
-QAbstractItemModel *ConversationViewModel::model()
-{
-    return &m_filterModel;
-}
-
-QString ConversationViewModel::searchText() const
-{
-    return m_searchText;
-}
+QAbstractItemModel *ConversationViewModel::model() { return &m_filterModel; }
+QString ConversationViewModel::searchText() const { return m_searchText; }
 
 void ConversationViewModel::setSearchText(const QString &text)
 {
     if (m_searchText == text)
-    {
         return;
-    }
     m_searchText = text;
     m_filterModel.setFilterFixedString(text.trimmed());
     emit searchTextChanged();
 }
 
-QString ConversationViewModel::currentPeerId() const
+QString ConversationViewModel::currentConversationId() const
 {
-    return m_currentPeerId;
+    return m_currentConversationId;
 }
 
 QString ConversationViewModel::localInitial() const
@@ -66,79 +50,87 @@ QString ConversationViewModel::localInitial() const
     return initialForName(m_coordinator->localIdentity().displayName);
 }
 
-bool ConversationViewModel::selectPeer(const QString &peerId)
+bool ConversationViewModel::selectConversation(const QString &conversationId)
 {
-    Domain::Peer peer;
-    if (!m_coordinator->peer(peerId, &peer))
-    {
+    Domain::Conversation conversation;
+    if (!m_coordinator->conversation(conversationId, &conversation))
         return false;
-    }
-    const bool changed = m_currentPeerId != peerId;
-    m_currentPeerId = peerId;
+    const bool changed = m_currentConversationId != conversationId;
+    m_currentConversationId = conversationId;
+    m_searchText.clear();
+    m_filterModel.setFilterFixedString({});
+    emit searchTextChanged();
+    synchronize(conversationId);
+    static_cast<void>(m_coordinator->markConversationRead(conversationId));
     if (changed)
-    {
-        setSearchText({});
-    }
-    synchronize(peerId);
-    static_cast<void>(m_coordinator->markConversationRead(peerId));
-    if (changed)
-    {
-        emit currentPeerIdChanged();
-    }
+        emit currentConversationIdChanged();
     return true;
 }
 
-void ConversationViewModel::synchronize(const QString &peerId)
+void ConversationViewModel::synchronize(const QString &conversationId)
 {
-    QList<ChatMessageModel::Message> viewMessages;
-    const QList<Domain::Message> messages = m_coordinator->messages(peerId);
-    viewMessages.reserve(messages.size());
-    for (const Domain::Message &message : messages)
-    {
-        viewMessages.append(toViewMessage(message));
-    }
-    m_model.setConversation(peerId, std::move(viewMessages));
-    m_model.selectPeer(peerId);
+    QList<ChatMessageModel::Message> values;
+    for (const Domain::Message &message : m_coordinator->messages(conversationId))
+        values.append(toViewMessage(message));
+    m_model.setConversation(conversationId, std::move(values));
+    m_model.selectConversation(conversationId);
 }
 
 void ConversationViewModel::handleMessageAdded(const Domain::Message &message)
 {
-    m_model.append(message.peerId, toViewMessage(message));
+    m_model.append(message.conversationId, toViewMessage(message));
 }
 
-void ConversationViewModel::handleMessageStateChanged(const QString &peerId,
-                                                      const QString &messageId,
-                                                      Domain::DeliveryState state)
+void ConversationViewModel::handleMessageStateChanged(
+    const QString &conversationId,
+    const QString &messageId,
+    Domain::DeliveryState state)
 {
-    m_model.setDeliveryStatus(peerId,
-                              messageId,
-                              Domain::deliveryStateName(state));
+    m_model.updateDelivery(conversationId,
+                           messageId,
+                           Domain::deliveryStateName(state));
 }
 
-void ConversationViewModel::handleFileTransferChanged(const QString &peerId,
-                                                      const QString &messageId,
-                                                      qreal progress,
-                                                      Domain::DeliveryState state,
-                                                      const QString &filePath)
+void ConversationViewModel::handleDeliveryChanged(const QString &conversationId,
+                                                   const QString &messageId,
+                                                   int deliveredCount,
+                                                   int totalCount)
 {
-    m_model.updateFileTransfer(peerId,
+    Domain::DeliveryState state = deliveredCount == totalCount && totalCount > 0
+                                      ? Domain::DeliveryState::Sent
+                                      : deliveredCount > 0
+                                            ? Domain::DeliveryState::Partial
+                                            : Domain::DeliveryState::Sending;
+    m_model.updateDelivery(conversationId,
+                           messageId,
+                           Domain::deliveryStateName(state),
+                           deliveredCount,
+                           totalCount);
+}
+
+void ConversationViewModel::handleFileTransferChanged(
+    const QString &conversationId,
+    const QString &messageId,
+    qreal progress,
+    Domain::DeliveryState state,
+    const QString &filePath)
+{
+    m_model.updateFileTransfer(conversationId,
                                messageId,
                                progress,
                                Domain::deliveryStateName(state),
                                filePath);
 }
 
-ChatMessageModel::Message ConversationViewModel::toViewMessage(const Domain::Message &message) const
+ChatMessageModel::Message ConversationViewModel::toViewMessage(
+    const Domain::Message &message) const
 {
-    Domain::Peer peer;
-    static_cast<void>(m_coordinator->peer(message.peerId, &peer));
     ChatMessageModel::Message view;
+    const QString name = senderName(message);
     view.messageId = message.messageId;
-    view.senderInitial = message.fromMe
-                             ? localInitial()
-                             : initialForName(peer.endpoint.displayName);
-    view.senderColor = message.fromMe ? QStringLiteral("#4F7CFF")
-                                      : colorForId(message.peerId);
+    view.senderName = name;
+    view.senderInitial = initialForName(name);
+    view.senderColor = colorForId(message.senderId);
     view.messageText = message.text;
     view.messageTime = displayTime(message.timestamp);
     view.deliveryStatus = Domain::deliveryStateName(message.deliveryState);
@@ -148,75 +140,70 @@ ChatMessageModel::Message ConversationViewModel::toViewMessage(const Domain::Mes
                                         message.legacyFileSizeText);
     view.fileProgress = message.fileProgress;
     view.filePath = message.filePath;
-    view.fileUrl = QUrl::fromLocalFile(message.filePath);
-    view.fromMe = message.fromMe;
+    view.fileUrl = message.filePath.isEmpty() ? QUrl{}
+                                              : QUrl::fromLocalFile(message.filePath);
+    view.fromMe = message.senderId == m_coordinator->localIdentity().deviceId;
+    m_coordinator->deliveryCounts(message.messageId,
+                                  &view.deliveredCount,
+                                  &view.totalRecipientCount);
     return view;
+}
+
+QString ConversationViewModel::senderName(const Domain::Message &message) const
+{
+    if (message.senderId == m_coordinator->localIdentity().deviceId)
+        return m_coordinator->localIdentity().displayName;
+    Domain::Peer peer;
+    if (m_coordinator->peer(message.senderId, &peer))
+        return peer.endpoint.displayName;
+    for (const Domain::GroupMember &member :
+         m_coordinator->groupMembers(message.conversationId))
+    {
+        if (member.peerId == message.senderId)
+            return member.displayName;
+    }
+    return tr("未知成员");
 }
 
 QString ConversationViewModel::displayFileSize(qint64 bytes,
                                                const QString &fallback)
 {
     if (bytes <= 0)
-    {
         return fallback;
-    }
-    constexpr qreal Kilobyte = 1024.0;
-    constexpr qreal Megabyte = Kilobyte * 1024.0;
-    constexpr qreal Gigabyte = Megabyte * 1024.0;
-    if (bytes < 1024)
-    {
-        return tr("%1 B").arg(bytes);
-    }
-    if (bytes < static_cast<qint64>(Megabyte))
-    {
-        return tr("%1 KB").arg(QString::number(bytes / Kilobyte, 'f', 1));
-    }
-    if (bytes < static_cast<qint64>(Gigabyte))
-    {
-        return tr("%1 MB").arg(QString::number(bytes / Megabyte, 'f', 1));
-    }
-    return tr("%1 GB").arg(QString::number(bytes / Gigabyte, 'f', 1));
+    constexpr qreal KiB = 1024.0;
+    constexpr qreal MiB = KiB * 1024.0;
+    constexpr qreal GiB = MiB * 1024.0;
+    if (bytes >= GiB)
+        return tr("%1 GB").arg(QLocale().toString(bytes / GiB, 'f', 2));
+    if (bytes >= MiB)
+        return tr("%1 MB").arg(QLocale().toString(bytes / MiB, 'f', 1));
+    if (bytes >= KiB)
+        return tr("%1 KB").arg(QLocale().toString(bytes / KiB, 'f', 1));
+    return tr("%1 字节").arg(QLocale().toString(bytes));
 }
 
 QString ConversationViewModel::displayTime(const QDateTime &timestamp)
 {
-    if (!timestamp.isValid())
-    {
-        return {};
-    }
-    const QDateTime localTimestamp = timestamp.toLocalTime();
-    const QDate currentDate = QDate::currentDate();
-    if (localTimestamp.date() == currentDate)
-    {
-        return localTimestamp.toString(QStringLiteral("HH:mm"));
-    }
-    if (localTimestamp.date() == currentDate.addDays(-1))
-    {
-        return tr("昨天 %1").arg(localTimestamp.toString(QStringLiteral("HH:mm")));
-    }
-    return localTimestamp.toString(QStringLiteral("MM-dd HH:mm"));
+    return timestamp.isValid()
+               ? QLocale().toString(timestamp.toLocalTime().time(), QLocale::ShortFormat)
+               : QString{};
 }
 
 QString ConversationViewModel::initialForName(const QString &name)
 {
-    const QString trimmed = name.trimmed();
-    return trimmed.isEmpty() ? QStringLiteral("?") : trimmed.left(1).toUpper();
+    const QString normalized = name.trimmed();
+    return normalized.isEmpty() ? QStringLiteral("?") : normalized.left(1).toUpper();
 }
 
-QString ConversationViewModel::colorForId(const QString &peerId)
+QString ConversationViewModel::colorForId(const QString &id)
 {
-    static const QStringList colors = {QStringLiteral("#7C6EE6"),
-                                       QStringLiteral("#36A18B"),
-                                       QStringLiteral("#D86B87"),
-                                       QStringLiteral("#4F8EC9"),
-                                       QStringLiteral("#C17A3A"),
-                                       QStringLiteral("#6C8D3F")};
-    const QByteArray digest = QCryptographicHash::hash(peerId.toUtf8(),
+    static const QStringList colors{QStringLiteral("#4F7CFF"),
+                                    QStringLiteral("#7C6EE6"),
+                                    QStringLiteral("#2CA58D"),
+                                    QStringLiteral("#D97757"),
+                                    QStringLiteral("#C2548A"),
+                                    QStringLiteral("#65758B")};
+    const QByteArray digest = QCryptographicHash::hash(id.toUtf8(),
                                                        QCryptographicHash::Sha256);
-    if (digest.isEmpty())
-    {
-        return colors.first();
-    }
-    const qsizetype index = static_cast<unsigned char>(digest.at(0)) % colors.size();
-    return colors.at(index);
+    return colors.at(static_cast<unsigned char>(digest.at(0)) % colors.size());
 }

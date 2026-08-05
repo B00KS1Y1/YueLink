@@ -5,7 +5,6 @@
 
 #include <QDir>
 #include <QFileInfo>
-#include <QSqlDatabase>
 #include <QSqlError>
 #include <QSqlQuery>
 #include <QStringList>
@@ -14,15 +13,23 @@
 
 #include <spdlog/spdlog.h>
 
+#include <cstddef>
 #include <utility>
 
 namespace
 {
-constexpr int CurrentSchemaVersion = 2;
+constexpr int CurrentSchemaVersion = 3;
+
+void setError(QString *target, const QString &message)
+{
+    if (target)
+        *target = message;
+}
 
 QString timestampText(const QDateTime &timestamp)
 {
-    const QDateTime value = timestamp.isValid() ? timestamp : QDateTime::currentDateTimeUtc();
+    const QDateTime value = timestamp.isValid() ? timestamp
+                                                : QDateTime::currentDateTimeUtc();
     return value.toUTC().toString(Qt::ISODateWithMs);
 }
 
@@ -35,25 +42,50 @@ QDateTime timestampFromText(const QString &text)
 QString normalizedSynchronousMode(QString mode)
 {
     mode = mode.trimmed().toLower();
-    if (mode == QLatin1String("off") || mode == QLatin1String("normal") || mode == QLatin1String("full") || mode == QLatin1String("extra"))
+    if (mode == QLatin1String("off") || mode == QLatin1String("normal")
+        || mode == QLatin1String("full") || mode == QLatin1String("extra"))
     {
         return mode.toUpper();
     }
     return QStringLiteral("NORMAL");
 }
+
+Domain::Message messageFromQuery(const QSqlQuery &query)
+{
+    Domain::Message message;
+    message.messageId = query.value(0).toString();
+    message.conversationId = query.value(1).toString();
+    message.senderId = query.value(2).toString();
+    message.text = query.value(3).toString();
+    message.timestamp = timestampFromText(query.value(4).toString());
+    message.deliveryState = Domain::deliveryStateFromName(query.value(5).toString());
+    message.kind = Domain::messageKindFromName(query.value(6).toString());
+    message.fileName = query.value(7).toString();
+    message.legacyFileSizeText = query.value(8).toString();
+    message.fileSize = qMax<qint64>(0, query.value(9).toLongLong());
+    message.fileProgress = qBound(0.0, query.value(10).toDouble(), 1.0);
+    message.filePath = query.value(11).toString();
+    return message;
+}
+
+QString messageColumns()
+{
+    return QStringLiteral("message_id, conversation_id, sender_id, message_text, "
+                          "timestamp_utc, delivery_status, message_kind, file_name, "
+                          "file_size_text, file_size_bytes, file_progress, file_path");
+}
 } // namespace
 
 SqliteChatRepository::SqliteChatRepository()
-: m_connectionName(QStringLiteral("YueLink.Chat.%1").arg(QUuid::createUuid().toString(QUuid::WithoutBraces)))
+: m_connectionName(QStringLiteral("YueLink.Chat.%1")
+                       .arg(QUuid::createUuid().toString(QUuid::WithoutBraces)))
 {
 }
 
 SqliteChatRepository::~SqliteChatRepository()
 {
     if (!QSqlDatabase::contains(m_connectionName))
-    {
         return;
-    }
     {
         QSqlDatabase connection = QSqlDatabase::database(m_connectionName, false);
         connection.close();
@@ -63,315 +95,514 @@ SqliteChatRepository::~SqliteChatRepository()
 
 bool SqliteChatRepository::initialize(QString *errorMessage)
 {
+    setError(errorMessage, {});
     if (m_initialized)
-    {
-        spdlog::info("数据初始化完成，路径：{}，模式：{}", m_databasePath.toUtf8().toStdString(), CurrentSchemaVersion);
         return true;
-    }
 
     const Config::DatabaseConfig config = Config::database.get();
-    if (QString::fromStdString(config.driver).compare(QStringLiteral("sqlite"), Qt::CaseInsensitive) != 0)
+    if (QString::fromStdString(config.driver)
+            .compare(QStringLiteral("sqlite"), Qt::CaseInsensitive)
+        != 0)
     {
-        spdlog::error("不支持的数据库驱动：{}", config.driver);
+        setError(errorMessage, QObject::tr("仅支持 SQLite 聊天数据库。"));
         return false;
     }
 
-    const QString configuredPath = QString::fromStdString(config.sqlite.file_path).trimmed();
+    const QString configuredPath =
+        QString::fromStdString(config.sqlite.file_path).trimmed();
     if (configuredPath.isEmpty())
     {
-        spdlog::error("SQLite 数据库路径不能为空。");
+        setError(errorMessage, QObject::tr("SQLite 数据库路径不能为空。"));
         return false;
     }
-    m_databasePath = QDir::isAbsolutePath(configuredPath) ? QDir::cleanPath(configuredPath) : Utils::Path::databaseFile(configuredPath);
-    const QString directory = QFileInfo(m_databasePath).absolutePath();
-    if (!QDir().mkpath(directory))
+    m_databasePath = QDir::isAbsolutePath(configuredPath)
+                         ? QDir::cleanPath(configuredPath)
+                         : Utils::Path::databaseFile(configuredPath);
+    if (!QDir().mkpath(QFileInfo(m_databasePath).absolutePath()))
     {
-        spdlog::error("无法创建数据库目录：{}", directory.toUtf8().toStdString());
+        setError(errorMessage, QObject::tr("无法创建数据库目录。"));
         return false;
     }
 
-    QSqlDatabase connection = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), m_connectionName);
+    QSqlDatabase connection = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"),
+                                                         m_connectionName);
     connection.setDatabaseName(m_databasePath);
     if (!connection.open())
     {
-        spdlog::error("无法打开 SQLite 数据库：{}", connection.lastError().text().toUtf8().toStdString());
+        setError(errorMessage, connection.lastError().text());
         return false;
     }
-
-    if (!configureDatabase(errorMessage) || !migrateSchema(errorMessage))
+    if (!configureDatabase(errorMessage) || !ensureSchema(errorMessage))
     {
         connection.close();
         return false;
     }
 
     m_initialized = true;
-    spdlog::info("[存储.SQLite] 聊天数据库初始化完成 路径={} 架构版本={}", m_databasePath.toUtf8().toStdString(), CurrentSchemaVersion);
+    spdlog::info("[存储.SQLite] 统一会话数据库初始化完成 路径={} 架构版本={}",
+                 m_databasePath.toUtf8().toStdString(),
+                 CurrentSchemaVersion);
     return true;
 }
 
-bool SqliteChatRepository::loadPeers(QList<Storage::PeerRecord> *peers, QString *errorMessage)
+bool SqliteChatRepository::loadPeers(QList<Domain::Peer> *peers,
+                                     QString *errorMessage)
 {
     if (!m_initialized || !peers)
-    {
-        spdlog::error("聊天仓储尚未初始化。");
         return false;
-    }
-
     QSqlQuery query(database());
-    if (!query.exec(QStringLiteral("SELECT peer_id, display_name, address, tcp_port, last_message, "
-                                   "COALESCE(NULLIF(last_activity_utc, ''), updated_at_utc), unread_count "
-                                   "FROM peers ORDER BY COALESCE(NULLIF(last_activity_utc, ''), "
-                                   "updated_at_utc) DESC")))
+    if (!query.exec(QStringLiteral("SELECT peer_id, display_name, address, tcp_port "
+                                   "FROM peers ORDER BY display_name COLLATE NOCASE")))
     {
-        spdlog::error("查询好友列表失败：{}", query.lastError().text().toUtf8().toStdString());
+        setError(errorMessage, query.lastError().text());
         return false;
     }
 
-    QList<Storage::PeerRecord> records;
+    QList<Domain::Peer> result;
     while (query.next())
     {
-        Storage::PeerRecord record;
-        record.endpoint.peerId = query.value(0).toString();
-        record.endpoint.displayName = query.value(1).toString();
-        record.endpoint.address = QHostAddress(query.value(2).toString());
+        Domain::Peer peer;
+        peer.endpoint.peerId = query.value(0).toString();
+        peer.endpoint.displayName = query.value(1).toString();
+        peer.endpoint.address = QHostAddress(query.value(2).toString());
         const int port = query.value(3).toInt();
         if (port > 0 && port <= 65535)
-        {
-            record.endpoint.tcpPort = static_cast<quint16>(port);
-        }
-        record.lastMessage = query.value(4).toString();
-        record.lastActivity = timestampFromText(query.value(5).toString());
-        record.unreadCount = qMax(0, query.value(6).toInt());
-        if (!record.endpoint.peerId.isEmpty() && !record.endpoint.displayName.isEmpty())
-        {
-            records.append(std::move(record));
-        }
+            peer.endpoint.tcpPort = static_cast<quint16>(port);
+        if (!peer.endpoint.peerId.isEmpty())
+            result.append(std::move(peer));
     }
-    *peers = std::move(records);
-    spdlog::info("好友列表加载完成，共 {} 条记录。", records.size());
+    *peers = std::move(result);
     return true;
 }
 
-bool SqliteChatRepository::loadMessages(const QString &peerId, int limit, QList<Storage::MessageRecord> *messages, QString *errorMessage)
+bool SqliteChatRepository::loadConversations(
+    QList<Domain::Conversation> *conversations,
+    QString *errorMessage)
 {
-    if (!m_initialized || !messages || peerId.isEmpty())
+    if (!m_initialized || !conversations)
+        return false;
+    QSqlQuery query(database());
+    if (!query.exec(QStringLiteral(
+            "SELECT conversation_id, kind, peer_id, title, last_message, "
+            "last_activity_utc, unread_count, member_count FROM conversations "
+            "ORDER BY last_activity_utc DESC")))
     {
-        spdlog::error("聊天记录查询参数无效。");
+        setError(errorMessage, query.lastError().text());
         return false;
     }
 
+    QList<Domain::Conversation> result;
+    while (query.next())
+    {
+        Domain::Conversation conversation;
+        conversation.conversationId = query.value(0).toString();
+        conversation.kind = Domain::conversationKindFromName(query.value(1).toString());
+        conversation.peerId = query.value(2).toString();
+        conversation.title = query.value(3).toString();
+        conversation.lastMessage = query.value(4).toString();
+        conversation.lastActivity = timestampFromText(query.value(5).toString());
+        conversation.unreadCount = qMax(0, query.value(6).toInt());
+        conversation.memberCount = qMax(0, query.value(7).toInt());
+        if (!conversation.conversationId.isEmpty())
+            result.append(std::move(conversation));
+    }
+    *conversations = std::move(result);
+    return true;
+}
+
+bool SqliteChatRepository::loadGroups(QList<Domain::Group> *groups,
+                                      QString *errorMessage)
+{
+    if (!m_initialized || !groups)
+        return false;
     QSqlQuery query(database());
-    query.prepare(QStringLiteral("SELECT message_id, peer_id, from_me, sender_initial, sender_color, "
-                                 "message_text, timestamp_utc, delivery_status, message_kind, file_name, "
-                                 "file_size_text, file_size_bytes, file_progress, file_path FROM messages "
-                                 "WHERE id IN (SELECT id FROM messages WHERE peer_id = :peer_id "
-                                 "ORDER BY id DESC LIMIT :limit) ORDER BY id ASC"));
-    query.bindValue(QStringLiteral(":peer_id"), peerId);
+    if (!query.exec(QStringLiteral("SELECT group_id, name, owner_id, revision, "
+                                   "created_at_utc FROM groups")))
+    {
+        setError(errorMessage, query.lastError().text());
+        return false;
+    }
+
+    QList<Domain::Group> result;
+    while (query.next())
+    {
+        Domain::Group group;
+        group.groupId = query.value(0).toString();
+        group.name = query.value(1).toString();
+        group.ownerId = query.value(2).toString();
+        group.revision = query.value(3).toULongLong();
+        group.createdAt = timestampFromText(query.value(4).toString());
+
+        QSqlQuery memberQuery(database());
+        memberQuery.prepare(QStringLiteral(
+            "SELECT peer_id, display_name, role FROM group_members "
+            "WHERE group_id = :group_id ORDER BY role DESC, display_name COLLATE NOCASE"));
+        memberQuery.bindValue(QStringLiteral(":group_id"), group.groupId);
+        if (!memberQuery.exec())
+        {
+            setError(errorMessage, memberQuery.lastError().text());
+            return false;
+        }
+        while (memberQuery.next())
+        {
+            Domain::GroupMember member;
+            member.peerId = memberQuery.value(0).toString();
+            member.displayName = memberQuery.value(1).toString();
+            member.role = Domain::groupRoleFromName(memberQuery.value(2).toString());
+            group.members.append(std::move(member));
+        }
+        result.append(std::move(group));
+    }
+    *groups = std::move(result);
+    return true;
+}
+
+bool SqliteChatRepository::loadMessages(const QString &conversationId,
+                                        int limit,
+                                        QList<Domain::Message> *messages,
+                                        QString *errorMessage)
+{
+    if (!m_initialized || !messages || conversationId.isEmpty())
+        return false;
+    QSqlQuery query(database());
+    query.prepare(QStringLiteral("SELECT %1 FROM messages WHERE id IN "
+                                 "(SELECT id FROM messages WHERE conversation_id = :id "
+                                 "ORDER BY id DESC LIMIT :limit) ORDER BY id ASC")
+                      .arg(messageColumns()));
+    query.bindValue(QStringLiteral(":id"), conversationId);
     query.bindValue(QStringLiteral(":limit"), qBound(1, limit, 5000));
     if (!query.exec())
     {
-        spdlog::error("查询聊天记录失败：{}", query.lastError().text().toUtf8().toStdString());
+        setError(errorMessage, query.lastError().text());
         return false;
     }
+    QList<Domain::Message> result;
+    while (query.next())
+        result.append(messageFromQuery(query));
+    *messages = std::move(result);
+    return true;
+}
 
-    QList<Storage::MessageRecord> records;
+bool SqliteChatRepository::loadMessage(const QString &messageId,
+                                       Domain::Message *message,
+                                       QString *errorMessage)
+{
+    if (!m_initialized || !message || messageId.isEmpty())
+        return false;
+    QSqlQuery query(database());
+    query.prepare(QStringLiteral("SELECT %1 FROM messages WHERE message_id = :id")
+                      .arg(messageColumns()));
+    query.bindValue(QStringLiteral(":id"), messageId);
+    if (!query.exec())
+    {
+        setError(errorMessage, query.lastError().text());
+        return false;
+    }
+    if (!query.next())
+        return false;
+    *message = messageFromQuery(query);
+    return true;
+}
+
+bool SqliteChatRepository::loadDeliveries(
+    QList<Domain::MessageDelivery> *deliveries,
+    QString *errorMessage)
+{
+    if (!m_initialized || !deliveries)
+        return false;
+    QSqlQuery query(database());
+    query.prepare(QStringLiteral(
+        "SELECT message_id, conversation_id, recipient_id, state, error_message, "
+        "last_attempt_utc FROM message_deliveries"));
+    if (!query.exec())
+    {
+        setError(errorMessage, query.lastError().text());
+        return false;
+    }
+    QList<Domain::MessageDelivery> result;
     while (query.next())
     {
-        Storage::MessageRecord record;
-        record.messageId = query.value(0).toString();
-        record.peerId = query.value(1).toString();
-        record.fromMe = query.value(2).toBool();
-        record.senderInitial = query.value(3).toString();
-        record.senderColor = query.value(4).toString();
-        record.text = query.value(5).toString();
-        record.timestamp = timestampFromText(query.value(6).toString());
-        record.deliveryStatus = query.value(7).toString();
-        record.messageKind = query.value(8).toString();
-        record.fileName = query.value(9).toString();
-        record.fileSizeText = query.value(10).toString();
-        record.fileSize = qMax<qint64>(0, query.value(11).toLongLong());
-        record.fileProgress = qBound(0.0, query.value(12).toDouble(), 1.0);
-        record.filePath = query.value(13).toString();
-        records.append(std::move(record));
+        Domain::MessageDelivery delivery;
+        delivery.messageId = query.value(0).toString();
+        delivery.conversationId = query.value(1).toString();
+        delivery.recipientId = query.value(2).toString();
+        delivery.state = Domain::deliveryStateFromName(query.value(3).toString());
+        delivery.errorMessage = query.value(4).toString();
+        delivery.lastAttempt = timestampFromText(query.value(5).toString());
+        result.append(std::move(delivery));
     }
-    *messages = std::move(records);
-    spdlog::info("聊天记录加载完成，共 {} 条记录。", records.size());
+    *deliveries = std::move(result);
     return true;
 }
 
-bool SqliteChatRepository::upsertPeer(const Network::PeerEndpoint &peer, QString *errorMessage)
+bool SqliteChatRepository::upsertPeer(const Domain::Peer &peer,
+                                      QString *errorMessage)
 {
-    if (!m_initialized || !peer.isValid())
-    {
-        spdlog::error("无法保存无效的好友信息。");
+    if (!m_initialized || !peer.endpoint.isValid())
         return false;
-    }
-
-    const QString now = timestampText(QDateTime::currentDateTimeUtc());
     QSqlQuery query(database());
-    query.prepare(QStringLiteral("INSERT INTO peers (peer_id, display_name, address, tcp_port, "
-                                 "last_message, last_activity_utc, unread_count, updated_at_utc) "
-                                 "VALUES (:peer_id, :display_name, :address, :tcp_port, '', :created_at, "
-                                 "0, :updated_at) "
-                                 "ON CONFLICT(peer_id) DO UPDATE SET display_name = excluded.display_name, "
-                                 "address = excluded.address, tcp_port = excluded.tcp_port, "
-                                 "updated_at_utc = excluded.updated_at_utc"));
-    query.bindValue(QStringLiteral(":peer_id"), peer.peerId);
-    query.bindValue(QStringLiteral(":display_name"), peer.displayName);
-    query.bindValue(QStringLiteral(":address"), peer.address.toString());
-    query.bindValue(QStringLiteral(":tcp_port"), peer.tcpPort);
-    query.bindValue(QStringLiteral(":created_at"), now);
-    query.bindValue(QStringLiteral(":updated_at"), now);
+    query.prepare(QStringLiteral(
+        "INSERT INTO peers(peer_id, display_name, address, tcp_port, updated_at_utc) "
+        "VALUES(:id, :name, :address, :port, :updated) "
+        "ON CONFLICT(peer_id) DO UPDATE SET display_name=excluded.display_name, "
+        "address=excluded.address, tcp_port=excluded.tcp_port, "
+        "updated_at_utc=excluded.updated_at_utc"));
+    query.bindValue(QStringLiteral(":id"), peer.endpoint.peerId);
+    query.bindValue(QStringLiteral(":name"), peer.endpoint.displayName);
+    query.bindValue(QStringLiteral(":address"), peer.endpoint.address.toString());
+    query.bindValue(QStringLiteral(":port"), peer.endpoint.tcpPort);
+    query.bindValue(QStringLiteral(":updated"), timestampText(QDateTime{}));
     if (!query.exec())
     {
-        spdlog::error("保存好友信息失败：{}", query.lastError().text().toUtf8().toStdString());
+        setError(errorMessage, query.lastError().text());
         return false;
     }
-    spdlog::info("好友信息保存完成。");
     return true;
 }
 
-bool SqliteChatRepository::updateConversation(
-    const QString &peerId, const QString &lastMessage, const QDateTime &timestamp, bool incrementUnread, QString *errorMessage)
+bool SqliteChatRepository::saveConversation(
+    const Domain::Conversation &conversation,
+    QString *errorMessage)
 {
-    if (!m_initialized || peerId.isEmpty())
-    {
-        spdlog::error("会话更新参数无效。");
+    if (!m_initialized || conversation.conversationId.isEmpty()
+        || conversation.title.isEmpty())
         return false;
-    }
-
     QSqlQuery query(database());
-    query.prepare(QStringLiteral("UPDATE peers SET last_message = :last_message, "
-                                 "last_activity_utc = :last_activity, "
-                                 "unread_count = MAX(0, unread_count + :unread_delta), "
-                                 "updated_at_utc = :updated_at WHERE peer_id = :peer_id"));
-    query.bindValue(QStringLiteral(":last_message"), lastMessage);
-    query.bindValue(QStringLiteral(":last_activity"), timestampText(timestamp));
-    query.bindValue(QStringLiteral(":updated_at"), timestampText(timestamp));
-    query.bindValue(QStringLiteral(":unread_delta"), incrementUnread ? 1 : 0);
-    query.bindValue(QStringLiteral(":peer_id"), peerId);
+    query.prepare(QStringLiteral(
+        "INSERT INTO conversations(conversation_id, kind, peer_id, title, "
+        "last_message, last_activity_utc, unread_count, member_count) "
+        "VALUES(:id, :kind, :peer, :title, :last_message, :activity, :unread, :members) "
+        "ON CONFLICT(conversation_id) DO UPDATE SET kind=excluded.kind, "
+        "peer_id=excluded.peer_id, title=excluded.title, "
+        "last_message=excluded.last_message, last_activity_utc=excluded.last_activity_utc, "
+        "unread_count=excluded.unread_count, member_count=excluded.member_count"));
+    query.bindValue(QStringLiteral(":id"), conversation.conversationId);
+    query.bindValue(QStringLiteral(":kind"),
+                    Domain::conversationKindName(conversation.kind));
+    query.bindValue(QStringLiteral(":peer"), conversation.peerId);
+    query.bindValue(QStringLiteral(":title"), conversation.title);
+    query.bindValue(QStringLiteral(":last_message"), conversation.lastMessage);
+    query.bindValue(QStringLiteral(":activity"), timestampText(conversation.lastActivity));
+    query.bindValue(QStringLiteral(":unread"), qMax(0, conversation.unreadCount));
+    query.bindValue(QStringLiteral(":members"), qMax(0, conversation.memberCount));
     if (!query.exec())
     {
-        spdlog::error("更新会话信息失败：{}", query.lastError().text().toUtf8().toStdString());
+        setError(errorMessage, query.lastError().text());
         return false;
     }
-    spdlog::info("会话信息更新完成。");
     return true;
 }
 
-bool SqliteChatRepository::clearUnread(const QString &peerId, QString *errorMessage)
+bool SqliteChatRepository::saveGroup(const Domain::Group &group,
+                                     QString *errorMessage)
 {
-    if (!m_initialized || peerId.isEmpty())
+    if (!m_initialized || group.groupId.isEmpty() || group.name.isEmpty()
+        || group.ownerId.isEmpty() || group.members.size() < 2)
+        return false;
+    QSqlDatabase connection = database();
+    if (!connection.transaction())
     {
-        spdlog::error("好友标识不能为空。");
+        setError(errorMessage, connection.lastError().text());
         return false;
     }
 
+    QSqlQuery groupQuery(connection);
+    groupQuery.prepare(QStringLiteral(
+        "INSERT INTO groups(group_id, name, owner_id, revision, created_at_utc) "
+        "VALUES(:id, :name, :owner, :revision, :created) "
+        "ON CONFLICT(group_id) DO UPDATE SET name=excluded.name, "
+        "owner_id=excluded.owner_id, revision=excluded.revision"));
+    groupQuery.bindValue(QStringLiteral(":id"), group.groupId);
+    groupQuery.bindValue(QStringLiteral(":name"), group.name);
+    groupQuery.bindValue(QStringLiteral(":owner"), group.ownerId);
+    groupQuery.bindValue(QStringLiteral(":revision"),
+                         static_cast<qulonglong>(group.revision));
+    groupQuery.bindValue(QStringLiteral(":created"), timestampText(group.createdAt));
+    if (!groupQuery.exec())
+    {
+        connection.rollback();
+        setError(errorMessage, groupQuery.lastError().text());
+        return false;
+    }
+
+    QSqlQuery deleteMembers(connection);
+    deleteMembers.prepare(QStringLiteral("DELETE FROM group_members WHERE group_id=:id"));
+    deleteMembers.bindValue(QStringLiteral(":id"), group.groupId);
+    if (!deleteMembers.exec())
+    {
+        connection.rollback();
+        setError(errorMessage, deleteMembers.lastError().text());
+        return false;
+    }
+    for (const Domain::GroupMember &member : group.members)
+    {
+        QSqlQuery memberQuery(connection);
+        memberQuery.prepare(QStringLiteral(
+            "INSERT INTO group_members(group_id, peer_id, display_name, role) "
+            "VALUES(:group, :peer, :name, :role)"));
+        memberQuery.bindValue(QStringLiteral(":group"), group.groupId);
+        memberQuery.bindValue(QStringLiteral(":peer"), member.peerId);
+        memberQuery.bindValue(QStringLiteral(":name"), member.displayName);
+        memberQuery.bindValue(QStringLiteral(":role"),
+                              Domain::groupRoleName(member.role));
+        if (!memberQuery.exec())
+        {
+            connection.rollback();
+            setError(errorMessage, memberQuery.lastError().text());
+            return false;
+        }
+    }
+    if (!connection.commit())
+    {
+        setError(errorMessage, connection.lastError().text());
+        return false;
+    }
+    return true;
+}
+
+bool SqliteChatRepository::updateConversation(const QString &conversationId,
+                                              const QString &lastMessage,
+                                              const QDateTime &timestamp,
+                                              bool incrementUnread,
+                                              QString *errorMessage)
+{
     QSqlQuery query(database());
-    query.prepare(QStringLiteral("UPDATE peers SET unread_count = 0 WHERE peer_id = :peer_id"));
-    query.bindValue(QStringLiteral(":peer_id"), peerId);
+    query.prepare(QStringLiteral(
+        "UPDATE conversations SET last_message=:message, last_activity_utc=:activity, "
+        "unread_count=MAX(0, unread_count+:delta) WHERE conversation_id=:id"));
+    query.bindValue(QStringLiteral(":message"), lastMessage);
+    query.bindValue(QStringLiteral(":activity"), timestampText(timestamp));
+    query.bindValue(QStringLiteral(":delta"), incrementUnread ? 1 : 0);
+    query.bindValue(QStringLiteral(":id"), conversationId);
     if (!query.exec())
     {
-        spdlog::error("清除未读消息失败：{}", query.lastError().text().toUtf8().toStdString());
+        setError(errorMessage, query.lastError().text());
         return false;
     }
-    spdlog::info("未读消息清除完成。");
     return true;
 }
 
-bool SqliteChatRepository::saveMessage(const Storage::MessageRecord &message, QString *errorMessage)
+bool SqliteChatRepository::clearUnread(const QString &conversationId,
+                                       QString *errorMessage)
 {
-    if (!m_initialized || message.messageId.isEmpty() || message.peerId.isEmpty())
+    QSqlQuery query(database());
+    query.prepare(QStringLiteral(
+        "UPDATE conversations SET unread_count=0 WHERE conversation_id=:id"));
+    query.bindValue(QStringLiteral(":id"), conversationId);
+    if (!query.exec())
     {
-        spdlog::error("消息持久化参数无效。");
+        setError(errorMessage, query.lastError().text());
         return false;
     }
+    return true;
+}
 
+bool SqliteChatRepository::saveMessage(const Domain::Message &message,
+                                       QString *errorMessage)
+{
+    if (!m_initialized || message.messageId.isEmpty()
+        || message.conversationId.isEmpty() || message.senderId.isEmpty())
+        return false;
     QSqlQuery query(database());
-    query.prepare(QStringLiteral("INSERT INTO messages (message_id, peer_id, from_me, sender_initial, "
-                                 "sender_color, message_text, timestamp_utc, delivery_status, message_kind, "
-                                 "file_name, file_size_text, file_size_bytes, file_progress, file_path) VALUES "
-                                 "(:message_id, :peer_id, :from_me, :sender_initial, :sender_color, "
-                                 ":message_text, :timestamp_utc, :delivery_status, :message_kind, "
-                                 ":file_name, :file_size_text, :file_size_bytes, :file_progress, :file_path) "
-                                 "ON CONFLICT(message_id) DO UPDATE SET peer_id = excluded.peer_id, "
-                                 "from_me = excluded.from_me, sender_initial = excluded.sender_initial, "
-                                 "sender_color = excluded.sender_color, message_text = excluded.message_text, "
-                                 "timestamp_utc = excluded.timestamp_utc, "
-                                 "delivery_status = excluded.delivery_status, message_kind = excluded.message_kind, "
-                                 "file_name = excluded.file_name, file_size_text = excluded.file_size_text, "
-                                 "file_size_bytes = excluded.file_size_bytes, "
-                                 "file_progress = excluded.file_progress, file_path = excluded.file_path"));
-    query.bindValue(QStringLiteral(":message_id"), message.messageId);
-    query.bindValue(QStringLiteral(":peer_id"), message.peerId);
-    query.bindValue(QStringLiteral(":from_me"), message.fromMe ? 1 : 0);
-    query.bindValue(QStringLiteral(":sender_initial"), message.senderInitial);
-    query.bindValue(QStringLiteral(":sender_color"), message.senderColor);
-    query.bindValue(QStringLiteral(":message_text"), message.text);
-    query.bindValue(QStringLiteral(":timestamp_utc"), timestampText(message.timestamp));
-    query.bindValue(QStringLiteral(":delivery_status"), message.deliveryStatus);
-    query.bindValue(QStringLiteral(":message_kind"), message.messageKind);
+    query.prepare(QStringLiteral(
+        "INSERT INTO messages(message_id, conversation_id, sender_id, message_text, "
+        "timestamp_utc, delivery_status, message_kind, file_name, file_size_text, "
+        "file_size_bytes, file_progress, file_path) VALUES(:message, :conversation, "
+        ":sender, :text, :timestamp, :status, :kind, :file_name, :file_size_text, "
+        ":file_size, :progress, :path) ON CONFLICT(message_id) DO NOTHING"));
+    query.bindValue(QStringLiteral(":message"), message.messageId);
+    query.bindValue(QStringLiteral(":conversation"), message.conversationId);
+    query.bindValue(QStringLiteral(":sender"), message.senderId);
+    query.bindValue(QStringLiteral(":text"), message.text);
+    query.bindValue(QStringLiteral(":timestamp"), timestampText(message.timestamp));
+    query.bindValue(QStringLiteral(":status"),
+                    Domain::deliveryStateName(message.deliveryState));
+    query.bindValue(QStringLiteral(":kind"), Domain::messageKindName(message.kind));
     query.bindValue(QStringLiteral(":file_name"), message.fileName);
-    query.bindValue(QStringLiteral(":file_size_text"), message.fileSizeText);
-    query.bindValue(QStringLiteral(":file_size_bytes"), qMax<qint64>(0, message.fileSize));
-    query.bindValue(QStringLiteral(":file_progress"), qBound(0.0, message.fileProgress, 1.0));
-    query.bindValue(QStringLiteral(":file_path"), message.filePath);
+    query.bindValue(QStringLiteral(":file_size_text"), message.legacyFileSizeText);
+    query.bindValue(QStringLiteral(":file_size"), qMax<qint64>(0, message.fileSize));
+    query.bindValue(QStringLiteral(":progress"),
+                    qBound(0.0, message.fileProgress, 1.0));
+    query.bindValue(QStringLiteral(":path"), message.filePath);
     if (!query.exec())
     {
-        spdlog::error("保存消息失败：{}", query.lastError().text().toUtf8().toStdString());
+        setError(errorMessage, query.lastError().text());
         return false;
     }
-    spdlog::info("消息保存完成。");
     return true;
 }
 
-bool SqliteChatRepository::updateDeliveryStatus(const QString &peerId, const QString &messageId, const QString &status, QString *errorMessage)
+bool SqliteChatRepository::updateMessageState(const QString &conversationId,
+                                              const QString &messageId,
+                                              Domain::DeliveryState state,
+                                              QString *errorMessage)
 {
-    if (!m_initialized || peerId.isEmpty() || messageId.isEmpty())
-    {
-        spdlog::error("消息状态更新参数无效。");
-        return false;
-    }
-
     QSqlQuery query(database());
-    query.prepare(QStringLiteral("UPDATE messages SET delivery_status = :status "
-                                 "WHERE peer_id = :peer_id AND message_id = :message_id"));
-    query.bindValue(QStringLiteral(":status"), status);
-    query.bindValue(QStringLiteral(":peer_id"), peerId);
-    query.bindValue(QStringLiteral(":message_id"), messageId);
+    query.prepare(QStringLiteral(
+        "UPDATE messages SET delivery_status=:status "
+        "WHERE conversation_id=:conversation AND message_id=:message"));
+    query.bindValue(QStringLiteral(":status"), Domain::deliveryStateName(state));
+    query.bindValue(QStringLiteral(":conversation"), conversationId);
+    query.bindValue(QStringLiteral(":message"), messageId);
     if (!query.exec())
     {
-        spdlog::error("更新消息状态失败：{}", query.lastError().text().toUtf8().toStdString());
+        setError(errorMessage, query.lastError().text());
         return false;
     }
-    spdlog::info("消息状态更新完成。");
     return true;
 }
 
 bool SqliteChatRepository::updateFileTransfer(
-    const QString &peerId, const QString &messageId, qreal progress, const QString &status, const QString &filePath, QString *errorMessage)
+    const QString &conversationId,
+    const QString &messageId,
+    qreal progress,
+    Domain::DeliveryState state,
+    const QString &filePath,
+    QString *errorMessage)
 {
-    if (!m_initialized || peerId.isEmpty() || messageId.isEmpty())
-    {
-        spdlog::error("文件传输状态更新参数无效。");
-        return false;
-    }
-
     QSqlQuery query(database());
-    query.prepare(QStringLiteral("UPDATE messages SET file_progress = :progress, delivery_status = :status, "
-                                 "file_path = COALESCE(NULLIF(:file_path, ''), file_path) "
-                                 "WHERE peer_id = :peer_id AND message_id = :message_id"));
+    query.prepare(QStringLiteral(
+        "UPDATE messages SET file_progress=:progress, delivery_status=:status, "
+        "file_path=COALESCE(NULLIF(:path, ''), file_path) "
+        "WHERE conversation_id=:conversation AND message_id=:message"));
     query.bindValue(QStringLiteral(":progress"), qBound(0.0, progress, 1.0));
-    query.bindValue(QStringLiteral(":status"), status);
-    query.bindValue(QStringLiteral(":file_path"), filePath);
-    query.bindValue(QStringLiteral(":peer_id"), peerId);
-    query.bindValue(QStringLiteral(":message_id"), messageId);
+    query.bindValue(QStringLiteral(":status"), Domain::deliveryStateName(state));
+    query.bindValue(QStringLiteral(":path"), filePath);
+    query.bindValue(QStringLiteral(":conversation"), conversationId);
+    query.bindValue(QStringLiteral(":message"), messageId);
     if (!query.exec())
     {
-        spdlog::error("更新文件传输状态失败：{}", query.lastError().text().toUtf8().toStdString());
+        setError(errorMessage, query.lastError().text());
         return false;
     }
-    spdlog::info("文件传输状态更新完成。");
+    return true;
+}
+
+bool SqliteChatRepository::saveDelivery(
+    const Domain::MessageDelivery &delivery,
+    QString *errorMessage)
+{
+    if (!m_initialized || delivery.messageId.isEmpty()
+        || delivery.conversationId.isEmpty() || delivery.recipientId.isEmpty())
+        return false;
+    QSqlQuery query(database());
+    query.prepare(QStringLiteral(
+        "INSERT INTO message_deliveries(message_id, conversation_id, recipient_id, "
+        "state, error_message, last_attempt_utc) VALUES(:message, :conversation, "
+        ":recipient, :state, :error, :attempt) ON CONFLICT(message_id, recipient_id) "
+        "DO UPDATE SET state=excluded.state, error_message=excluded.error_message, "
+        "last_attempt_utc=excluded.last_attempt_utc"));
+    query.bindValue(QStringLiteral(":message"), delivery.messageId);
+    query.bindValue(QStringLiteral(":conversation"), delivery.conversationId);
+    query.bindValue(QStringLiteral(":recipient"), delivery.recipientId);
+    query.bindValue(QStringLiteral(":state"), Domain::deliveryStateName(delivery.state));
+    query.bindValue(QStringLiteral(":error"), delivery.errorMessage);
+    query.bindValue(QStringLiteral(":attempt"), timestampText(delivery.lastAttempt));
+    if (!query.exec())
+    {
+        setError(errorMessage, query.lastError().text());
+        return false;
+    }
     return true;
 }
 
@@ -383,119 +614,130 @@ QSqlDatabase SqliteChatRepository::database() const
 bool SqliteChatRepository::configureDatabase(QString *errorMessage)
 {
     const Config::SqliteConfig config = Config::database.get().sqlite;
-    if (!executeStatement(QStringLiteral("PRAGMA busy_timeout = %1").arg(static_cast<qulonglong>(qBound<std::size_t>(1, config.busy_timeout_ms, 600000))),
-                          errorMessage))
-    {
-        return false;
-    }
-    if (!executeStatement(QStringLiteral("PRAGMA foreign_keys = %1").arg(config.foreign_keys_enabled ? QStringLiteral("ON") : QStringLiteral("OFF")),
-                          errorMessage))
-    {
-        return false;
-    }
-    if (config.wal_enabled && !executeStatement(QStringLiteral("PRAGMA journal_mode = WAL"), errorMessage))
-    {
-        return false;
-    }
-    return executeStatement(QStringLiteral("PRAGMA synchronous = %1").arg(normalizedSynchronousMode(QString::fromStdString(config.synchronous))), errorMessage);
+    return executeStatement(
+               QStringLiteral("PRAGMA busy_timeout=%1")
+                   .arg(static_cast<qulonglong>(
+                       qBound<std::size_t>(1, config.busy_timeout_ms, 600000))),
+               errorMessage)
+           && executeStatement(
+               QStringLiteral("PRAGMA foreign_keys=%1")
+                   .arg(config.foreign_keys_enabled ? QStringLiteral("ON")
+                                                    : QStringLiteral("OFF")),
+               errorMessage)
+           && (!config.wal_enabled
+               || executeStatement(QStringLiteral("PRAGMA journal_mode=WAL"),
+                                   errorMessage))
+           && executeStatement(
+               QStringLiteral("PRAGMA synchronous=%1")
+                   .arg(normalizedSynchronousMode(
+                       QString::fromStdString(config.synchronous))),
+               errorMessage);
 }
 
-bool SqliteChatRepository::migrateSchema(QString *errorMessage)
+bool SqliteChatRepository::ensureSchema(QString *errorMessage)
 {
     QSqlDatabase connection = database();
     QSqlQuery versionQuery(connection);
-    if (!versionQuery.exec(QStringLiteral("PRAGMA user_version")) || !versionQuery.next())
+    if (!versionQuery.exec(QStringLiteral("PRAGMA user_version"))
+        || !versionQuery.next())
     {
-        spdlog::error("查询数据库版本失败：{}", versionQuery.lastError().text().toUtf8().toStdString());
+        setError(errorMessage, versionQuery.lastError().text());
         return false;
     }
     const int version = versionQuery.value(0).toInt();
-    if (version > CurrentSchemaVersion)
-    {
-        spdlog::error("数据库版本 {} 高于当前支持版本 {}。", version, CurrentSchemaVersion);
-        return false;
-    }
-
     if (!connection.transaction())
     {
-        spdlog::error("开始事务失败：{}", connection.lastError().text().toUtf8().toStdString());
+        setError(errorMessage, connection.lastError().text());
         return false;
     }
 
-    const QStringList statements{QStringLiteral("CREATE TABLE IF NOT EXISTS peers ("
-                                                "peer_id TEXT PRIMARY KEY NOT NULL, "
-                                                "display_name TEXT NOT NULL, "
-                                                "address TEXT NOT NULL DEFAULT '', "
-                                                "tcp_port INTEGER NOT NULL DEFAULT 0, "
-                                                "last_message TEXT NOT NULL DEFAULT '', "
-                                                "last_activity_utc TEXT NOT NULL DEFAULT '', "
-                                                "unread_count INTEGER NOT NULL DEFAULT 0, "
-                                                "updated_at_utc TEXT NOT NULL)"),
-                                 QStringLiteral("CREATE TABLE IF NOT EXISTS messages ("
-                                                "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                                                "message_id TEXT NOT NULL UNIQUE, "
-                                                "peer_id TEXT NOT NULL, "
-                                                "from_me INTEGER NOT NULL, "
-                                                "sender_initial TEXT NOT NULL DEFAULT '', "
-                                                "sender_color TEXT NOT NULL DEFAULT '', "
-                                                "message_text TEXT NOT NULL DEFAULT '', "
-                                                "timestamp_utc TEXT NOT NULL, "
-                                                "delivery_status TEXT NOT NULL, "
-                                                "message_kind TEXT NOT NULL DEFAULT 'text', "
-                                                "file_name TEXT NOT NULL DEFAULT '', "
-                                                "file_size_text TEXT NOT NULL DEFAULT '', "
-                                                "file_size_bytes INTEGER NOT NULL DEFAULT 0, "
-                                                "file_progress REAL NOT NULL DEFAULT 0, "
-                                                "file_path TEXT NOT NULL DEFAULT '', "
-                                                "FOREIGN KEY(peer_id) REFERENCES peers(peer_id) ON DELETE CASCADE)"),
-                                 QStringLiteral("CREATE INDEX IF NOT EXISTS idx_messages_peer_id "
-                                                "ON messages(peer_id, id)")};
-    for (const QString &statement : statements)
+    if (version != CurrentSchemaVersion)
+    {
+        const QStringList drops{
+            QStringLiteral("DROP TABLE IF EXISTS message_deliveries"),
+            QStringLiteral("DROP TABLE IF EXISTS messages"),
+            QStringLiteral("DROP TABLE IF EXISTS group_members"),
+            QStringLiteral("DROP TABLE IF EXISTS groups"),
+            QStringLiteral("DROP TABLE IF EXISTS conversations"),
+            QStringLiteral("DROP TABLE IF EXISTS peers")};
+        for (const QString &statement : drops)
+        {
+            QSqlQuery query(connection);
+            if (!query.exec(statement))
+            {
+                connection.rollback();
+                setError(errorMessage, query.lastError().text());
+                return false;
+            }
+        }
+    }
+
+    const QStringList creates{
+        QStringLiteral("CREATE TABLE IF NOT EXISTS peers("
+                       "peer_id TEXT PRIMARY KEY NOT NULL, display_name TEXT NOT NULL, "
+                       "address TEXT NOT NULL, tcp_port INTEGER NOT NULL, "
+                       "updated_at_utc TEXT NOT NULL)"),
+        QStringLiteral("CREATE TABLE IF NOT EXISTS conversations("
+                       "conversation_id TEXT PRIMARY KEY NOT NULL, kind TEXT NOT NULL, "
+                       "peer_id TEXT NOT NULL DEFAULT '', title TEXT NOT NULL, "
+                       "last_message TEXT NOT NULL DEFAULT '', last_activity_utc TEXT NOT NULL, "
+                       "unread_count INTEGER NOT NULL DEFAULT 0, member_count INTEGER NOT NULL DEFAULT 0)"),
+        QStringLiteral("CREATE TABLE IF NOT EXISTS groups("
+                       "group_id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL, owner_id TEXT NOT NULL, "
+                       "revision INTEGER NOT NULL, created_at_utc TEXT NOT NULL, "
+                       "FOREIGN KEY(group_id) REFERENCES conversations(conversation_id) ON DELETE CASCADE)"),
+        QStringLiteral("CREATE TABLE IF NOT EXISTS group_members("
+                       "group_id TEXT NOT NULL, peer_id TEXT NOT NULL, display_name TEXT NOT NULL, "
+                       "role TEXT NOT NULL, PRIMARY KEY(group_id, peer_id), "
+                       "FOREIGN KEY(group_id) REFERENCES groups(group_id) ON DELETE CASCADE)"),
+        QStringLiteral("CREATE TABLE IF NOT EXISTS messages("
+                       "id INTEGER PRIMARY KEY AUTOINCREMENT, message_id TEXT NOT NULL UNIQUE, "
+                       "conversation_id TEXT NOT NULL, sender_id TEXT NOT NULL, "
+                       "message_text TEXT NOT NULL DEFAULT '', timestamp_utc TEXT NOT NULL, "
+                       "delivery_status TEXT NOT NULL, message_kind TEXT NOT NULL DEFAULT 'text', "
+                       "file_name TEXT NOT NULL DEFAULT '', file_size_text TEXT NOT NULL DEFAULT '', "
+                       "file_size_bytes INTEGER NOT NULL DEFAULT 0, file_progress REAL NOT NULL DEFAULT 0, "
+                       "file_path TEXT NOT NULL DEFAULT '', FOREIGN KEY(conversation_id) "
+                       "REFERENCES conversations(conversation_id) ON DELETE CASCADE)"),
+        QStringLiteral("CREATE INDEX IF NOT EXISTS idx_messages_conversation "
+                       "ON messages(conversation_id, id)"),
+        QStringLiteral("CREATE TABLE IF NOT EXISTS message_deliveries("
+                       "message_id TEXT NOT NULL, conversation_id TEXT NOT NULL, recipient_id TEXT NOT NULL, "
+                       "state TEXT NOT NULL, error_message TEXT NOT NULL DEFAULT '', "
+                       "last_attempt_utc TEXT NOT NULL, PRIMARY KEY(message_id, recipient_id), "
+                       "FOREIGN KEY(message_id) REFERENCES messages(message_id) ON DELETE CASCADE, "
+                       "FOREIGN KEY(conversation_id) REFERENCES conversations(conversation_id) ON DELETE CASCADE)"),
+        QStringLiteral("CREATE INDEX IF NOT EXISTS idx_deliveries_recipient "
+                       "ON message_deliveries(recipient_id, state)")};
+    for (const QString &statement : creates)
     {
         QSqlQuery query(connection);
         if (!query.exec(statement))
         {
             connection.rollback();
-            spdlog::error("创建表失败：{}", query.lastError().text().toUtf8().toStdString());
+            setError(errorMessage, query.lastError().text());
             return false;
         }
     }
 
-    if (version == 1)
-    {
-        QSqlQuery migration(connection);
-        if (!migration.exec(QStringLiteral("ALTER TABLE messages ADD COLUMN file_size_bytes INTEGER NOT NULL DEFAULT 0")))
-        {
-            connection.rollback();
-            spdlog::error("迁移表失败：{}", migration.lastError().text().toUtf8().toStdString());
-            return false;
-        }
-    }
-
-    QSqlQuery versionUpdate(connection);
-    if (!versionUpdate.exec(QStringLiteral("PRAGMA user_version = %1").arg(CurrentSchemaVersion)))
+    QSqlQuery updateVersion(connection);
+    if (!updateVersion.exec(QStringLiteral("PRAGMA user_version=%1")
+                                .arg(CurrentSchemaVersion))
+        || !connection.commit())
     {
         connection.rollback();
-        spdlog::error("更新数据库版本失败：{}", versionUpdate.lastError().text().toUtf8().toStdString());
+        setError(errorMessage, connection.lastError().text());
         return false;
     }
-    if (!connection.commit())
-    {
-        spdlog::error("提交事务失败：{}", connection.lastError().text().toUtf8().toStdString());
-        return false;
-    }
-    spdlog::info("数据库模式迁移完成。");
     return true;
 }
 
-bool SqliteChatRepository::executeStatement(const QString &statement, QString *errorMessage) const
+bool SqliteChatRepository::executeStatement(const QString &statement,
+                                            QString *errorMessage)
 {
     QSqlQuery query(database());
-    if (!query.exec(statement))
-    {
-        spdlog::error("执行 SQL 语句失败：{}", query.lastError().text().toUtf8().toStdString());
-        return false;
-    }
-    spdlog::info("SQL 语句执行完成。");
-    return true;
+    if (query.exec(statement))
+        return true;
+    setError(errorMessage, query.lastError().text());
+    return false;
 }

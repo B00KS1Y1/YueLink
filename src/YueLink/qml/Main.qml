@@ -6,12 +6,16 @@ import HuskarUI.Basic
 HusWindow {
     id: root
 
-    property string selectedPeerId: ""
-    property string selectedFriendName: qsTr("等待好友上线")
-    property string selectedFriendInitial: "?"
-    property string selectedFriendStatus: qsTr("正在搜索局域网好友…")
-    property color selectedFriendColor: "#7C8799"
-    property bool selectedFriendOnline: false
+    property string selectedConversationId: ""
+    property string selectedConversationTitle: qsTr("选择一个会话")
+    property string selectedConversationInitial: "?"
+    property string selectedConversationStatus: qsTr("从左侧选择联系人或群聊")
+    property color selectedConversationColor: "#7C8799"
+    property bool selectedConversationOnline: false
+    property string selectedConversationKind: ""
+    property string selectedConversationPeerId: ""
+    property int selectedConversationMemberCount: 0
+    property int selectedConversationOnlineCount: 0
     property string operationError: ""
     property string activePanel: ""
     property string currentPage: "messages"
@@ -60,6 +64,10 @@ HusWindow {
             return 52;
         }
     }
+    readonly property int conversationListWidth: Math.round(
+                                                      Math.min(320,
+                                                               Math.max(280,
+                                                                        width * 0.26)))
 
     captionBar.height: 52
     captionBar.color: "transparent"
@@ -197,38 +205,46 @@ HusWindow {
         successMessage.success(qsTr("修改成功"));
     }
 
-    function refreshSelectedFriend(): void {
-        if (selectedPeerId.length === 0) {
-            selectedFriendName = qsTr("等待好友上线");
-            selectedFriendInitial = "?";
-            selectedFriendStatus = LanChat.running
-                    ? qsTr("正在搜索局域网好友…")
+    function refreshSelectedConversation(): void {
+        if (selectedConversationId.length === 0) {
+            selectedConversationTitle = qsTr("选择一个会话");
+            selectedConversationInitial = "?";
+            selectedConversationStatus = LanChat.running
+                    ? qsTr("正在搜索局域网联系人…")
                     : LanChat.lastError.length > 0
                       ? LanChat.lastError
                       : qsTr("局域网服务未启动");
-            selectedFriendColor = "#7C8799";
-            selectedFriendOnline = false;
+            selectedConversationColor = "#7C8799";
+            selectedConversationOnline = false;
+            selectedConversationKind = "";
+            selectedConversationPeerId = "";
+            selectedConversationMemberCount = 0;
+            selectedConversationOnlineCount = 0;
             return;
         }
 
-        const friend = LanChat.peerInfo(selectedPeerId);
-        if (friend.peerId === undefined)
+        const conversation = LanChat.conversationInfo(selectedConversationId);
+        if (conversation.itemId === undefined)
             return;
 
-        selectedFriendName = friend.friendName;
-        selectedFriendInitial = friend.initial;
-        selectedFriendStatus = friend.statusText;
-        selectedFriendColor = friend.avatarColor;
-        selectedFriendOnline = friend.online;
+        selectedConversationTitle = conversation.title;
+        selectedConversationInitial = conversation.initial;
+        selectedConversationStatus = conversation.statusText;
+        selectedConversationColor = conversation.avatarColor;
+        selectedConversationOnline = conversation.online;
+        selectedConversationKind = conversation.itemKind;
+        selectedConversationPeerId = conversation.peerId;
+        selectedConversationMemberCount = conversation.memberCount;
+        selectedConversationOnlineCount = conversation.onlineCount;
     }
 
-    function selectFriend(peerId: string): void {
-        if (!LanChat.selectPeer(peerId))
+    function selectConversation(conversationId: string): void {
+        if (!LanChat.selectConversation(conversationId))
             return;
 
         operationError = "";
-        selectedPeerId = peerId;
-        refreshSelectedFriend();
+        selectedConversationId = conversationId;
+        refreshSelectedConversation();
     }
 
     function startNetworkService(): void {
@@ -266,31 +282,31 @@ HusWindow {
         target: LanChat
 
         function onPeerDiscovered(peerId: string): void {
-            if (root.selectedPeerId.length === 0)
-                root.selectFriend(peerId);
+            if (root.selectedConversationId.length === 0)
+                root.selectConversation("direct:" + peerId);
         }
 
         function onPeerUpdated(peerId: string): void {
-            if (peerId === root.selectedPeerId)
-                root.refreshSelectedFriend();
+            if (peerId === root.selectedConversationPeerId)
+                root.refreshSelectedConversation();
         }
 
         function onRunningChanged(): void {
-            root.refreshSelectedFriend();
+            root.refreshSelectedConversation();
         }
 
         function onLastErrorChanged(): void {
-            if (root.selectedPeerId.length === 0)
-                root.refreshSelectedFriend();
+            if (root.selectedConversationId.length === 0)
+                root.refreshSelectedConversation();
         }
 
-        function onSendFailed(peerId: string, reason: string): void {
-            if (peerId === root.selectedPeerId)
+        function onSendFailed(conversationId: string, reason: string): void {
+            if (conversationId === root.selectedConversationId)
                 root.showOperationError(reason);
         }
 
-        function onFileTransferFailed(peerId: string, reason: string): void {
-            if (peerId === root.selectedPeerId)
+        function onFileTransferFailed(conversationId: string, reason: string): void {
+            if (conversationId === root.selectedConversationId)
                 root.showOperationError(reason);
         }
 
@@ -298,12 +314,20 @@ HusWindow {
             root.showOperationError(reason);
         }
 
-        function onNotificationActivated(peerId: string): void {
+        function onNotificationActivated(conversationId: string): void {
             root.activePanel = "";
             root.show();
             root.raise();
             root.requestActivate();
-            root.selectFriend(peerId);
+            root.selectConversation(conversationId);
+        }
+    }
+
+    Connections {
+        target: LanChat.conversations
+
+        function onModelReset(): void {
+            root.refreshSelectedConversation();
         }
     }
 
@@ -325,8 +349,8 @@ HusWindow {
     color: HusTheme.Primary.colorBgBase
 
     onActiveChanged: {
-        if (active && selectedPeerId.length > 0)
-            LanChat.markConversationRead(selectedPeerId);
+        if (active && selectedConversationId.length > 0)
+            LanChat.markConversationRead(selectedConversationId);
     }
 
     Rectangle {
@@ -427,6 +451,12 @@ HusWindow {
                 defaultMenuBottomPadding: 10
                 initModel: [
                     {
+                        key: "refreshContacts",
+                        label: qsTr("刷新好友"),
+                        shortLabel: qsTr("刷新"),
+                        iconSource: HusIcon.ReloadOutlined
+                    },
+                    {
                         key: "settings",
                         label: qsTr("设置"),
                         shortLabel: qsTr("设置"),
@@ -434,8 +464,17 @@ HusWindow {
                     }
                 ]
                 onClickMenu: (deep, key) => {
-                    if (deep === 0 && key === "settings")
+                    if (deep !== 0)
+                        return;
+
+                    if (key === "refreshContacts") {
+                        if (LanChat.running)
+                            root.refreshNetworkDiscovery();
+                        else
+                            root.startNetworkService();
+                    } else if (key === "settings") {
                         root.openPanel("settings");
+                    }
                 }
             }
         }
@@ -449,7 +488,7 @@ HusWindow {
             anchors.leftMargin: 12
             anchors.topMargin: 12
             anchors.bottomMargin: 12
-            width: 304
+            width: root.conversationListWidth
             radius: 16
             color: root.glassPanelColor
             border.width: 1
@@ -459,11 +498,14 @@ HusWindow {
                 id: friendList
 
                 anchors.fill: parent
-                selectedPeerId: root.selectedPeerId
+                selectedConversationId: root.selectedConversationId
                 contactsMode: root.currentPage === "contacts"
-                onFriendSelected: peerId => root.selectFriend(peerId)
-                onNetworkStartRequested: root.startNetworkService()
-                onNetworkRefreshRequested: root.refreshNetworkDiscovery()
+                onConversationSelected: conversationId =>
+                                        root.selectConversation(conversationId)
+                onCreateGroupRequested: {
+                    LanChat.peerSearchText = "";
+                    root.openPanel("createGroup");
+                }
             }
         }
 
@@ -491,15 +533,20 @@ HusWindow {
                 anchors.top: parent.top
                 anchors.bottom: messageComposer.top
                 anchors.bottomMargin: 8
-                friendName: root.selectedFriendName
-                friendInitial: root.selectedFriendInitial
-                friendStatus: root.selectedFriendStatus
-                friendColor: root.selectedFriendColor
-                friendOnline: root.selectedFriendOnline
-                peerSelected: root.selectedPeerId.length > 0
+                conversationTitle: root.selectedConversationTitle
+                conversationInitial: root.selectedConversationInitial
+                conversationStatus: root.selectedConversationStatus
+                conversationColor: root.selectedConversationColor
+                conversationOnline: root.selectedConversationOnline
+                conversationSelected: root.selectedConversationId.length > 0
+                conversationKind: root.selectedConversationKind
+                memberCount: root.selectedConversationMemberCount
+                onlineCount: root.selectedConversationOnlineCount
+                onGroupInfoRequested: root.openPanel("groupInfo")
                 onCancelFileRequested: messageId => {
-                    if (root.selectedPeerId.length > 0)
-                        LanChat.cancelFileTransfer(root.selectedPeerId, messageId);
+                    if (root.selectedConversationId.length > 0)
+                        LanChat.cancelFileTransfer(root.selectedConversationId,
+                                                   messageId);
                 }
                 onOpenFileRequested: filePath => LanChat.openFile(filePath)
                 onRevealFileRequested: filePath => LanChat.revealFile(filePath)
@@ -514,13 +561,17 @@ HusWindow {
                 anchors.leftMargin: 14
                 anchors.rightMargin: 14
                 anchors.bottomMargin: 14
-                height: 158
-                peerId: root.selectedPeerId
-                sendEnabled: root.selectedFriendOnline
+                height: implicitHeight
+                conversationId: root.selectedConversationId
+                sendEnabled: root.selectedConversationId.length > 0
+                             && (root.selectedConversationKind === "group"
+                                 || root.selectedConversationOnline)
+                filesEnabled: root.selectedConversationKind === "direct"
+                              && root.selectedConversationOnline
                 errorText: root.operationError
                 onFilesSelected: fileUrls => {
-                    if (root.selectedPeerId.length > 0)
-                        LanChat.sendFiles(root.selectedPeerId, fileUrls);
+                    if (root.selectedConversationId.length > 0)
+                        LanChat.sendFiles(root.selectedConversationId, fileUrls);
                 }
             }
         }
@@ -547,6 +598,42 @@ HusWindow {
     Loader {
         active: root.activePanel === "settings"
         sourceComponent: settingsPanelComponent
+    }
+
+    Loader {
+        anchors.fill: parent
+        active: root.activePanel === "createGroup"
+        sourceComponent: groupCreateComponent
+    }
+
+    Loader {
+        anchors.fill: parent
+        active: root.activePanel === "groupInfo"
+        sourceComponent: groupInfoComponent
+    }
+
+    Component {
+        id: groupCreateComponent
+
+        GroupCreateDialog {
+            anchors.fill: parent
+            onClosed: root.activePanel = ""
+            onGroupCreated: conversationId => {
+                root.activePanel = "";
+                root.selectConversation(conversationId);
+            }
+        }
+    }
+
+    Component {
+        id: groupInfoComponent
+
+        GroupInfoPanel {
+            anchors.fill: parent
+            groupId: root.selectedConversationId
+            groupTitle: root.selectedConversationTitle
+            onClosed: root.activePanel = ""
+        }
     }
 
     Component {

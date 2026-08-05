@@ -148,51 +148,51 @@ void DesktopIntegration::connectServices()
             &DesktopIntegration::handleFileTransferFailed);
 }
 
-void DesktopIntegration::handleIncomingMessage(const QString &peerId,
+void DesktopIntegration::handleIncomingMessage(const QString &conversationId,
                                                const QString &text)
 {
-    if (peerId == m_conversation->currentPeerId()
+    if (conversationId == m_conversation->currentConversationId()
         && QGuiApplication::applicationState() == Qt::ApplicationActive)
     {
-        static_cast<void>(m_coordinator->markConversationRead(peerId));
+        static_cast<void>(m_coordinator->markConversationRead(conversationId));
         return;
     }
-    showIncomingNotification(peerId, text);
+    showIncomingNotification(conversationId, text);
 }
 
-void DesktopIntegration::handleFileReceived(const QString &peerId,
+void DesktopIntegration::handleFileReceived(const QString &conversationId,
                                             const QString &filePath)
 {
     if (QGuiApplication::applicationState() != Qt::ApplicationActive)
     {
-        showIncomingNotification(peerId,
+        showIncomingNotification(conversationId,
                                  tr("文件已接收：%1").arg(
                                      QFileInfo(filePath).fileName()));
     }
 }
 
-void DesktopIntegration::handleFileTransferFailed(const QString &peerId,
+void DesktopIntegration::handleFileTransferFailed(const QString &conversationId,
                                                   const QString &reason,
                                                   bool incoming)
 {
     if (incoming
         && QGuiApplication::applicationState() != Qt::ApplicationActive)
     {
-        showIncomingNotification(peerId, reason);
+        showIncomingNotification(conversationId, reason);
     }
 }
 
-void DesktopIntegration::showIncomingNotification(const QString &peerId,
+void DesktopIntegration::showIncomingNotification(const QString &conversationId,
                                                   const QString &message)
 {
     if (QGuiApplication::applicationState() == Qt::ApplicationActive)
     {
         return;
     }
-    Domain::Peer peer;
-    QString title = m_coordinator->peer(peerId, &peer)
-                        ? peer.endpoint.displayName.trimmed()
-                        : QString();
+    Domain::Conversation conversation;
+    QString title = m_coordinator->conversation(conversationId, &conversation)
+                        ? conversation.title.trimmed()
+                        : QString{};
     if (title.isEmpty())
     {
         title = tr("YueLink 新消息");
@@ -204,5 +204,5 @@ void DesktopIntegration::showIncomingNotification(const QString &peerId,
     {
         preview = tr("%1…").arg(preview.left(MaximumPreviewLength - 1));
     }
-    m_notificationService->showNotification(title, preview, peerId);
+    m_notificationService->showNotification(title, preview, conversationId);
 }

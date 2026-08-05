@@ -7,12 +7,15 @@ import HuskarUI.Basic
 Item {
     id: root
 
-    property string friendName: qsTr("苏晚")
-    property string friendInitial: qsTr("晚")
-    property string friendStatus: qsTr("在线 · 局域网")
-    property color friendColor: "#7C6EE6"
-    property bool friendOnline: true
-    property bool peerSelected: false
+    property string conversationTitle: qsTr("选择一个会话")
+    property string conversationInitial: "?"
+    property string conversationStatus: qsTr("从左侧选择联系人或群聊")
+    property color conversationColor: "#7C8799"
+    property bool conversationOnline: false
+    property bool conversationSelected: false
+    property string conversationKind: ""
+    property int memberCount: 0
+    property int onlineCount: 0
     property bool searchOpen: false
     readonly property string messageSearchKeyword: LanChat.messageSearchText.trim()
     readonly property color headerSurfaceColor: HusThemeFunctions.alpha(
@@ -25,6 +28,7 @@ Item {
     signal cancelFileRequested(string messageId)
     signal openFileRequested(string filePath)
     signal revealFileRequested(string filePath)
+    signal groupInfoRequested()
     signal searchFocusRequested()
 
     function closeSearch(): void {
@@ -46,8 +50,38 @@ Item {
         return ["png", "jpg", "jpeg", "bmp", "gif", "webp"].indexOf(extension) >= 0;
     }
 
-    onPeerSelectedChanged: {
-        if (!peerSelected)
+    function deliverySummary(status: string, kind: string, fromMe: bool,
+                             time: string, progress: real,
+                             deliveredCount: int, totalCount: int): string {
+        if (status === "failed")
+            return fromMe ? qsTr("%1 · 发送失败").arg(time)
+                          : qsTr("%1 · 接收失败").arg(time);
+        if (status === "cancelled")
+            return qsTr("%1 · 已取消").arg(time);
+        if (status === "transferring")
+            return qsTr("%1 · 正在传输 %2%")
+                    .arg(time).arg(Math.round(progress * 100));
+        if (status === "receiving")
+            return qsTr("%1 · 正在接收 %2%")
+                    .arg(time).arg(Math.round(progress * 100));
+        if (kind === "file" && status === "received")
+            return qsTr("%1 · 已保存到下载目录").arg(time);
+        if (kind === "file" && status === "sent")
+            return qsTr("%1 · 已发送").arg(time);
+        if (fromMe && totalCount > 0) {
+            if (status === "sent" || status === "partial")
+                return qsTr("%1 · 已发送 %2/%3")
+                        .arg(time).arg(deliveredCount).arg(totalCount);
+            return qsTr("%1 · 待发送 %2/%3")
+                    .arg(time).arg(deliveredCount).arg(totalCount);
+        }
+        if (status === "sending" || status === "pending")
+            return qsTr("%1 · 发送中").arg(time);
+        return time;
+    }
+
+    onConversationSelectedChanged: {
+        if (!conversationSelected)
             closeSearch();
     }
 
@@ -69,14 +103,13 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        anchors.leftMargin: 12
-        anchors.rightMargin: 12
-        anchors.topMargin: 12
-        height: 72
-        radius: 12
+        anchors.leftMargin: 10
+        anchors.rightMargin: 10
+        anchors.topMargin: 10
+        height: 76
+        radius: 14
         color: root.headerSurfaceColor
-        border.width: 1
-        border.color: HusTheme.Primary.colorBorderSecondary
+        border.width: 0
 
         Row {
             id: friendSummary
@@ -90,13 +123,14 @@ Item {
 
             HusAvatar {
                 size: 44
-                textSource: root.friendInitial
-                colorBg: root.friendColor
+                textSource: root.conversationInitial
+                colorBg: root.conversationColor
                 textSize: HusAvatar.Size_Auto
 
                 HusBadge {
                     dot: true
-                    badgeState: root.friendOnline
+                    visible: root.conversationKind === "direct"
+                    badgeState: root.conversationOnline
                                 ? HusBadge.State_Success
                                 : HusBadge.State_Default
                 }
@@ -109,7 +143,7 @@ Item {
 
                 HusText {
                     width: parent.width
-                    text: root.friendName
+                    text: root.conversationTitle
                     color: HusTheme.Primary.colorTextBase
                     elide: Text.ElideRight
                     font.pixelSize: HusTheme.Primary.fontPrimarySizeHeading5
@@ -118,7 +152,7 @@ Item {
 
                 HusText {
                     width: parent.width
-                    text: root.friendStatus
+                    text: root.conversationStatus
                     color: HusTheme.Primary.colorTextSecondary
                     elide: Text.ElideRight
                     font.pixelSize: HusTheme.Primary.fontPrimarySize
@@ -132,16 +166,30 @@ Item {
             anchors.right: parent.right
             anchors.rightMargin: 14
             anchors.verticalCenter: parent.verticalCenter
-            spacing: 4
+            spacing: 2
 
             HusIconButton {
                 width: 40
                 height: 40
                 padding: 0
-                type: HusButton.Type_Filled
+                visible: root.conversationKind === "group"
+                type: HusButton.Type_Text
+                iconSource: HusIcon.GroupOutlined
+                iconSize: 20
+                contentDescription: qsTr("查看群聊信息")
+                onClicked: root.groupInfoRequested()
+            }
+
+            HusIconButton {
+                width: 40
+                height: 40
+                padding: 0
+                type: root.searchOpen
+                      ? HusButton.Type_Filled
+                      : HusButton.Type_Text
                 iconSource: HusIcon.SearchOutlined
                 iconSize: 20
-                enabled: root.peerSelected
+                enabled: root.conversationSelected
                 contentDescription: root.searchOpen
                                     ? qsTr("关闭消息搜索")
                                     : qsTr("搜索当前会话")
@@ -156,8 +204,8 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: chatHeader.bottom
-        anchors.leftMargin: 12
-        anchors.rightMargin: 12
+        anchors.leftMargin: 10
+        anchors.rightMargin: 10
         anchors.topMargin: active ? 8 : 0
         height: active ? 52 : 0
         active: root.searchOpen
@@ -232,8 +280,8 @@ Item {
         anchors.right: parent.right
         anchors.top: messageSearchLoader.bottom
         anchors.bottom: parent.bottom
-        anchors.leftMargin: 20
-        anchors.rightMargin: 16
+        anchors.leftMargin: 18
+        anchors.rightMargin: 18
         anchors.topMargin: 12
         anchors.bottomMargin: 10
         model: LanChat.messages
@@ -248,6 +296,7 @@ Item {
 
             required property string messageId
             required property bool fromMe
+            required property string senderName
             required property string senderInitial
             required property color senderColor
             required property string messageText
@@ -259,6 +308,8 @@ Item {
             required property real fileProgress
             required property string filePath
             required property url fileUrl
+            required property int deliveredCount
+            required property int totalRecipientCount
 
             readonly property bool fileTransferActive:
                 deliveryStatus === "transferring"
@@ -301,6 +352,18 @@ Item {
                        : Math.min(messageTextItem.implicitWidth + 28,
                                   Math.max(220, messageList.width * 0.58))
                 spacing: 5
+
+                HusText {
+                    width: parent.width
+                    visible: root.conversationKind === "group"
+                             && !messageDelegate.fromMe
+                    text: messageDelegate.senderName
+                    color: HusTheme.Primary.colorTextSecondary
+                    elide: Text.ElideRight
+                    font.pixelSize: Math.max(11,
+                                             HusTheme.Primary.fontPrimarySize - 1)
+                    font.weight: Font.Medium
+                }
 
                 Rectangle {
                     width: parent.width
@@ -397,30 +460,14 @@ Item {
 
                 HusText {
                     width: parent.width
-                    text: messageDelegate.deliveryStatus === "failed"
-                          ? (messageDelegate.fromMe
-                             ? qsTr("%1 · 发送失败").arg(messageDelegate.messageTime)
-                             : qsTr("%1 · 接收失败").arg(messageDelegate.messageTime))
-                          : messageDelegate.deliveryStatus === "cancelled"
-                            ? qsTr("%1 · 已取消").arg(messageDelegate.messageTime)
-                          : messageDelegate.deliveryStatus === "transferring"
-                            ? qsTr("%1 · 正在传输 %2%")
-                                  .arg(messageDelegate.messageTime)
-                                  .arg(Math.round(messageDelegate.fileProgress * 100))
-                            : messageDelegate.deliveryStatus === "receiving"
-                              ? qsTr("%1 · 正在接收 %2%")
-                                    .arg(messageDelegate.messageTime)
-                                    .arg(Math.round(messageDelegate.fileProgress * 100))
-                              : messageDelegate.messageKind === "file"
-                                && messageDelegate.deliveryStatus === "sent"
-                                ? qsTr("%1 · 已发送").arg(messageDelegate.messageTime)
-                                : messageDelegate.messageKind === "file"
-                                  && messageDelegate.deliveryStatus === "received"
-                                  ? qsTr("%1 · 已保存到下载目录")
-                                        .arg(messageDelegate.messageTime)
-                          : messageDelegate.deliveryStatus === "sending"
-                            ? qsTr("%1 · 发送中").arg(messageDelegate.messageTime)
-                            : messageDelegate.messageTime
+                    text: root.deliverySummary(
+                              messageDelegate.deliveryStatus,
+                              messageDelegate.messageKind,
+                              messageDelegate.fromMe,
+                              messageDelegate.messageTime,
+                              messageDelegate.fileProgress,
+                              messageDelegate.deliveredCount,
+                              messageDelegate.totalRecipientCount)
                     color: messageDelegate.deliveryStatus === "failed"
                            ? "#D84A4A"
                            : HusTheme.Primary.colorTextTertiary
@@ -493,7 +540,7 @@ Item {
 
             HusIconText {
                 anchors.centerIn: parent
-                iconSource: root.peerSelected
+                iconSource: root.conversationSelected
                             ? HusIcon.MessageOutlined
                             : HusIcon.ContactsOutlined
                 iconSize: 28
@@ -503,7 +550,7 @@ Item {
 
         HusText {
             width: parent.width
-            text: root.peerSelected
+            text: root.conversationSelected
                   ? root.messageSearchKeyword.length > 0
                     ? qsTr("没有找到消息")
                     : qsTr("开始聊天")
@@ -516,11 +563,11 @@ Item {
 
         HusText {
             width: parent.width
-            text: root.peerSelected
+            text: root.conversationSelected
                   ? root.messageSearchKeyword.length > 0
                     ? qsTr("没有找到与“%1”匹配的消息").arg(root.messageSearchKeyword)
                     : qsTr("还没有消息，发一句问候吧")
-                  : qsTr("从左侧选择一个局域网好友，即可开始安全、快速地聊天")
+                  : qsTr("从左侧选择联系人或群聊，即可开始聊天")
             color: HusTheme.Primary.colorTextTertiary
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.Wrap
@@ -530,7 +577,7 @@ Item {
 
     Shortcut {
         sequence: StandardKey.Find
-        enabled: root.peerSelected
+        enabled: root.conversationSelected
         onActivated: root.focusSearch()
     }
 

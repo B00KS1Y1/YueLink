@@ -1,6 +1,6 @@
 /**
  * @file ichattransport.h
- * @brief 声明聊天消息与文件传输的通信抽象接口。
+ * @brief 声明统一会话消息、群组快照与文件传输通信抽象接口。
  * @author xili <1424858143@qq.com>
  * @date 2026-07-21
  */
@@ -32,7 +32,7 @@ public:
     ~IChatTransport() override = default;
 
     /**
-     * @brief 使用指定身份启动监听与消息发送功能。
+     * @brief 使用指定身份启动监听与发送功能。
      * @param identity 向远端节点公布的本地身份。
      * @return 传输服务启动成功时返回 @c true。
      */
@@ -40,7 +40,7 @@ public:
     /** @brief 停止传输服务并释放活动连接。 */
     virtual void stop() = 0;
     /**
-     * @brief 更新后续消息携带的本地身份。
+     * @brief 更新后续帧携带的本地身份。
      * @param identity 新的本地身份。
      */
     virtual void updateIdentity(const Network::LocalIdentity &identity) = 0;
@@ -61,13 +61,25 @@ public:
     [[nodiscard]] virtual QString lastError() const = 0;
 
     /**
-     * @brief 向指定节点发送文本消息。
+     * @brief 向指定节点发送会话文本消息。
      * @param peer 目标节点。
      * @param messageId 唯一消息标识。
+     * @param groupId 群聊标识；直接会话传入空字符串。
      * @param text 消息内容。
      * @param timestamp 消息创建时间。
      */
-    virtual void sendText(const Network::PeerEndpoint &peer, const QString &messageId, const QString &text, const QDateTime &timestamp) = 0;
+    virtual void sendText(const Network::PeerEndpoint &peer,
+                          const QString &messageId,
+                          const QString &groupId,
+                          const QString &text,
+                          const QDateTime &timestamp) = 0;
+    /**
+     * @brief 向指定节点发送完整群组快照。
+     * @param peer 目标节点。
+     * @param snapshot 群组元数据与成员快照。
+     */
+    virtual void sendGroupSnapshot(const Network::PeerEndpoint &peer,
+                                   const Network::GroupSnapshot &snapshot) = 0;
     /**
      * @brief 开始向指定节点发送文件。
      * @param peer 目标节点。
@@ -75,14 +87,17 @@ public:
      * @param[out] errorMessage 操作失败时接收错误说明。
      * @return 文件传输请求被接受时返回 @c true。
      */
-    [[nodiscard]] virtual bool sendFile(const Network::PeerEndpoint &peer, const QUrl &fileUrl, QString *errorMessage) = 0;
+    [[nodiscard]] virtual bool sendFile(const Network::PeerEndpoint &peer,
+                                        const QUrl &fileUrl,
+                                        QString *errorMessage) = 0;
     /**
      * @brief 取消正在进行的文件传输。
      * @param peerId 远端节点标识。
      * @param transferId 文件传输标识。
      * @return 成功取消匹配的传输时返回 @c true。
      */
-    [[nodiscard]] virtual bool cancelFileTransfer(const QString &peerId, const QString &transferId) = 0;
+    [[nodiscard]] virtual bool cancelFileTransfer(const QString &peerId,
+                                                  const QString &transferId) = 0;
 
 signals:
     /**
@@ -96,6 +111,11 @@ signals:
      */
     void textReceived(const Network::TextMessage &message);
     /**
+     * @brief 收到群组快照时发出。
+     * @param snapshot 已验证的群组快照。
+     */
+    void groupSnapshotReceived(const Network::GroupSnapshot &snapshot);
+    /**
      * @brief 文本消息写入套接字后发出。
      * @param peerId 目标节点标识。
      * @param messageId 消息标识。
@@ -107,7 +127,18 @@ signals:
      * @param messageId 消息标识。
      * @param reason 失败原因。
      */
-    void textSendFailed(const QString &peerId, const QString &messageId, const QString &reason);
+    void textSendFailed(const QString &peerId,
+                        const QString &messageId,
+                        const QString &reason);
+    /**
+     * @brief 群组快照发送失败时发出。
+     * @param peerId 目标节点标识。
+     * @param groupId 群组标识。
+     * @param reason 失败原因。
+     */
+    void groupSnapshotSendFailed(const QString &peerId,
+                                 const QString &groupId,
+                                 const QString &reason);
     /**
      * @brief 文件传输开始时发出。
      * @param transfer 文件传输元数据。

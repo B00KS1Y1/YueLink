@@ -1,6 +1,6 @@
 /**
  * @file networktypes.h
- * @brief 定义网络身份、节点、消息及文件传输事件类型。
+ * @brief 定义网络身份、群组快照、消息及文件传输事件类型。
  * @author xili <1424858143@qq.com>
  * @date 2026-07-21
  */
@@ -10,6 +10,7 @@
 
 #include <QDateTime>
 #include <QHostAddress>
+#include <QList>
 #include <QMetaType>
 #include <QString>
 
@@ -35,16 +36,36 @@ struct PeerEndpoint
      */
     [[nodiscard]] bool isValid() const
     {
-        return !peerId.isEmpty() && !displayName.isEmpty() && !address.isNull() && tcpPort != 0;
+        return !peerId.isEmpty() && !displayName.isEmpty() && !address.isNull()
+               && tcpPort != 0;
     }
 };
 
 struct TextMessage
 {
     QString messageId;
+    QString groupId;
     PeerEndpoint sender;
     QString text;
     QDateTime timestamp;
+};
+
+struct GroupMemberInfo
+{
+    QString peerId;
+    QString displayName;
+    bool owner = false;
+};
+
+struct GroupSnapshot
+{
+    QString groupId;
+    QString name;
+    QString ownerId;
+    quint64 revision = 1;
+    QDateTime createdAt;
+    PeerEndpoint sender;
+    QList<GroupMemberInfo> members;
 };
 
 enum class TransferDirection
@@ -87,6 +108,7 @@ struct FileTransferResult
 
 Q_DECLARE_METATYPE(Network::PeerEndpoint)
 Q_DECLARE_METATYPE(Network::TextMessage)
+Q_DECLARE_METATYPE(Network::GroupSnapshot)
 Q_DECLARE_METATYPE(Network::TransferDirection)
 Q_DECLARE_METATYPE(Network::FileTransferInfo)
 Q_DECLARE_METATYPE(Network::FileTransferProgress)
