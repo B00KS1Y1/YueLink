@@ -1,6 +1,6 @@
 #include "sqlitechatrepository.h"
 
-#include "infrastructure/config/configstore.h"
+#include "infrastructure/config/configapi.h"
 #include "infrastructure/path.h"
 
 #include <QDir>
@@ -99,7 +99,7 @@ bool SqliteChatRepository::initialize(QString *errorMessage)
     if (m_initialized)
         return true;
 
-    const Config::DatabaseConfig config = Config::database.get();
+    const Config::DatabaseConfig config = Config::get<Config::DatabaseConfig>();
     if (QString::fromStdString(config.driver)
             .compare(QStringLiteral("sqlite"), Qt::CaseInsensitive)
         != 0)
@@ -613,7 +613,7 @@ QSqlDatabase SqliteChatRepository::database() const
 
 bool SqliteChatRepository::configureDatabase(QString *errorMessage)
 {
-    const Config::SqliteConfig config = Config::database.get().sqlite;
+    const Config::SqliteConfig config = Config::get<Config::DatabaseConfig>().sqlite;
     return executeStatement(
                QStringLiteral("PRAGMA busy_timeout=%1")
                    .arg(static_cast<qulonglong>(

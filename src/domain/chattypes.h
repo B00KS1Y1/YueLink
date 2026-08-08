@@ -133,8 +133,7 @@ struct OperationResult
      * @param errorMessage 便于用户阅读的错误说明。
      * @return 包含指定错误信息的失败结果。
      */
-    [[nodiscard]] static OperationResult failure(QString errorCode,
-                                                 QString errorMessage)
+    [[nodiscard]] static OperationResult failure(QString errorCode, QString errorMessage)
     {
         OperationResult result;
         result.succeeded = false;

@@ -1,6 +1,6 @@
 #include "tcpchattransport.h"
 
-#include "config/configstore.h"
+#include "config/configapi.h"
 #include "infrastructure/path.h"
 #include "wireprotocol.h"
 
@@ -461,7 +461,7 @@ void TcpChatTransport::expireFileTransfers()
 
 QString TcpChatTransport::uniqueReceivePath(const QString &fileName) const
 {
-    const QString configuredDirectory = QString::fromStdString(Config::application.get().download_directory).trimmed();
+    const QString configuredDirectory = QString::fromStdString(Config::get<Config::ApplicationConfig>().download_directory).trimmed();
     const QString receiveDirectory = QFileInfo(configuredDirectory).isAbsolute()
                                        ? QDir::cleanPath(QDir::fromNativeSeparators(configuredDirectory))
                                        : Utils::Path::defaultDownloadDirectory();

@@ -1,9 +1,20 @@
 qt_add_library(YueLinkRuntime STATIC
+    config/applicationconfig.h
     config/config.h
+    config/configapi.h
+    config/configbase.h
+    config/configcontext.h
+    config/configmanager.cpp
+    config/configmanager.h
+    config/configpolicies.cpp
+    config/configregistry.h
     config/configserializer.h
-    config/configstore.cpp
     config/configstore.h
+    config/databaseconfig.h
+    config/identityconfig.h
+    config/logconfig.h
     config/result.h
+    config/themeconfig.h
     logging.cpp
     logging.h
     path.cpp
@@ -21,9 +32,9 @@ target_include_directories(YueLinkRuntime
 
 target_link_libraries(YueLinkRuntime
     PUBLIC
+        nlohmann_json::nlohmann_json
         Qt6::Core
     PRIVATE
-        nlohmann_json::nlohmann_json
         spdlog::spdlog
 )
 

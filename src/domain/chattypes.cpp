@@ -11,21 +11,17 @@ QString directConversationId(const QString &peerId)
 QString peerIdFromDirectConversation(const QString &conversationId)
 {
     constexpr auto Prefix = "direct:";
-    return conversationId.startsWith(QLatin1String(Prefix))
-               ? conversationId.sliced(sizeof(Prefix) - 1)
-               : QString{};
+    return conversationId.startsWith(QLatin1String(Prefix)) ? conversationId.sliced(sizeof(Prefix) - 1) : QString{};
 }
 
 QString conversationKindName(ConversationKind kind)
 {
-    return kind == ConversationKind::Group ? QStringLiteral("group")
-                                           : QStringLiteral("direct");
+    return kind == ConversationKind::Group ? QStringLiteral("group") : QStringLiteral("direct");
 }
 
 ConversationKind conversationKindFromName(const QString &name)
 {
-    return name == QLatin1String("group") ? ConversationKind::Group
-                                          : ConversationKind::Direct;
+    return name == QLatin1String("group") ? ConversationKind::Group : ConversationKind::Direct;
 }
 
 QString deliveryStateName(DeliveryState state)
@@ -57,46 +53,58 @@ QString deliveryStateName(DeliveryState state)
 DeliveryState deliveryStateFromName(const QString &name)
 {
     if (name == QLatin1String("pending"))
+    {
         return DeliveryState::Pending;
+    }
     if (name == QLatin1String("sending"))
+    {
         return DeliveryState::Sending;
+    }
     if (name == QLatin1String("sent"))
+    {
         return DeliveryState::Sent;
+    }
     if (name == QLatin1String("partial"))
+    {
         return DeliveryState::Partial;
+    }
     if (name == QLatin1String("received"))
+    {
         return DeliveryState::Received;
+    }
     if (name == QLatin1String("transferring"))
+    {
         return DeliveryState::Transferring;
+    }
     if (name == QLatin1String("receiving"))
+    {
         return DeliveryState::Receiving;
+    }
     if (name == QLatin1String("cancelled"))
+    {
         return DeliveryState::Cancelled;
+    }
     return DeliveryState::Failed;
 }
 
 QString messageKindName(MessageKind kind)
 {
-    return kind == MessageKind::File ? QStringLiteral("file")
-                                     : QStringLiteral("text");
+    return kind == MessageKind::File ? QStringLiteral("file") : QStringLiteral("text");
 }
 
 MessageKind messageKindFromName(const QString &name)
 {
-    return name == QLatin1String("file") ? MessageKind::File
-                                         : MessageKind::Text;
+    return name == QLatin1String("file") ? MessageKind::File : MessageKind::Text;
 }
 
 QString groupRoleName(GroupRole role)
 {
-    return role == GroupRole::Owner ? QStringLiteral("owner")
-                                    : QStringLiteral("member");
+    return role == GroupRole::Owner ? QStringLiteral("owner") : QStringLiteral("member");
 }
 
 GroupRole groupRoleFromName(const QString &name)
 {
-    return name == QLatin1String("owner") ? GroupRole::Owner
-                                          : GroupRole::Member;
+    return name == QLatin1String("owner") ? GroupRole::Owner : GroupRole::Member;
 }
 
 } // namespace Domain

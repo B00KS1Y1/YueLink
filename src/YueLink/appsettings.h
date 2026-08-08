@@ -23,6 +23,7 @@ class AppSettings : public QObject
     Q_PROPERTY(QString navigationMode READ navigationMode NOTIFY settingsChanged)
     Q_PROPERTY(bool notificationsEnabled READ notificationsEnabled NOTIFY settingsChanged)
     Q_PROPERTY(QString downloadDirectory READ downloadDirectory NOTIFY settingsChanged)
+    Q_PROPERTY(QString configDirectory READ configDirectory NOTIFY settingsChanged)
     Q_PROPERTY(QString logLevel READ logLevel NOTIFY settingsChanged)
     Q_PROPERTY(QString logFilePath READ logFilePath NOTIFY settingsChanged)
     Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged)
@@ -64,6 +65,13 @@ public:
      * @return 用于保存接收文件的绝对目录路径。
      */
     [[nodiscard]] QString downloadDirectory() const;
+
+    /**
+     * @brief 返回当前配置的应用程序配置目录。
+     * @return 用于保存应用程序配置文件的绝对目录路径。
+     */
+    [[nodiscard]] QString configDirectory() const;
+
     /**
      * @brief 返回当前日志级别。
      * @return 规范化后的日志级别名称。
@@ -136,6 +144,7 @@ private:
     QString m_primaryColor;
     QString m_navigationMode;
     QString m_downloadDirectory;
+    QString m_configDirectory;
     QString m_logLevel;
     QString m_logFilePath;
     QString m_lastError;

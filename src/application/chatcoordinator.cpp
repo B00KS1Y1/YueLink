@@ -5,7 +5,7 @@
 #include "domain/ichatrepository.h"
 #include "domain/ichattransport.h"
 #include "domain/ipeerdiscovery.h"
-#include "infrastructure/config/configstore.h"
+#include "infrastructure/config/configapi.h"
 
 #include <QColor>
 #include <QDateTime>
@@ -223,13 +223,12 @@ Domain::OperationResult ChatCoordinator::updateLocalProfile(
                                                 tr("头像颜色无效。"));
     const QString normalizedColor = parsedColor.name(QColor::HexRgb);
 
-    Config::IdentityConfig updated = Config::identity.get();
+    Config::IdentityConfig updated = Config::get<Config::IdentityConfig>();
     updated.device_id = m_identity.deviceId.toStdString();
     updated.display_name = normalizedName.toStdString();
     updated.avatar_path = normalizedAvatarPath.toStdString();
     updated.avatar_color = normalizedColor.toStdString();
-    Config::identity.set(updated);
-    const Config::Result result = Config::identity.save();
+    const Config::Result result = Config::set(std::move(updated));
     if (!result)
         return Domain::OperationResult::failure(QStringLiteral("identity.save"),
                                                 result.errorMessage);
@@ -513,13 +512,13 @@ void ChatCoordinator::connectServices()
 
 bool ChatCoordinator::initializeIdentity()
 {
-    const Config::Result loadResult = Config::identity.load();
+    const Config::Result loadResult = Config::reload<Config::IdentityConfig>();
     if (!loadResult)
     {
         setLastError(loadResult.errorMessage);
         return false;
     }
-    Config::IdentityConfig config = Config::identity.get();
+    Config::IdentityConfig config = Config::get<Config::IdentityConfig>();
     QString deviceId = QString::fromStdString(config.device_id).trimmed();
     QString displayName = QString::fromStdString(config.display_name).trimmed();
     QString avatarPath = QString::fromStdString(config.avatar_path).trimmed();
@@ -567,8 +566,7 @@ bool ChatCoordinator::initializeIdentity()
     config.display_name = displayName.toStdString();
     config.avatar_path = avatarPath.toStdString();
     config.avatar_color = avatarColor.toStdString();
-    Config::identity.set(config);
-    const Config::Result saveResult = Config::identity.save();
+    const Config::Result saveResult = Config::set(std::move(config));
     if (!saveResult)
     {
         setLastError(saveResult.errorMessage);

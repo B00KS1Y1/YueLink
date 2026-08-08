@@ -254,6 +254,39 @@ Item {
                             contentDescription: qsTr("启用界面动画")
                         }
                     }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 16
+
+                        HusText {
+                            Layout.preferredWidth: 112
+                            text: qsTr("系统配置路径")
+                            color: HusTheme.Primary.colorTextBase
+                            font.pixelSize: HusTheme.Primary.fontPrimarySize
+                            font.weight: Font.Medium
+                        }
+
+                        HusInput {
+                            id: systemConfigPathInput
+
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 34
+                            selectByMouse: true
+                            verticalAlignment: TextInput.AlignVCenter
+                            contentDescription: qsTr("系统配置路径")
+                        }
+
+                        HusIconButton {
+                            Layout.preferredWidth: 40
+                            Layout.preferredHeight: 34
+                            // text: qsTr("浏览")
+                            iconSource: HusIcon.FolderOpenOutlined
+                            iconSize: 16
+                            contentDescription: qsTr("选择系统配置路径")
+                            onClicked: root.openLogFileDialog()
+                        }
+                    }
                 }
             }
 
@@ -380,9 +413,9 @@ Item {
                         }
 
                         HusIconButton {
-                            Layout.preferredWidth: 96
+                            Layout.preferredWidth: 40
                             Layout.preferredHeight: 34
-                            text: qsTr("浏览")
+                            // text: qsTr("浏览")
                             iconSource: HusIcon.FolderOpenOutlined
                             iconSize: 16
                             contentDescription: qsTr("选择日志文件路径")
@@ -439,59 +472,13 @@ Item {
                         }
 
                         HusIconButton {
-                            Layout.preferredWidth: 96
+                            Layout.preferredWidth: 40
                             Layout.preferredHeight: 34
-                            text: qsTr("浏览")
+                            // text: qsTr("浏览")
                             iconSource: HusIcon.FolderOpenOutlined
                             iconSize: 16
                             contentDescription: qsTr("选择下载目录")
                             onClicked: root.openDownloadDirectoryDialog()
-                        }
-                    }
-                }
-            }
-
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: aboutLayout.implicitHeight + 40
-                radius: 12
-                color: HusTheme.Primary.colorFillQuaternary
-                border.width: 1
-                border.color: HusTheme.Primary.colorBorderSecondary
-
-                RowLayout {
-                    id: aboutLayout
-
-                    anchors.fill: parent
-                    anchors.margins: 20
-                    spacing: 16
-
-                    HusIconText {
-                        Layout.preferredWidth: 28
-                        iconSource: HusIcon.InfoCircleOutlined
-                        iconSize: 24
-                        colorIcon: HusTheme.Primary.colorPrimary
-                        Accessible.ignored: true
-                    }
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 5
-
-                        HusText {
-                            Layout.fillWidth: true
-                            text: qsTr("关于 YueLink")
-                            color: HusTheme.Primary.colorTextBase
-                            font.pixelSize: HusTheme.Primary.fontPrimarySize
-                            font.weight: Font.Medium
-                        }
-
-                        HusText {
-                            Layout.fillWidth: true
-                            text: qsTr("局域网即时聊天与文件传输工具 · 当前版本 0.1")
-                            color: HusTheme.Primary.colorTextSecondary
-                            wrapMode: Text.Wrap
-                            font.pixelSize: HusTheme.Primary.fontPrimarySize
                         }
                     }
                 }
