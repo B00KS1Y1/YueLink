@@ -1,3 +1,10 @@
+/**
+ * @file configpolicies.cpp
+ * @brief 实现应用、主题、日志和数据库配置的规范化与校验策略。
+ * @author xili <1424858143@qq.com>
+ * @date 2026-08-08
+ */
+
 #include "applicationconfig.h"
 #include "databaseconfig.h"
 #include "logconfig.h"
@@ -28,6 +35,7 @@ QString normalizedName(const std::string &value)
 std::string normalizedLevel(const std::string &value)
 {
     QString level = normalizedName(value);
+    // 接受 spdlog 常见别名，但持久化时统一使用标准级别名称。
     if (level == QLatin1String("warning"))
     {
         level = QStringLiteral("warn");
@@ -58,6 +66,7 @@ bool isColor(const std::string &value, bool allowEmpty = false)
     {
         return true;
     }
+    // 颜色在校验前已规范化为大写，因此这里只接受唯一的 #RRGGBB 形式。
     static const QRegularExpression expression(QStringLiteral("^#[0-9A-F]{6}$"));
     return expression.match(color).hasMatch();
 }
@@ -78,6 +87,7 @@ void ApplicationConfig::normalize(ApplicationConfig &config)
     downloadDir = QDir::fromNativeSeparators(downloadDir);
     if (downloadDir.isEmpty() || !QFileInfo(downloadDir).isAbsolute())
     {
+        // 下载位置不解析相对路径，避免其含义随进程工作目录变化。
         downloadDir = QString::fromStdString(defaults.download_directory);
     }
     config.download_directory = QDir::cleanPath(downloadDir).toStdString();
@@ -146,6 +156,7 @@ void LogConfig::normalize(LogConfig &config)
         path = QString::fromStdString(LogConfig{}.file_path);
     }
     path = QDir::fromNativeSeparators(path);
+    // 日志相对路径固定锚定在应用日志目录，绝对路径则尊重用户配置。
     config.file_path = QFileInfo(path).isAbsolute() ? QDir::cleanPath(path).toStdString()
                                                    : Path::logFile(path).toStdString();
 }
@@ -193,6 +204,7 @@ void DatabaseConfig::normalize(DatabaseConfig &config)
         sqlitePath = QString::fromStdString(SqliteConfig{}.file_path);
     }
     sqlitePath = QDir::fromNativeSeparators(sqlitePath);
+    // 数据库相对路径固定锚定在应用数据库目录，并兼容旧版目录前缀。
     config.sqlite.file_path = QFileInfo(sqlitePath).isAbsolute() ? QDir::cleanPath(sqlitePath).toStdString()
                                                                  : Path::databaseFile(sqlitePath).toStdString();
     config.sqlite.synchronous = normalizedName(config.sqlite.synchronous).toStdString();
