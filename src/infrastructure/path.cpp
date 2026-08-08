@@ -25,7 +25,7 @@ QString withoutLeadingDirectory(const QString &filePath, const QString &director
 }
 } // namespace
 
-namespace Utils::Path
+namespace Path
 {
 
 QString dataDirectory()
@@ -50,7 +50,12 @@ QString systemDirectory()
 
 QString configDirectory()
 {
-    return configuredDirectory("YUELINK_CONFIG_DIR", systemDirectory(), QStringLiteral("configs"));
+#ifdef YUELINK_DEBUG_BUILD
+    const QString baseDirectory = QString::fromUtf8(YUELINK_PROJECT_SOURCE_DIR);
+#else
+    const QString baseDirectory = QCoreApplication::applicationDirPath();
+#endif
+    return QDir::cleanPath(QDir(baseDirectory).filePath(QStringLiteral("system/configs")));
 }
 
 QString configFile(const QString &fileName)
@@ -81,7 +86,7 @@ QString databaseFile(const QString &fileName)
     return QDir::cleanPath(QDir(databaseDirectory()).filePath(relativePath));
 }
 
-QString defaultDownloadDirectory()
+QString DownloadDirectory()
 {
     QString downloadsPath = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
     if (downloadsPath.isEmpty())
@@ -91,4 +96,4 @@ QString defaultDownloadDirectory()
     return QDir::cleanPath(QDir(downloadsPath).filePath(QStringLiteral("YueLink")));
 }
 
-} // namespace Utils::Path
+} // namespace Path

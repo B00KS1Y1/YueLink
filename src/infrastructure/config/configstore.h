@@ -47,20 +47,19 @@ public:
     ConfigStore() = default;
 
     /**
-     * @brief 使用指定运行时上下文初始化并加载配置。
-     * @param[in] context 配置目录和动态默认值上下文。
+     * @brief 使用指定目录初始化并加载配置。
+     * @param[in] configDirectory 配置文件所在目录。
      * @return 初始化和加载结果；失败时保留默认配置。
      */
-    [[nodiscard]] Result initialize(ConfigContext context)
+    [[nodiscard]] Result initialize(const QString &configDirectory)
     {
         QWriteLocker locker(&m_lock);
         const bool firstLoad = !m_initialized;
-        m_context = std::move(context);
-        m_filePath = QDir::cleanPath(QDir(m_context.configDirectory).filePath(QString::fromLatin1(T::FileName)));
+        m_filePath = QDir::cleanPath(QDir(configDirectory).filePath(QString::fromLatin1(T::FileName)));
         if (!m_initialized)
         {
-            m_config = T::defaults(m_context);
-            T::normalize(m_config, m_context);
+            m_config = T::defaults();
+            T::normalize(m_config);
             m_initialized = true;
         }
         return loadLocked(firstLoad);
@@ -163,7 +162,7 @@ public:
         {
             return Result::failure(ErrorCode::NotInitialized, QStringLiteral("配置存储尚未初始化。"), m_filePath);
         }
-        T defaults = T::defaults(m_context);
+        T defaults = T::defaults();
         return setLocked(std::move(defaults), true);
     }
 
@@ -181,19 +180,31 @@ private:
     /**
      * @brief 在持有写锁时加载配置。
      * @param[in] firstLoad 是否为本存储的首次加载。
-     * @return 加载结果。
+     * @return 加载结果；文件不存在或缺少字段时使用默认值重新生成配置文件。
      */
     [[nodiscard]] Result loadLocked(bool firstLoad)
     {
         const QFileInfo info(m_filePath);
         if (!info.exists())
         {
-            T defaults = T::defaults(m_context);
-            T::normalize(defaults, m_context);
-            const QList<Issue> issues = T::validate(defaults, m_context);
+            T defaults = T::defaults();
+            T::normalize(defaults);
+            const QList<Issue> issues = T::validate(defaults);
             if (!issues.isEmpty())
             {
                 return Result::validationFailure(issues, m_filePath);
+            }
+            try
+            {
+                const Result saveResult = saveCandidateLocked(nlohmann::json(defaults));
+                if (!saveResult)
+                {
+                    return saveResult;
+                }
+            } catch (const std::exception &exception)
+            {
+                return Result::failure(
+                    ErrorCode::SerializationFailed, QStringLiteral("序列化默认配置失败：%1").arg(QString::fromUtf8(exception.what())), m_filePath);
             }
             return publishLoaded(std::move(defaults), firstLoad);
         }
@@ -242,11 +253,32 @@ private:
             }
 
             T candidate = json.get<T>();
-            T::normalize(candidate, m_context);
-            const QList<Issue> issues = T::validate(candidate, m_context);
+            T::normalize(candidate);
+            const QList<Issue> issues = T::validate(candidate);
             if (!issues.isEmpty())
             {
                 return Result::validationFailure(issues, m_filePath);
+            }
+
+            const nlohmann::json candidateJson = candidate;
+            bool requiresRewrite = sourceVersion < T::SchemaVersion;
+            nlohmann::json repairedJson = json;
+            for (const auto &[key, value] : candidateJson.items())
+            {
+                const auto current = json.find(key);
+                if (current == json.end() || *current != value)
+                {
+                    requiresRewrite = true;
+                    repairedJson[key] = value;
+                }
+            }
+            if (requiresRewrite)
+            {
+                const Result saveResult = saveCandidateLocked(std::move(repairedJson));
+                if (!saveResult)
+                {
+                    return saveResult;
+                }
             }
             return publishLoaded(std::move(candidate), firstLoad);
         } catch (const std::exception &exception)
@@ -268,8 +300,8 @@ private:
             return Result::failure(ErrorCode::NotInitialized, QStringLiteral("配置存储尚未初始化。"), m_filePath);
         }
 
-        T::normalize(candidate, m_context);
-        const QList<Issue> issues = T::validate(candidate, m_context);
+        T::normalize(candidate);
+        const QList<Issue> issues = T::validate(candidate);
         if (!issues.isEmpty())
         {
             return Result::validationFailure(issues, m_filePath);
@@ -373,7 +405,6 @@ private:
     }
 
     mutable QReadWriteLock m_lock;
-    ConfigContext m_context;
     QString m_filePath;
     T m_config{};
     quint64 m_revision = 0;

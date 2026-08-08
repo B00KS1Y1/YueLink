@@ -3,6 +3,8 @@
 #include "logconfig.h"
 #include "themeconfig.h"
 
+#include "infrastructure/path.h"
+
 #include <QDir>
 #include <QFileInfo>
 #include <QRegularExpression>
@@ -69,36 +71,20 @@ void normalizeColor(std::string &value)
 namespace Config
 {
 
-ApplicationConfig ApplicationConfig::defaults(const ConfigContext &context)
+void ApplicationConfig::normalize(ApplicationConfig &config)
 {
-    ApplicationConfig config;
-    config.download_directory = context.defaultDownloadDirectory.toStdString();
-    config.config_directory = context.defaultConfigDirectory.toStdString();
-    return config;
-}
-
-void ApplicationConfig::normalize(ApplicationConfig &config, const ConfigContext &context)
-{
+    const ApplicationConfig defaults;
     QString downloadDir = QString::fromStdString(config.download_directory).trimmed();
     downloadDir = QDir::fromNativeSeparators(downloadDir);
     if (downloadDir.isEmpty() || !QFileInfo(downloadDir).isAbsolute())
     {
-        downloadDir = context.defaultDownloadDirectory; // 使用默认下载目录
+        downloadDir = QString::fromStdString(defaults.download_directory);
     }
     config.download_directory = QDir::cleanPath(downloadDir).toStdString();
-
-    QString configDir = QString::fromStdString(config.config_directory).trimmed();
-    configDir = QDir::fromNativeSeparators(configDir);
-    if (configDir.isEmpty() || !QFileInfo(configDir).isAbsolute())
-    {
-        configDir = context.defaultConfigDirectory; // 使用默认配置目录
-    }
-    config.config_directory = QDir::cleanPath(configDir).toStdString();
 }
 
-QList<Issue> ApplicationConfig::validate(const ApplicationConfig &config, const ConfigContext &context)
+QList<Issue> ApplicationConfig::validate(const ApplicationConfig &config)
 {
-    Q_UNUSED(context)
     QList<Issue> issues;
     const QString downloadDir = QString::fromStdString(config.download_directory);
     if (downloadDir.isEmpty() || !QFileInfo(downloadDir).isAbsolute())
@@ -106,18 +92,11 @@ QList<Issue> ApplicationConfig::validate(const ApplicationConfig &config, const 
         issues.append(issue(QStringLiteral("download_directory"), QStringLiteral("下载目录必须是绝对路径。")));
     }
 
-    const QString configDir = QString::fromStdString(config.config_directory);
-    if (configDir.isEmpty() || !QFileInfo(configDir).isAbsolute())
-    {
-        issues.append(issue(QStringLiteral("config_directory"), QStringLiteral("配置目录必须是绝对路径。")));
-    }
-
     return issues;
 }
 
-void ThemeConfig::normalize(ThemeConfig &config, const ConfigContext &context)
+void ThemeConfig::normalize(ThemeConfig &config)
 {
-    Q_UNUSED(context)
     config.mode = normalizedName(config.mode).toStdString();
     config.navigation_mode = normalizedName(config.navigation_mode).toStdString();
     normalizeColor(config.primary_color);
@@ -125,9 +104,8 @@ void ThemeConfig::normalize(ThemeConfig &config, const ConfigContext &context)
     normalizeColor(config.light_background);
 }
 
-QList<Issue> ThemeConfig::validate(const ThemeConfig &config, const ConfigContext &context)
+QList<Issue> ThemeConfig::validate(const ThemeConfig &config)
 {
-    Q_UNUSED(context)
     QList<Issue> issues;
     static const QSet<QString> themeModes = {QStringLiteral("light"), QStringLiteral("dark"), QStringLiteral("system")};
     static const QSet<QString> navigationModes = {QStringLiteral("relaxed"), QStringLiteral("standard"), QStringLiteral("compact")};
@@ -154,25 +132,26 @@ QList<Issue> ThemeConfig::validate(const ThemeConfig &config, const ConfigContex
     return issues;
 }
 
-void LogConfig::normalize(LogConfig &config, const ConfigContext &context)
+void LogConfig::normalize(LogConfig &config)
 {
-    Q_UNUSED(context)
     config.level = normalizedLevel(config.level);
     config.flush_level = normalizedLevel(config.flush_level);
     if (config.pattern.empty())
     {
         config.pattern = LogConfig{}.pattern;
     }
-    const QString path = QString::fromStdString(config.file_path).trimmed();
-    if (!path.isEmpty())
+    QString path = QString::fromStdString(config.file_path).trimmed();
+    if (path.isEmpty())
     {
-        config.file_path = QDir::cleanPath(QDir::fromNativeSeparators(path)).toStdString();
+        path = QString::fromStdString(LogConfig{}.file_path);
     }
+    path = QDir::fromNativeSeparators(path);
+    config.file_path = QFileInfo(path).isAbsolute() ? QDir::cleanPath(path).toStdString()
+                                                   : Path::logFile(path).toStdString();
 }
 
-QList<Issue> LogConfig::validate(const LogConfig &config, const ConfigContext &context)
+QList<Issue> LogConfig::validate(const LogConfig &config)
 {
-    Q_UNUSED(context)
     QList<Issue> issues;
     if (!isSupportedLogLevel(config.level))
     {
@@ -182,9 +161,9 @@ QList<Issue> LogConfig::validate(const LogConfig &config, const ConfigContext &c
     {
         issues.append(issue(QStringLiteral("flush_level"), QStringLiteral("刷新级别无效。")));
     }
-    if (config.file_enabled && config.file_path.empty())
+    if (config.file_enabled && !QFileInfo(QString::fromStdString(config.file_path)).isAbsolute())
     {
-        issues.append(issue(QStringLiteral("file_path"), QStringLiteral("启用文件日志时路径不能为空。")));
+        issues.append(issue(QStringLiteral("file_path"), QStringLiteral("启用文件日志时必须使用绝对路径。")));
     }
     if (config.file_enabled && config.max_file_size == 0)
     {
@@ -205,11 +184,17 @@ QList<Issue> LogConfig::validate(const LogConfig &config, const ConfigContext &c
     return issues;
 }
 
-void DatabaseConfig::normalize(DatabaseConfig &config, const ConfigContext &context)
+void DatabaseConfig::normalize(DatabaseConfig &config)
 {
-    Q_UNUSED(context)
     config.driver = normalizedName(config.driver).toStdString();
-    config.sqlite.file_path = QString::fromStdString(config.sqlite.file_path).trimmed().toStdString();
+    QString sqlitePath = QString::fromStdString(config.sqlite.file_path).trimmed();
+    if (sqlitePath.isEmpty())
+    {
+        sqlitePath = QString::fromStdString(SqliteConfig{}.file_path);
+    }
+    sqlitePath = QDir::fromNativeSeparators(sqlitePath);
+    config.sqlite.file_path = QFileInfo(sqlitePath).isAbsolute() ? QDir::cleanPath(sqlitePath).toStdString()
+                                                                 : Path::databaseFile(sqlitePath).toStdString();
     config.sqlite.synchronous = normalizedName(config.sqlite.synchronous).toStdString();
     config.mysql.host = QString::fromStdString(config.mysql.host).trimmed().toStdString();
     config.mysql.database = QString::fromStdString(config.mysql.database).trimmed().toStdString();
@@ -217,17 +202,16 @@ void DatabaseConfig::normalize(DatabaseConfig &config, const ConfigContext &cont
     config.mysql.charset = QString::fromStdString(config.mysql.charset).trimmed().toStdString();
 }
 
-QList<Issue> DatabaseConfig::validate(const DatabaseConfig &config, const ConfigContext &context)
+QList<Issue> DatabaseConfig::validate(const DatabaseConfig &config)
 {
-    Q_UNUSED(context)
     QList<Issue> issues;
     if (config.driver != "sqlite")
     {
         issues.append(issue(QStringLiteral("driver"), QStringLiteral("当前版本仅支持 sqlite。")));
     }
-    if (config.sqlite.file_path.empty())
+    if (!QFileInfo(QString::fromStdString(config.sqlite.file_path)).isAbsolute())
     {
-        issues.append(issue(QStringLiteral("sqlite.file_path"), QStringLiteral("SQLite 数据库路径不能为空。")));
+        issues.append(issue(QStringLiteral("sqlite.file_path"), QStringLiteral("SQLite 数据库必须使用绝对路径。")));
     }
     if (config.sqlite.pool_size == 0)
     {

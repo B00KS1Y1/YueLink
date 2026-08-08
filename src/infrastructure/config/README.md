@@ -16,8 +16,9 @@
 | `LogConfig` | `log` | `log.json` |
 | `DatabaseConfig` | `database` | `database.json` |
 
-运行时配置默认保存在可执行文件同级的 `system/configs`。目录仍可通过
-`YUELINK_CONFIG_DIR` 覆盖；相对覆盖路径以 system 目录为基准。
+配置目录为固定路径，不提供用户设置或环境变量覆盖：Debug 构建保存在顶层
+`CMakeLists.txt` 所在项目根目录的 `system/configs`；Release、RelWithDebInfo 和
+MinSizeRel 构建保存在可执行文件目录的 `system/configs`。
 
 每个 JSON 文件使用扁平字段，并包含配置模块保留的版本字段：
 
@@ -40,8 +41,9 @@
 
 ```cpp
 #include "infrastructure/config/configapi.h"
+#include "infrastructure/path.h"
 
-const Config::Result result = Config::initialize();
+const Config::Result result = Config::initialize(Path::configDirectory());
 if (!result)
 {
     qWarning().noquote() << result.errorMessage;
@@ -50,6 +52,13 @@ if (!result)
 
 单个配置加载失败不会阻止其他配置加载。失败配置保留其默认内存值，原 JSON
 文件不会被覆盖。
+
+配置文件不存在时，配置模块会使用对应类型的成员默认值生成新文件。已有 JSON
+缺少可选字段或字段规范化后发生变化时，会补入默认值并通过 `QSaveFile` 原子回写；
+未知字段会保留。
+
+下载目录、日志文件和 SQLite 文件路径均在配置加载或写入阶段完成规范化与校验。
+配置发布后业务模块直接使用最终绝对路径，不再自行回退或重复校验。
 
 ## 读取
 
@@ -144,7 +153,7 @@ const NetworkConfig network = Config::get<NetworkConfig>();
 - C++ 成员和 JSON 键保持 snake_case，以兼容现有文件；
 - JSON 文件名和稳定键名使用小写单数形式；
 - 数值单位写入字段名，例如 `_ms`、`_seconds`；
-- 普通新增字段依靠 `WITH_DEFAULT` 兼容旧文件；
+- 普通新增字段依靠 `WITH_DEFAULT` 兼容旧文件，并在成功加载后补全回写；
 - 默认 schema 版本继承自 `ConfigBase`；需要升级时在派生配置中重新声明 `SchemaVersion`；
 - 字段改名或类型变化时增加 schema 版本并实现迁移；
 - 配置文件彼此独立，原子性仅覆盖单个 JSON 文件；跨文件更新必须分别处理结果。

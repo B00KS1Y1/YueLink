@@ -51,18 +51,16 @@ struct DatabaseConfig final : ConfigBase<DatabaseConfig>
     MySqlConfig mysql;
 
     /**
-     * @brief 规范化数据库驱动名、文件路径和 SQLite 同步模式。
+     * @brief 规范化数据库驱动名和 SQLite 同步模式，并解析数据库文件的绝对路径。
      * @param[in,out] config 待规范化的数据库配置。
-     * @param[in] context 配置运行时路径上下文。
      */
-    static void normalize(DatabaseConfig &config, const ConfigContext &context);
+    static void normalize(DatabaseConfig &config);
     /**
      * @brief 校验当前应用支持的数据库配置。
      * @param[in] config 待校验的数据库配置。
-     * @param[in] context 配置运行时路径上下文。
      * @return 配置问题列表。
      */
-    [[nodiscard]] static QList<Issue> validate(const DatabaseConfig &config, const ConfigContext &context);
+    [[nodiscard]] static QList<Issue> validate(const DatabaseConfig &config);
 };
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(SqliteConfig, file_path, pool_size, busy_timeout_ms, wal_enabled, foreign_keys_enabled, synchronous)

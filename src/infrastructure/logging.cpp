@@ -1,7 +1,5 @@
 #include "logging.h"
 
-#include "path.h"
-
 #include <QDir>
 #include <QFileInfo>
 
@@ -39,17 +37,6 @@ spdlog::level::level_enum configuredLevel(const std::string &name, spdlog::level
 
     warnings.push_back("不支持的日志级别 '" + name + "'，已使用默认值");
     return fallback;
-}
-
-QString resolvedLogPath(const std::string &configuredPath)
-{
-    const QString path = QString::fromStdString(configuredPath).trimmed();
-    if (path.isEmpty() || QFileInfo(path).isAbsolute())
-    {
-        return QDir::cleanPath(path);
-    }
-
-    return QDir::cleanPath(Utils::Path::logFile(path));
 }
 
 spdlog::filename_t nativeLogPath(const QString &path)
@@ -96,11 +83,7 @@ Config::Result Logging::initialize(const Config::LogConfig &config)
         QString logPath;
         if (config.file_enabled)
         {
-            logPath = resolvedLogPath(config.file_path);
-            if (logPath.isEmpty())
-            {
-                throw spdlog::spdlog_ex("日志文件路径为空");
-            }
+            logPath = QString::fromStdString(config.file_path);
             const QString directory = QFileInfo(logPath).absolutePath();
             if (!QDir().mkpath(directory))
             {

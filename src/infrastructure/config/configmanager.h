@@ -41,9 +41,10 @@ public:
 
     /**
      * @brief 初始化并加载全部已注册配置。
+     * @param[in] configDirectory 配置文件所在目录。
      * @return 聚合加载结果；单个配置失败不阻止其他配置加载。
      */
-    [[nodiscard]] Result initialize();
+    [[nodiscard]] Result initialize(const QString &configDirectory);
     /**
      * @brief 从各自文件重新加载全部已注册配置。
      * @return 聚合重新加载结果。

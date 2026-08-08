@@ -32,16 +32,14 @@ struct ThemeConfig final : ConfigBase<ThemeConfig>
     /**
      * @brief 规范化主题模式、导航模式和颜色值。
      * @param[in,out] config 待规范化的主题配置。
-     * @param[in] context 配置运行时路径上下文。
      */
-    static void normalize(ThemeConfig &config, const ConfigContext &context);
+    static void normalize(ThemeConfig &config);
     /**
      * @brief 校验主题配置。
      * @param[in] config 待校验的主题配置。
-     * @param[in] context 配置运行时路径上下文。
      * @return 配置问题列表。
      */
-    [[nodiscard]] static QList<Issue> validate(const ThemeConfig &config, const ConfigContext &context);
+    [[nodiscard]] static QList<Issue> validate(const ThemeConfig &config);
 };
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ThemeConfig, mode, primary_color, animations_enabled, navigation_mode, dark_background, light_background)

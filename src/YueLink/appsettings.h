@@ -23,7 +23,6 @@ class AppSettings : public QObject
     Q_PROPERTY(QString navigationMode READ navigationMode NOTIFY settingsChanged)
     Q_PROPERTY(bool notificationsEnabled READ notificationsEnabled NOTIFY settingsChanged)
     Q_PROPERTY(QString downloadDirectory READ downloadDirectory NOTIFY settingsChanged)
-    Q_PROPERTY(QString configDirectory READ configDirectory NOTIFY settingsChanged)
     Q_PROPERTY(QString logLevel READ logLevel NOTIFY settingsChanged)
     Q_PROPERTY(QString logFilePath READ logFilePath NOTIFY settingsChanged)
     Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged)
@@ -67,12 +66,6 @@ public:
     [[nodiscard]] QString downloadDirectory() const;
 
     /**
-     * @brief 返回当前配置的应用程序配置目录。
-     * @return 用于保存应用程序配置文件的绝对目录路径。
-     */
-    [[nodiscard]] QString configDirectory() const;
-
-    /**
      * @brief 返回当前日志级别。
      * @return 规范化后的日志级别名称。
      */
@@ -95,9 +88,9 @@ public:
      * @param animationsEnabled 是否启用界面动画。
      * @param navigationMode 侧栏导航布局。
      * @param notificationsEnabled 是否启用桌面通知。
-     * @param downloadDirectory 接收文件的绝对目录路径；目录不存在时会尝试创建。
+     * @param downloadDirectory 接收文件目录；空值或相对路径由配置层恢复为默认目录。
      * @param logLevel 日志级别。
-     * @param logFilePath 日志文件的绝对路径。
+     * @param logFilePath 日志文件路径；空值使用默认文件名，相对路径由配置层解析。
      * @return 设置保存成功时返回 @c true。
      */
     Q_INVOKABLE bool save(const QString &themeMode,
@@ -144,7 +137,6 @@ private:
     QString m_primaryColor;
     QString m_navigationMode;
     QString m_downloadDirectory;
-    QString m_configDirectory;
     QString m_logLevel;
     QString m_logFilePath;
     QString m_lastError;

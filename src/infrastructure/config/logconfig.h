@@ -42,18 +42,16 @@ struct LogConfig final : ConfigBase<LogConfig>
     std::size_t async_thread_count = 1;
 
     /**
-     * @brief 规范化日志级别、输出格式和文件路径。
+     * @brief 规范化日志级别和输出格式，并解析日志文件的绝对路径。
      * @param[in,out] config 待规范化的日志配置。
-     * @param[in] context 配置运行时路径上下文。
      */
-    static void normalize(LogConfig &config, const ConfigContext &context);
+    static void normalize(LogConfig &config);
     /**
      * @brief 校验日志配置。
      * @param[in] config 待校验的日志配置。
-     * @param[in] context 配置运行时路径上下文。
      * @return 配置问题列表。
      */
-    [[nodiscard]] static QList<Issue> validate(const LogConfig &config, const ConfigContext &context);
+    [[nodiscard]] static QList<Issue> validate(const LogConfig &config);
 };
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(LogConfig,

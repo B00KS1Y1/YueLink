@@ -254,39 +254,6 @@ Item {
                             contentDescription: qsTr("启用界面动画")
                         }
                     }
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 16
-
-                        HusText {
-                            Layout.preferredWidth: 112
-                            text: qsTr("系统配置路径")
-                            color: HusTheme.Primary.colorTextBase
-                            font.pixelSize: HusTheme.Primary.fontPrimarySize
-                            font.weight: Font.Medium
-                        }
-
-                        HusInput {
-                            id: systemConfigPathInput
-
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 34
-                            selectByMouse: true
-                            verticalAlignment: TextInput.AlignVCenter
-                            contentDescription: qsTr("系统配置路径")
-                        }
-
-                        HusIconButton {
-                            Layout.preferredWidth: 40
-                            Layout.preferredHeight: 34
-                            // text: qsTr("浏览")
-                            iconSource: HusIcon.FolderOpenOutlined
-                            iconSize: 16
-                            contentDescription: qsTr("选择系统配置路径")
-                            onClicked: root.openLogFileDialog()
-                        }
-                    }
                 }
             }
 
@@ -525,9 +492,7 @@ Item {
                 Layout.preferredHeight: 40
                 type: HusButton.Type_Primary
                 text: qsTr("保存设置")
-                enabled: logFilePathInput.text.trim().length > 0
-                         && downloadDirectoryInput.text.trim().length > 0
-                         && themeModeSelect.currentIndex >= 0
+                enabled: themeModeSelect.currentIndex >= 0
                          && navigationModeSelect.currentIndex >= 0
                          && logLevelSelect.currentIndex >= 0
                 contentDescription: qsTr("保存应用设置")

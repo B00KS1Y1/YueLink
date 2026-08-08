@@ -10,7 +10,7 @@
 
 #include <QString>
 
-namespace Utils::Path
+namespace Path
 {
 
 /**
@@ -20,7 +20,7 @@ namespace Utils::Path
 QString systemDirectory();
 /**
  * @brief 返回应用配置目录的绝对路径。
- * @return 默认返回 system/configs；可由 YUELINK_CONFIG_DIR 覆盖。
+ * @return Debug 构建返回项目根目录下的 system/configs；其他构建返回可执行文件目录下的 system/configs。
  */
 QString configDirectory();
 /**
@@ -52,10 +52,10 @@ QString databaseDirectory();
  */
 QString databaseFile(const QString &fileName);
 /**
- * @brief 返回用于接收文件的默认下载目录。
+ * @brief 返回用于接收文件的下载目录。
  * @return 系统下载目录下的 YueLink 子目录；系统下载目录不可用时使用用户主目录下的 Downloads/YueLink。
  */
-QString defaultDownloadDirectory();
+QString DownloadDirectory();
 /**
  * @brief 返回应用数据目录的绝对路径。
  * @return 应用数据目录的绝对路径。
@@ -68,6 +68,6 @@ QString dataDirectory();
  */
 QString dataFile(const QString &fileName);
 
-} // namespace Utils::Path
+} // namespace Path
 
 #endif // PATH_H

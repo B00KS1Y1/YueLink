@@ -3,7 +3,6 @@ qt_add_library(YueLinkRuntime STATIC
     config/config.h
     config/configapi.h
     config/configbase.h
-    config/configcontext.h
     config/configmanager.cpp
     config/configmanager.h
     config/configpolicies.cpp
@@ -28,6 +27,12 @@ add_library(YueLink::Runtime ALIAS YueLinkRuntime)
 target_include_directories(YueLinkRuntime
     PUBLIC
         ${PROJECT_SOURCE_DIR}/src
+)
+
+target_compile_definitions(YueLinkRuntime
+    PRIVATE
+        YUELINK_PROJECT_SOURCE_DIR="${PROJECT_SOURCE_DIR}"
+        $<$<CONFIG:Debug>:YUELINK_DEBUG_BUILD>
 )
 
 target_link_libraries(YueLinkRuntime

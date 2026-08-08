@@ -6,7 +6,6 @@
 
 #include <QDebug>
 #include <QDir>
-#include <QStringList>
 
 #include <spdlog/spdlog.h>
 
@@ -15,16 +14,13 @@ namespace RuntimeBootstrap
 
 void initialize()
 {
-    const QStringList systemDirectories = {Utils::Path::configDirectory(), Utils::Path::logDirectory(), Utils::Path::databaseDirectory()};
-    for (const QString &directory : systemDirectories)
+    const QString configDirectory = Path::configDirectory();
+    if (!QDir().mkpath(configDirectory))
     {
-        if (!QDir().mkpath(directory))
-        {
-            qWarning().noquote() << "创建系统目录失败：" << directory;
-        }
+        qWarning().noquote() << "创建配置目录失败：" << configDirectory;
     }
 
-    const Config::Result configResult = Config::initialize();
+    const Config::Result configResult = Config::initialize(configDirectory);
     const Config::Result loggingResult = Logging::initialize(Config::get<Config::LogConfig>());
     if (!loggingResult)
     {

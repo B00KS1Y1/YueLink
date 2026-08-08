@@ -1,7 +1,5 @@
 #include "configmanager.h"
 
-#include "infrastructure/path.h"
-
 #include <type_traits>
 
 namespace
@@ -26,11 +24,6 @@ void mergeResult(Config::Result &aggregate, const Config::Result &current)
         aggregate.errorMessage += QStringLiteral("；%1").arg(current.errorMessage);
     }
 }
-
-Config::ConfigContext currentContext()
-{
-    return {Utils::Path::configDirectory(), Utils::Path::defaultDownloadDirectory()};
-}
 } // namespace
 
 namespace Config
@@ -47,14 +40,13 @@ ConfigManager &ConfigManager::instance()
     return manager;
 }
 
-Result ConfigManager::initialize()
+Result ConfigManager::initialize(const QString &configDirectory)
 {
-    const ConfigContext context = currentContext();
     Result aggregate;
     std::apply(
-        [&aggregate, &context](auto &...stores) {
-            const auto initializeOne = [&aggregate, &context](auto &store) {
-                const Result result = store.initialize(context);
+        [&aggregate, &configDirectory](auto &...stores) {
+            const auto initializeOne = [&aggregate, &configDirectory](auto &store) {
+                const Result result = store.initialize(configDirectory);
                 mergeResult(aggregate, result);
             };
             (initializeOne(stores), ...);

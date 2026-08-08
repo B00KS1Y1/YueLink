@@ -29,21 +29,23 @@ src/
 
 ## 运行时目录
 
-默认在可执行文件同级创建以下结构，缺失的目录会在启动时自动创建：
+日志和数据库默认在可执行文件同级创建以下结构，缺失的目录会在启动时自动创建：
 
 ```text
 system/
-├── configs/    # identity.json 及其他 JSON 配置
 ├── logs/       # yuelink.log 及轮转日志
 └── database/   # yuelink.db、WAL 与 SHM 文件
 ```
+
+JSON 配置使用固定位置：Debug 构建保存在顶层 `CMakeLists.txt` 所在项目根目录的
+`system/configs`，Release、RelWithDebInfo 和 MinSizeRel 构建保存在可执行文件目录的
+`system/configs`。配置目录不支持通过应用设置或环境变量修改。
 
 运行锁文件保留在应用数据根目录，不放入数据库目录。相对日志与 SQLite 路径
 分别以 `system/logs` 和 `system/database` 为基准，显式绝对路径不受影响。
 目录可在启动前通过环境变量覆盖：
 
 - `YUELINK_SYSTEM_DIR`：system 根目录；相对路径以可执行文件目录为基准；
-- `YUELINK_CONFIG_DIR`：配置目录；相对路径以 system 根目录为基准；
 - `YUELINK_LOG_DIR`：日志目录；相对路径以 system 根目录为基准；
 - `YUELINK_DATABASE_DIR`：数据库目录；相对路径以 system 根目录为基准。
 

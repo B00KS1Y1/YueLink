@@ -461,10 +461,7 @@ void TcpChatTransport::expireFileTransfers()
 
 QString TcpChatTransport::uniqueReceivePath(const QString &fileName) const
 {
-    const QString configuredDirectory = QString::fromStdString(Config::get<Config::ApplicationConfig>().download_directory).trimmed();
-    const QString receiveDirectory = QFileInfo(configuredDirectory).isAbsolute()
-                                       ? QDir::cleanPath(QDir::fromNativeSeparators(configuredDirectory))
-                                       : Utils::Path::defaultDownloadDirectory();
+    const QString receiveDirectory = QString::fromStdString(Config::get<Config::ApplicationConfig>().download_directory);
     if (!QDir().mkpath(receiveDirectory))
     {
         spdlog::error("[网络.文件] 创建文件接收目录失败");

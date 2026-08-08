@@ -19,11 +19,12 @@ namespace Config
 
 /**
  * @brief 初始化并加载全部已注册配置。
+ * @param[in] configDirectory 配置文件所在目录。
  * @return 聚合加载结果。
  */
-[[nodiscard]] inline Result initialize()
+[[nodiscard]] inline Result initialize(const QString &configDirectory)
 {
-    return ConfigManager::instance().initialize();
+    return ConfigManager::instance().initialize(configDirectory);
 }
 
 /**

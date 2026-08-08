@@ -8,7 +8,6 @@
 #ifndef CONFIGBASE_H
 #define CONFIGBASE_H
 
-#include "configcontext.h"
 #include "result.h"
 
 #include <QList>
@@ -24,36 +23,30 @@ template <typename Derived> struct ConfigBase
 
     /**
      * @brief 创建派生类型的默认配置。
-     * @param[in] context 配置运行时路径上下文。
      * @return 使用派生类型成员默认值构造的配置。
      */
-    [[nodiscard]] static Derived defaults(const ConfigContext &context)
+    [[nodiscard]] static Derived defaults()
     {
-        Q_UNUSED(context)
         return {};
     }
 
     /**
      * @brief 将派生配置规范化为持久化和运行时使用的标准形式。
      * @param[in,out] config 待规范化的配置。
-     * @param[in] context 配置运行时路径上下文。
      */
-    static void normalize(Derived &config, const ConfigContext &context)
+    static void normalize(Derived &config)
     {
         Q_UNUSED(config)
-        Q_UNUSED(context)
     }
 
     /**
      * @brief 校验派生配置是否满足约束。
      * @param[in] config 待校验的配置。
-     * @param[in] context 配置运行时路径上下文。
      * @return 校验问题列表；空列表表示校验通过。
      */
-    [[nodiscard]] static QList<Issue> validate(const Derived &config, const ConfigContext &context)
+    [[nodiscard]] static QList<Issue> validate(const Derived &config)
     {
         Q_UNUSED(config)
-        Q_UNUSED(context)
         return {};
     }
 

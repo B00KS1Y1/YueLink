@@ -1,11 +1,8 @@
 #include "appsettings.h"
 
 #include "infrastructure/config/configapi.h"
-#include "infrastructure/path.h"
 
 #include <QColor>
-#include <QDir>
-#include <QFileInfo>
 #include <QSet>
 
 #include <spdlog/spdlog.h>
@@ -33,12 +30,9 @@ AppSettings::AppSettings(QObject *parent)
     m_animationsEnabled = theme.animations_enabled;
     m_navigationMode = normalizedNavigationMode(QString::fromStdString(theme.navigation_mode));
     m_notificationsEnabled = application.notifications_enabled;
-    const QString configuredDownloadDirectory = QString::fromStdString(application.download_directory).trimmed();
-    m_downloadDirectory = QFileInfo(configuredDownloadDirectory).isAbsolute() ? QDir::cleanPath(QDir::fromNativeSeparators(configuredDownloadDirectory))
-                                                                              : Utils::Path::defaultDownloadDirectory();
+    m_downloadDirectory = QString::fromStdString(application.download_directory);
     m_logLevel = normalizedLogLevel(QString::fromStdString(log.level));
-    m_logFilePath = Utils::Path::logFile(QString::fromStdString(log.file_path).trimmed());
-    m_configDirectory = QString::fromStdString(application.config_directory);
+    m_logFilePath = QString::fromStdString(log.file_path);
 }
 
 QString AppSettings::themeMode() const
@@ -69,11 +63,6 @@ bool AppSettings::notificationsEnabled() const
 QString AppSettings::downloadDirectory() const
 {
     return m_downloadDirectory;
-}
-
-QString AppSettings::configDirectory() const
-{
-    return m_configDirectory;
 }
 
 QString AppSettings::logLevel() const
@@ -128,26 +117,6 @@ bool AppSettings::save(const QString &themeMode,
         return false;
     }
 
-    const QString normalizedDownloadDirectory = QDir::cleanPath(QDir::fromNativeSeparators(downloadDirectory.trimmed()));
-    if (normalizedDownloadDirectory.isEmpty() || !QFileInfo(normalizedDownloadDirectory).isAbsolute())
-    {
-        setLastError(tr("下载目录必须使用绝对路径。"));
-        return false;
-    }
-    const QFileInfo downloadDirectoryInfo(normalizedDownloadDirectory);
-    if ((downloadDirectoryInfo.exists() && !downloadDirectoryInfo.isDir()) || !QDir().mkpath(normalizedDownloadDirectory))
-    {
-        setLastError(tr("无法创建下载目录。"));
-        return false;
-    }
-
-    const QString normalizedLogFilePath = QDir::cleanPath(QDir::fromNativeSeparators(logFilePath.trimmed()));
-    if (normalizedLogFilePath.isEmpty() || !QFileInfo(normalizedLogFilePath).isAbsolute())
-    {
-        setLastError(tr("日志文件必须使用绝对路径。"));
-        return false;
-    }
-
     const QString normalizedColor = color.name(QColor::HexRgb).toUpper();
     const Config::ThemeConfig previousTheme = Config::get<Config::ThemeConfig>();
     const Config::ApplicationConfig previousApplication = Config::get<Config::ApplicationConfig>();
@@ -168,7 +137,7 @@ bool AppSettings::save(const QString &themeMode,
 
     Config::ApplicationConfig newApplication = previousApplication;
     newApplication.notifications_enabled = notificationsEnabled;
-    newApplication.download_directory = normalizedDownloadDirectory.toStdString();
+    newApplication.download_directory = downloadDirectory.toStdString();
     const Config::Result applicationResult = Config::set(std::move(newApplication));
     if (!applicationResult)
     {
@@ -185,7 +154,7 @@ bool AppSettings::save(const QString &themeMode,
 
     Config::LogConfig newLog = previousLog;
     newLog.level = normalizedLevel.toStdString();
-    newLog.file_path = normalizedLogFilePath.toStdString();
+    newLog.file_path = logFilePath.toStdString();
     const Config::Result logResult = Config::set(std::move(newLog));
     if (!logResult)
     {
@@ -205,17 +174,21 @@ bool AppSettings::save(const QString &themeMode,
         return false;
     }
 
+    const Config::ApplicationConfig savedApplication = Config::get<Config::ApplicationConfig>();
+    const Config::LogConfig savedLog = Config::get<Config::LogConfig>();
+    const QString savedDownloadDirectory = QString::fromStdString(savedApplication.download_directory);
+    const QString savedLogFilePath = QString::fromStdString(savedLog.file_path);
     const bool changed = m_themeMode != normalizedMode || m_primaryColor != normalizedColor || m_animationsEnabled != animationsEnabled ||
                          m_navigationMode != normalizedNavigation || m_notificationsEnabled != notificationsEnabled ||
-                         m_downloadDirectory != normalizedDownloadDirectory || m_logLevel != normalizedLevel || m_logFilePath != normalizedLogFilePath;
+                         m_downloadDirectory != savedDownloadDirectory || m_logLevel != normalizedLevel || m_logFilePath != savedLogFilePath;
     m_themeMode = normalizedMode;
     m_primaryColor = normalizedColor;
     m_animationsEnabled = animationsEnabled;
     m_navigationMode = normalizedNavigation;
     m_notificationsEnabled = notificationsEnabled;
-    m_downloadDirectory = normalizedDownloadDirectory;
+    m_downloadDirectory = savedDownloadDirectory;
     m_logLevel = normalizedLevel;
-    m_logFilePath = normalizedLogFilePath;
+    m_logFilePath = savedLogFilePath;
     spdlog::set_level(spdlog::level::from_str(normalizedLevel.toStdString()));
     setLastError({});
     if (changed)
@@ -227,9 +200,9 @@ bool AppSettings::save(const QString &themeMode,
                  normalizedNavigation.toStdString(),
                  animationsEnabled,
                  notificationsEnabled,
-                 normalizedDownloadDirectory.toUtf8().toStdString(),
+                 savedDownloadDirectory.toUtf8().toStdString(),
                  normalizedLevel.toStdString(),
-                 normalizedLogFilePath.toUtf8().toStdString());
+                 savedLogFilePath.toUtf8().toStdString());
     return true;
 }
 

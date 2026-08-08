@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
     RuntimeBootstrap::initialize();
     spdlog::info("[应用程序] YueLink 图形界面正在启动");
 
-    if (!QDir().mkpath(Utils::Path::dataDirectory()))
+    if (!QDir().mkpath(Path::dataDirectory()))
     {
         spdlog::error("[应用程序] 创建数据目录失败");
         QMessageBox::critical(nullptr, QObject::tr("YueLink"), QObject::tr("无法创建 YueLink 数据目录。"));
