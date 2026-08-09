@@ -79,7 +79,7 @@ target_link_libraries(YueLink
         Qt6::QuickControls2
         Qt6::Widgets
         HuskarUI::Basic
-        spdlog::spdlog
+        QsLog::QsLog
 )
 
 install(TARGETS YueLink

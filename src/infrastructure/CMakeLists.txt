@@ -45,7 +45,7 @@ target_link_libraries(YueLinkRuntime
         nlohmann_json::nlohmann_json
         Qt6::Core
     PRIVATE
-        spdlog::spdlog
+        QsLog::QsLog
 )
 
 qt_add_library(YueLinkNetwork STATIC
@@ -72,7 +72,7 @@ target_link_libraries(YueLinkNetwork
         Qt6::Network
     PRIVATE
         YueLink::Runtime
-        spdlog::spdlog
+        QsLog::QsLog
 )
 
 qt_add_library(YueLinkPersistence STATIC
@@ -94,5 +94,5 @@ target_link_libraries(YueLinkPersistence
         Qt6::Sql
     PRIVATE
         YueLink::Runtime
-        spdlog::spdlog
+        QsLog::QsLog
 )

@@ -5,7 +5,7 @@
 #include <QIcon>
 #include <QStyle>
 
-#include <spdlog/spdlog.h>
+#include <QsLog.h>
 
 DesktopNotificationService::DesktopNotificationService(QObject *parent)
 : INotificationService(parent)
@@ -35,12 +35,11 @@ void DesktopNotificationService::setEnabled(bool enabled)
     m_trayIcon.setVisible(enabled && available);
     if (enabled && !available)
     {
-        spdlog::warn("[平台.通知] 系统托盘不可用");
+        QLOG_WARN() << QStringLiteral("[平台.通知] 系统托盘不可用");
     }
     else
     {
-        spdlog::info("[平台.通知] 通知启用状态={}",
-                     enabled);
+        QLOG_INFO() << QStringLiteral("[平台.通知] 通知启用状态=") << enabled;
     }
 }
 
@@ -58,7 +57,6 @@ void DesktopNotificationService::showNotification(const QString &title,
                            message,
                            QSystemTrayIcon::Information,
                            6000);
-    spdlog::debug("[平台.通知] 通知已显示 上下文标识={} 标题={}",
-                  contextId.toUtf8().toStdString(),
-                  title.toUtf8().toStdString());
+    QLOG_DEBUG() << QStringLiteral("[平台.通知] 通知已显示 上下文标识=") << contextId
+                           << QStringLiteral("标题=") << title;
 }

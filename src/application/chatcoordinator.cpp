@@ -15,8 +15,6 @@
 #include <QSysInfo>
 #include <QUuid>
 
-#include <spdlog/spdlog.h>
-
 #include <algorithm>
 #include <utility>
 

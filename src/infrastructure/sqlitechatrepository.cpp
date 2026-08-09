@@ -10,7 +10,7 @@
 #include <QVariant>
 #include <QUuid>
 
-#include <spdlog/spdlog.h>
+#include <QsLog.h>
 
 #include <cstddef>
 #include <utility>
@@ -123,7 +123,8 @@ bool SqliteChatRepository::initialize(QString *errorMessage)
     }
 
     m_initialized = true;
-    spdlog::info("[存储.SQLite] 统一会话数据库初始化完成 路径={} 架构版本={}", m_databasePath.toUtf8().toStdString(), CurrentSchemaVersion);
+    QLOG_INFO() << QStringLiteral("[存储.SQLite] 统一会话数据库初始化完成 路径=") << m_databasePath
+                          << QStringLiteral("架构版本=") << CurrentSchemaVersion;
     return true;
 }
 

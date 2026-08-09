@@ -4,7 +4,7 @@
 
 #include <QDateTime>
 
-#include <spdlog/spdlog.h>
+#include <QsLog.h>
 
 #include <utility>
 
@@ -542,8 +542,7 @@ void ConversationStore::reportRepositoryError(const char *operation,
     const QString reason = error.isEmpty()
                                ? tr("聊天数据操作失败。")
                                : tr("聊天数据操作失败：%1").arg(error);
-    spdlog::error("[存储.会话] 操作失败 操作={} 原因={}",
-                  operation,
-                  reason.toUtf8().toStdString());
+    QLOG_ERROR() << QStringLiteral("[存储.会话] 操作失败 操作=") << operation
+                           << QStringLiteral("原因=") << reason;
     emit operationFailed(reason);
 }

@@ -1,11 +1,12 @@
 #include "appsettings.h"
 
 #include "infrastructure/config/configapi.h"
+#include "infrastructure/logging.h"
 
 #include <QColor>
 #include <QSet>
 
-#include <spdlog/spdlog.h>
+#include <QsLog.h>
 
 #include <utility>
 
@@ -131,7 +132,7 @@ bool AppSettings::save(const QString &themeMode,
     if (!themeResult)
     {
         setLastError(tr("无法保存外观设置：%1").arg(themeResult.errorMessage));
-        spdlog::error("[设置] 保存外观设置失败 原因={}", themeResult.errorMessage.toUtf8().toStdString());
+        QLOG_ERROR() << QStringLiteral("[设置] 保存外观设置失败 原因=") << themeResult.errorMessage;
         return false;
     }
 
@@ -148,7 +149,7 @@ bool AppSettings::save(const QString &themeMode,
             error += tr("；外观设置回滚失败：%1").arg(rollbackResult.errorMessage);
         }
         setLastError(error);
-        spdlog::error("[设置] 保存通知设置失败 原因={}", applicationResult.errorMessage.toUtf8().toStdString());
+        QLOG_ERROR() << QStringLiteral("[设置] 保存通知设置失败 原因=") << applicationResult.errorMessage;
         return false;
     }
 
@@ -170,7 +171,7 @@ bool AppSettings::save(const QString &themeMode,
             error += tr("；外观设置回滚失败：%1").arg(themeRollbackResult.errorMessage);
         }
         setLastError(error);
-        spdlog::error("[设置] 保存日志设置失败 原因={}", logResult.errorMessage.toUtf8().toStdString());
+        QLOG_ERROR() << QStringLiteral("[设置] 保存日志设置失败 原因=") << logResult.errorMessage;
         return false;
     }
 
@@ -189,20 +190,19 @@ bool AppSettings::save(const QString &themeMode,
     m_downloadDirectory = savedDownloadDirectory;
     m_logLevel = normalizedLevel;
     m_logFilePath = savedLogFilePath;
-    spdlog::set_level(spdlog::level::from_str(normalizedLevel.toStdString()));
+    Logging::setLevel(normalizedLevel.toStdString());
     setLastError({});
     if (changed)
     {
         emit settingsChanged();
     }
-    spdlog::info("[设置] 应用设置已保存 主题={} 导航布局={} 动画={} 通知={} 下载目录={} 日志级别={} 日志路径={}",
-                 normalizedMode.toStdString(),
-                 normalizedNavigation.toStdString(),
-                 animationsEnabled,
-                 notificationsEnabled,
-                 savedDownloadDirectory.toUtf8().toStdString(),
-                 normalizedLevel.toStdString(),
-                 savedLogFilePath.toUtf8().toStdString());
+    QLOG_INFO() << QStringLiteral("[设置] 应用设置已保存 主题=") << normalizedMode
+                          << QStringLiteral("导航布局=") << normalizedNavigation
+                          << QStringLiteral("动画=") << animationsEnabled
+                          << QStringLiteral("通知=") << notificationsEnabled
+                          << QStringLiteral("下载目录=") << savedDownloadDirectory
+                          << QStringLiteral("日志级别=") << normalizedLevel
+                          << QStringLiteral("日志路径=") << savedLogFilePath;
     return true;
 }
 

@@ -6,7 +6,7 @@
 #include <QProcess>
 #include <QUrl>
 
-#include <spdlog/spdlog.h>
+#include <QsLog.h>
 
 namespace
 {
@@ -53,13 +53,11 @@ bool DesktopFileLauncher::openFile(const QString &filePath,
         {
             *errorMessage = QStringLiteral("系统无法打开该文件。");
         }
-        spdlog::warn("[平台.文件] 打开文件失败 路径={}",
-                     fileInfo.absoluteFilePath().toUtf8().toStdString());
+        QLOG_WARN() << QStringLiteral("[平台.文件] 打开文件失败 路径=") << fileInfo.absoluteFilePath();
         return false;
     }
     clearError(errorMessage);
-    spdlog::debug("[平台.文件] 文件已打开 路径={}",
-                  fileInfo.absoluteFilePath().toUtf8().toStdString());
+    QLOG_DEBUG() << QStringLiteral("[平台.文件] 文件已打开 路径=") << fileInfo.absoluteFilePath();
     return true;
 }
 
@@ -93,12 +91,10 @@ bool DesktopFileLauncher::revealInFolder(const QString &filePath,
         {
             *errorMessage = QStringLiteral("系统无法打开文件所在目录。");
         }
-        spdlog::warn("[平台.文件] 在文件夹中显示文件失败 路径={}",
-                     fileInfo.absoluteFilePath().toUtf8().toStdString());
+        QLOG_WARN() << QStringLiteral("[平台.文件] 在文件夹中显示文件失败 路径=") << fileInfo.absoluteFilePath();
         return false;
     }
     clearError(errorMessage);
-    spdlog::debug("[平台.文件] 已在文件夹中显示文件 路径={}",
-                  fileInfo.absoluteFilePath().toUtf8().toStdString());
+    QLOG_DEBUG() << QStringLiteral("[平台.文件] 已在文件夹中显示文件 路径=") << fileInfo.absoluteFilePath();
     return true;
 }

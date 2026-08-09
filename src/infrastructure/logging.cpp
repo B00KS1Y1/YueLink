@@ -2,60 +2,71 @@
 
 #include <QDir>
 #include <QFileInfo>
+#include <QStringList>
+#include <QVector>
 
-#include <spdlog/async.h>
-#include <spdlog/sinks/null_sink.h>
-#include <spdlog/sinks/rotating_file_sink.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
-#include <spdlog/sinks/stdout_sinks.h>
-#include <spdlog/spdlog.h>
+#include <QsLog.h>
+#include <QsLogDest.h>
 
 #include <algorithm>
-#include <chrono>
 #include <exception>
-#include <memory>
-#include <string>
+#include <limits>
 #include <utility>
-#include <vector>
 
 namespace
 {
-std::string normalizedLevelName(const std::string &name)
+constexpr int MaxQsLogBackupCount = 10;
+
+QString normalizedLevelName(const std::string &name)
 {
-    QString normalized = QString::fromStdString(name).trimmed().toLower();
-    return normalized.toStdString();
+    return QString::fromStdString(name).trimmed().toLower();
 }
 
-spdlog::level::level_enum configuredLevel(const std::string &name, spdlog::level::level_enum fallback, std::vector<std::string> &warnings)
+QsLogging::Level configuredLevel(const std::string &name, QsLogging::Level fallback, QStringList *warnings = nullptr)
 {
-    const std::string normalized = normalizedLevelName(name);
-    const spdlog::level::level_enum level = spdlog::level::from_str(normalized);
-    if (level != spdlog::level::off || normalized == "off")
+    const QString normalized = normalizedLevelName(name);
+    if (normalized == QLatin1String("trace"))
     {
-        return level;
+        return QsLogging::TraceLevel;
+    }
+    if (normalized == QLatin1String("debug"))
+    {
+        return QsLogging::DebugLevel;
+    }
+    if (normalized == QLatin1String("info"))
+    {
+        return QsLogging::InfoLevel;
+    }
+    if (normalized == QLatin1String("warn") || normalized == QLatin1String("warning"))
+    {
+        return QsLogging::WarnLevel;
+    }
+    if (normalized == QLatin1String("error") || normalized == QLatin1String("err"))
+    {
+        return QsLogging::ErrorLevel;
+    }
+    if (normalized == QLatin1String("critical") || normalized == QLatin1String("fatal"))
+    {
+        return QsLogging::FatalLevel;
+    }
+    if (normalized == QLatin1String("off"))
+    {
+        return QsLogging::OffLevel;
     }
 
-    warnings.push_back("不支持的日志级别 '" + name + "'，已使用默认值");
+    if (warnings)
+    {
+        warnings->append(QStringLiteral("不支持的日志级别“%1”，已使用默认值。").arg(QString::fromStdString(name)));
+    }
     return fallback;
-}
-
-spdlog::filename_t nativeLogPath(const QString &path)
-{
-#ifdef SPDLOG_WCHAR_FILENAMES
-    return path.toStdWString();
-#else
-    return path.toUtf8().toStdString();
-#endif
 }
 
 void installFallbackLogger()
 {
-    spdlog::drop_all();
-    auto sink = std::make_shared<spdlog::sinks::stderr_color_sink_mt>();
-    auto logger = std::make_shared<spdlog::logger>("YueLink", std::move(sink));
-    logger->set_level(spdlog::level::info);
-    logger->flush_on(spdlog::level::warn);
-    spdlog::set_default_logger(std::move(logger));
+    QsLogging::Logger::destroyInstance();
+    QsLogging::Logger &logger = QsLogging::Logger::instance();
+    logger.setLoggingLevel(QsLogging::InfoLevel);
+    logger.addDestination(QsLogging::DestinationFactory::MakeDebugOutputDestination());
 }
 } // namespace
 
@@ -63,21 +74,13 @@ Config::Result Logging::initialize(const Config::LogConfig &config)
 {
     try
     {
-        std::vector<std::string> warnings;
-        const spdlog::level::level_enum level = configuredLevel(config.level, spdlog::level::info, warnings);
-        const spdlog::level::level_enum flushLevel = configuredLevel(config.flush_level, spdlog::level::warn, warnings);
+        QStringList warnings;
+        const QsLogging::Level level = configuredLevel(config.level, QsLogging::InfoLevel, &warnings);
+        QVector<QsLogging::DestinationPtr> destinations;
 
-        std::vector<spdlog::sink_ptr> sinks;
         if (config.console_enabled)
         {
-            if (config.console_color)
-            {
-                sinks.push_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
-            }
-            else
-            {
-                sinks.push_back(std::make_shared<spdlog::sinks::stdout_sink_mt>());
-            }
+            destinations.append(QsLogging::DestinationFactory::MakeDebugOutputDestination());
         }
 
         QString logPath;
@@ -87,60 +90,51 @@ Config::Result Logging::initialize(const Config::LogConfig &config)
             const QString directory = QFileInfo(logPath).absolutePath();
             if (!QDir().mkpath(directory))
             {
-                throw spdlog::spdlog_ex("无法创建日志目录：" + directory.toUtf8().toStdString());
+                installFallbackLogger();
+                return Config::Result::failure(QStringLiteral("无法创建日志目录：%1").arg(directory));
             }
 
-            const std::size_t maxFileSize = std::max<std::size_t>(config.max_file_size, 1);
-            const std::size_t maxFiles = std::max<std::size_t>(config.max_files, 1);
-            if (maxFileSize != config.max_file_size || maxFiles != config.max_files)
+            const std::size_t requestedFileSize = std::max<std::size_t>(config.max_file_size, 1);
+            const std::size_t requestedFileCount = std::max<std::size_t>(config.max_files, 1);
+            const qint64 maxFileSize =
+                static_cast<qint64>(std::min<std::size_t>(requestedFileSize, static_cast<std::size_t>(std::numeric_limits<qint64>::max())));
+            const int maxFiles = static_cast<int>(std::min<std::size_t>(requestedFileCount, static_cast<std::size_t>(MaxQsLogBackupCount)));
+            if (requestedFileSize != config.max_file_size || requestedFileCount != config.max_files)
             {
-                warnings.push_back("滚动日志文件限制必须大于零，已使用默认值");
+                warnings.append(QStringLiteral("滚动日志文件限制必须大于零，已使用最小有效值。"));
             }
-            sinks.push_back(std::make_shared<spdlog::sinks::rotating_file_sink_mt>(nativeLogPath(logPath), maxFileSize, maxFiles, config.rotate_on_open));
-        }
-        if (sinks.empty())
-        {
-            sinks.push_back(std::make_shared<spdlog::sinks::null_sink_mt>());
-        }
-
-        std::shared_ptr<spdlog::logger> logger;
-        if (config.async)
-        {
-            const std::size_t queueSize = std::max<std::size_t>(config.async_queue_size, 1);
-            const std::size_t threadCount = std::max<std::size_t>(config.async_thread_count, 1);
-            if (queueSize != config.async_queue_size || threadCount != config.async_thread_count)
+            if (requestedFileCount > static_cast<std::size_t>(MaxQsLogBackupCount))
             {
-                warnings.push_back("异步队列大小和线程数必须大于零，已使用默认值");
+                warnings.append(QStringLiteral("QsLog 最多保留 %1 个旧日志文件，已截断配置值。").arg(MaxQsLogBackupCount));
             }
-            spdlog::init_thread_pool(queueSize, threadCount);
-            logger = std::make_shared<spdlog::async_logger>("YueLink", sinks.begin(), sinks.end(), spdlog::thread_pool(), spdlog::async_overflow_policy::block);
-        }
-        else
-        {
-            logger = std::make_shared<spdlog::logger>("YueLink", sinks.begin(), sinks.end());
+
+            const QsLogging::DestinationPtr fileDestination = QsLogging::DestinationFactory::MakeFileDestination(
+                logPath, QsLogging::EnableLogRotation, QsLogging::MaxSizeBytes(maxFileSize), QsLogging::MaxOldLogCount(maxFiles));
+            if (!fileDestination || !fileDestination->isValid())
+            {
+                installFallbackLogger();
+                return Config::Result::failure(QStringLiteral("无法打开日志文件：%1").arg(logPath));
+            }
+            destinations.append(fileDestination);
         }
 
-        logger->set_pattern(config.pattern.empty() ? Config::LogConfig{}.pattern : config.pattern);
-        logger->set_level(level);
-        logger->flush_on(flushLevel);
-        spdlog::set_default_logger(std::move(logger));
-        if (config.flush_every_seconds > 0)
+        QsLogging::Logger::destroyInstance();
+        QsLogging::Logger &logger = QsLogging::Logger::instance();
+        logger.setLoggingLevel(level);
+        for (const QsLogging::DestinationPtr &destination : std::as_const(destinations))
         {
-            spdlog::flush_every(std::chrono::seconds(config.flush_every_seconds));
+            logger.addDestination(destination);
         }
 
-        for (const std::string &warning : warnings)
+        for (const QString &warning : std::as_const(warnings))
         {
-            spdlog::warn("[日志] {}", warning);
+            QLOG_WARN() << QStringLiteral("[日志]") << warning;
         }
-        spdlog::info("[日志] 初始化完成 级别={} 控制台={} 文件={} 异步={}",
-                     normalizedLevelName(config.level),
-                     config.console_enabled,
-                     config.file_enabled,
-                     config.async);
+        QLOG_INFO() << QStringLiteral("[日志] 初始化完成 级别=") << normalizedLevelName(config.level) << QStringLiteral("控制台=")
+                              << config.console_enabled << QStringLiteral("文件=") << config.file_enabled;
         if (!logPath.isEmpty())
         {
-            spdlog::debug("[日志] 文件输出路径={}", logPath.toUtf8().toStdString());
+            QLOG_DEBUG() << QStringLiteral("[日志] 文件输出路径=") << logPath;
         }
         return {};
     } catch (const std::exception &exception)
@@ -150,7 +144,12 @@ Config::Result Logging::initialize(const Config::LogConfig &config)
     }
 }
 
+void Logging::setLevel(const std::string &level)
+{
+    QsLogging::Logger::instance().setLoggingLevel(configuredLevel(level, QsLogging::InfoLevel));
+}
+
 void Logging::shutdown()
 {
-    spdlog::shutdown();
+    QsLogging::Logger::destroyInstance();
 }

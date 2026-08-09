@@ -21,5 +21,5 @@ target_link_libraries(YueLinkApplication
     PRIVATE
         YueLink::Runtime
         Qt6::Gui
-        spdlog::spdlog
+        QsLog::QsLog
 )

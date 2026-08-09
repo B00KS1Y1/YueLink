@@ -22,7 +22,7 @@ if(NOT TARGET huskaruiimplplugin)
     add_library(huskaruiimplplugin MODULE IMPORTED)
 endif()
 
-add_subdirectory(thirdparty/spdlog)
+add_subdirectory(thirdparty/QsLog)
 add_subdirectory(thirdparty/nlohmann_json)
 
 add_subdirectory(src/domain)

@@ -8,7 +8,7 @@
 #include <QTcpSocket>
 #include <QtEndian>
 
-#include <spdlog/spdlog.h>
+#include <QsLog.h>
 
 #include <utility>
 
@@ -36,19 +36,18 @@ bool TcpChatTransport::start(const Network::LocalIdentity &identity)
 {
     if (m_running)
     {
-        spdlog::debug("[网络.传输] TCP 传输服务已在运行，忽略启动请求");
+        QLOG_DEBUG() << QStringLiteral("[网络.传输] TCP 传输服务已在运行，忽略启动请求");
         return true;
     }
     if (identity.deviceId.isEmpty() || identity.displayName.isEmpty())
     {
-        spdlog::error("[网络.传输] TCP 传输服务身份信息无效");
+        QLOG_ERROR() << QStringLiteral("[网络.传输] TCP 传输服务身份信息无效");
         setLastError(tr("TCP 服务身份信息无效。"));
         return false;
     }
     if (!m_server.listen(QHostAddress::AnyIPv4))
     {
-        spdlog::error("[网络.传输] TCP 监听失败 原因={}",
-                      m_server.errorString().toUtf8().toStdString());
+        QLOG_ERROR() << QStringLiteral("[网络.传输] TCP 监听失败 原因=") << m_server.errorString();
         setLastError(tr("无法启动 TCP 服务：%1").arg(m_server.errorString()));
         return false;
     }
@@ -57,8 +56,7 @@ bool TcpChatTransport::start(const Network::LocalIdentity &identity)
     m_running = true;
     setLastError({});
     m_transferTimer.start();
-    spdlog::info("[网络.传输] TCP 传输服务已启动 端口={}",
-                 m_server.serverPort());
+    QLOG_INFO() << QStringLiteral("[网络.传输] TCP 传输服务已启动 端口=") << m_server.serverPort();
     return true;
 }
 
@@ -69,11 +67,9 @@ void TcpChatTransport::stop()
         return;
     }
 
-    spdlog::info(
-        "[网络.传输] 正在停止 TCP 传输服务 文本传输数={} 发送文件数={} 接收文件数={}",
-        m_outgoingTextSockets.size(),
-        m_outgoingFiles.size(),
-        m_incomingFiles.size());
+    QLOG_INFO() << QStringLiteral("[网络.传输] 正在停止 TCP 传输服务 文本传输数=") << m_outgoingTextSockets.size()
+                          << QStringLiteral("发送文件数=") << m_outgoingFiles.size()
+                          << QStringLiteral("接收文件数=") << m_incomingFiles.size();
     m_transferTimer.stop();
     m_server.close();
     for (QTcpSocket *socket : m_outgoingTextSockets.values())
@@ -95,13 +91,13 @@ void TcpChatTransport::stop()
     m_incomingBuffers.clear();
     m_identity = Network::LocalIdentity{};
     m_running = false;
-    spdlog::info("[网络.传输] TCP 传输服务已停止");
+    QLOG_INFO() << QStringLiteral("[网络.传输] TCP 传输服务已停止");
 }
 
 void TcpChatTransport::updateIdentity(const Network::LocalIdentity &identity)
 {
     m_identity = identity;
-    spdlog::info("[网络.传输] 本机身份信息已更新");
+    QLOG_INFO() << QStringLiteral("[网络.传输] 本机身份信息已更新");
 }
 
 bool TcpChatTransport::isRunning() const
@@ -125,13 +121,11 @@ void TcpChatTransport::sendText(const Network::PeerEndpoint &peer,
                                 const QString &text,
                                 const QDateTime &timestamp)
 {
-    spdlog::debug(
-        "[网络.传输] 正在连接以发送文本消息 好友标识={} 消息标识={} 地址={} 端口={} 长度={}",
-        peer.peerId.toUtf8().toStdString(),
-        messageId.toUtf8().toStdString(),
-        peer.address.toString().toStdString(),
-        peer.tcpPort,
-        text.size());
+    QLOG_DEBUG() << QStringLiteral("[网络.传输] 正在连接以发送文本消息 好友标识=") << peer.peerId
+                           << QStringLiteral("消息标识=") << messageId
+                           << QStringLiteral("地址=") << peer.address.toString()
+                           << QStringLiteral("端口=") << peer.tcpPort
+                           << QStringLiteral("长度=") << text.size();
     sendFramedEvent(peer,
                     messageId,
                     QStringLiteral("message"),
@@ -170,9 +164,9 @@ void TcpChatTransport::sendFramedEvent(const Network::PeerEndpoint &peer,
     m_outgoingTextSockets.insert(socket);
 
     connect(socket, &QTcpSocket::connected, this, [this, socket]() {
-        spdlog::trace("[网络.传输] 文本消息套接字已连接 好友标识={} 消息标识={}",
-                      socket->property("peerId").toString().toUtf8().toStdString(),
-                      socket->property("messageId").toString().toUtf8().toStdString());
+        QLOG_TRACE() << QStringLiteral("[网络.传输] 文本消息套接字已连接 好友标识=")
+                               << socket->property("peerId").toString()
+                               << QStringLiteral("消息标识=") << socket->property("messageId").toString();
         const QByteArray frame = socket->property("frame").toByteArray();
         if (socket->write(frame) != frame.size())
         {
@@ -220,9 +214,8 @@ void TcpChatTransport::acceptConnections()
         {
             continue;
         }
-        spdlog::debug("[网络.传输] 已接受 TCP 连接 地址={} 端口={}",
-                      socket->peerAddress().toString().toStdString(),
-                      socket->peerPort());
+        QLOG_DEBUG() << QStringLiteral("[网络.传输] 已接受 TCP 连接 地址=") << socket->peerAddress().toString()
+                               << QStringLiteral("端口=") << socket->peerPort();
         socket->setReadBufferSize(Network::WireProtocol::MaximumFrameSize + 4);
         socket->setProperty("receivedData", false);
         m_incomingBuffers.insert(socket, QByteArray());
@@ -275,9 +268,8 @@ void TcpChatTransport::readIncomingData(QTcpSocket *socket)
             reinterpret_cast<const uchar *>(buffer.constData()));
         if (frameSize == 0 || frameSize > Network::WireProtocol::MaximumFrameSize)
         {
-            spdlog::warn("[网络.传输] 已拒绝无效长度的数据帧 长度={} 地址={}",
-                         frameSize,
-                         socket->peerAddress().toString().toStdString());
+            QLOG_WARN() << QStringLiteral("[网络.传输] 已拒绝无效长度的数据帧 长度=") << frameSize
+                                  << QStringLiteral("地址=") << socket->peerAddress().toString();
             socket->disconnectFromHost();
             return;
         }
@@ -292,8 +284,8 @@ void TcpChatTransport::readIncomingData(QTcpSocket *socket)
         const QJsonDocument document = QJsonDocument::fromJson(payload, &parseError);
         if (parseError.error != QJsonParseError::NoError || !document.isObject())
         {
-            spdlog::debug("[网络.传输] 已忽略格式错误的 JSON 数据帧 地址={}",
-                          socket->peerAddress().toString().toStdString());
+            QLOG_DEBUG() << QStringLiteral("[网络.传输] 已忽略格式错误的 JSON 数据帧 地址=")
+                                   << socket->peerAddress().toString();
             continue;
         }
 
@@ -310,16 +302,14 @@ void TcpChatTransport::readIncomingData(QTcpSocket *socket)
         else if (type == QLatin1String("file")
                  && !handleIncomingFileHeader(object, socket))
         {
-            spdlog::warn("[网络.传输] 已拒绝接收文件头 地址={}",
-                         socket->peerAddress().toString().toStdString());
+            QLOG_WARN() << QStringLiteral("[网络.传输] 已拒绝接收文件头 地址=") << socket->peerAddress().toString();
             socket->disconnectFromHost();
             return;
         }
         else if (type != QLatin1String("file"))
         {
-            spdlog::debug("[网络.传输] 已忽略未知类型的数据帧 类型={} 地址={}",
-                          type.toUtf8().toStdString(),
-                          socket->peerAddress().toString().toStdString());
+            QLOG_DEBUG() << QStringLiteral("[网络.传输] 已忽略未知类型的数据帧 类型=") << type
+                                   << QStringLiteral("地址=") << socket->peerAddress().toString();
         }
     }
 }
@@ -328,8 +318,8 @@ void TcpChatTransport::handleIncomingText(const QJsonObject &object, QTcpSocket 
 {
     if (!Network::WireProtocol::isEnvelopeFor(object, m_identity))
     {
-        spdlog::debug("[网络.传输] 已忽略发给其他接收方的文本消息信封 地址={}",
-                      socket->peerAddress().toString().toStdString());
+        QLOG_DEBUG() << QStringLiteral("[网络.传输] 已忽略发给其他接收方的文本消息信封 地址=")
+                               << socket->peerAddress().toString();
         return;
     }
     const Network::PeerEndpoint peer = incomingPeer(object, socket);
@@ -342,16 +332,14 @@ void TcpChatTransport::handleIncomingText(const QJsonObject &object, QTcpSocket 
         || text.isEmpty() || text.size() > 2000
         || !rememberEventId(messageId))
     {
-        spdlog::debug("[网络.传输] 已拒绝无效或重复的文本消息 地址={}",
-                      socket->peerAddress().toString().toStdString());
+        QLOG_DEBUG() << QStringLiteral("[网络.传输] 已拒绝无效或重复的文本消息 地址=")
+                               << socket->peerAddress().toString();
         return;
     }
 
-    spdlog::debug(
-        "[网络.传输] 已接收文本消息 好友标识={} 消息标识={} 长度={}",
-        peer.peerId.toUtf8().toStdString(),
-        messageId.toUtf8().toStdString(),
-        text.size());
+    QLOG_DEBUG() << QStringLiteral("[网络.传输] 已接收文本消息 好友标识=") << peer.peerId
+                           << QStringLiteral("消息标识=") << messageId
+                           << QStringLiteral("长度=") << text.size();
     emit peerObserved(peer);
     emit textReceived({messageId, groupId, peer, text, timestampFrom(object)});
 }
@@ -431,9 +419,9 @@ void TcpChatTransport::finishOutgoingText(QTcpSocket *socket)
     {
         return;
     }
-    spdlog::debug("[网络.传输] 文本消息已发送 好友标识={} 消息标识={}",
-                  socket->property("peerId").toString().toUtf8().toStdString(),
-                  socket->property("messageId").toString().toUtf8().toStdString());
+    QLOG_DEBUG() << QStringLiteral("[网络.传输] 文本消息已发送 好友标识=")
+                           << socket->property("peerId").toString()
+                           << QStringLiteral("消息标识=") << socket->property("messageId").toString();
     if (socket->property("frameType").toString() == QLatin1String("message"))
     {
         emit textSent(socket->property("peerId").toString(),
@@ -448,10 +436,10 @@ void TcpChatTransport::failOutgoingText(QTcpSocket *socket, const QString &reaso
     {
         return;
     }
-    spdlog::warn("[网络.传输] 文本消息发送失败 好友标识={} 消息标识={} 原因={}",
-                 socket->property("peerId").toString().toUtf8().toStdString(),
-                 socket->property("messageId").toString().toUtf8().toStdString(),
-                 reason.toUtf8().toStdString());
+    QLOG_WARN() << QStringLiteral("[网络.传输] 文本消息发送失败 好友标识=")
+                          << socket->property("peerId").toString()
+                          << QStringLiteral("消息标识=") << socket->property("messageId").toString()
+                          << QStringLiteral("原因=") << reason;
     if (socket->property("frameType").toString() == QLatin1String("group.snapshot"))
     {
         emit groupSnapshotSendFailed(socket->property("peerId").toString(),
@@ -478,8 +466,7 @@ bool TcpChatTransport::rememberEventId(const QString &eventId)
 {
     if (m_receivedEventIds.contains(eventId))
     {
-        spdlog::trace("[网络.传输] 已忽略重复事件 事件标识={}",
-                      eventId.toUtf8().toStdString());
+        QLOG_TRACE() << QStringLiteral("[网络.传输] 已忽略重复事件 事件标识=") << eventId;
         return false;
     }
     m_receivedEventIds.insert(eventId);
@@ -508,8 +495,7 @@ void TcpChatTransport::setLastError(const QString &error)
     m_lastError = error;
     if (!error.isEmpty())
     {
-        spdlog::error("[网络.传输] 服务错误 原因={}",
-                      error.toUtf8().toStdString());
+        QLOG_ERROR() << QStringLiteral("[网络.传输] 服务错误 原因=") << error;
         emit errorOccurred(error);
     }
 }

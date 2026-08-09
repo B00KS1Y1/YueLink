@@ -239,15 +239,19 @@ private:
             return Result::failure(ErrorCode::InvalidPath, QStringLiteral("配置路径不是常规文件。"), m_filePath);
         }
 
-        QFile file(m_filePath);
-        if (!file.open(QIODevice::ReadOnly))
+        QByteArray bytes;
+        // 在解析和可能的原子回写前释放读句柄；Windows 不允许替换仍被打开的目标文件。
         {
-            return Result::failure(ErrorCode::OpenFailed, QStringLiteral("打开配置文件失败：%1").arg(file.errorString()), m_filePath);
-        }
-        const QByteArray bytes = file.readAll();
-        if (file.error() != QFileDevice::NoError)
-        {
-            return Result::failure(ErrorCode::ReadFailed, QStringLiteral("读取配置文件失败：%1").arg(file.errorString()), m_filePath);
+            QFile file(m_filePath);
+            if (!file.open(QIODevice::ReadOnly))
+            {
+                return Result::failure(ErrorCode::OpenFailed, QStringLiteral("打开配置文件失败：%1").arg(file.errorString()), m_filePath);
+            }
+            bytes = file.readAll();
+            if (file.error() != QFileDevice::NoError)
+            {
+                return Result::failure(ErrorCode::ReadFailed, QStringLiteral("读取配置文件失败：%1").arg(file.errorString()), m_filePath);
+            }
         }
 
         try

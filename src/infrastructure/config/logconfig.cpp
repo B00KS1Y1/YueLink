@@ -17,10 +17,12 @@
 
 namespace
 {
+constexpr std::size_t MaxLogFileCount = 10;
+
 std::string normalizedLevel(const std::string &value)
 {
     QString level = Config::Detail::normalizedName(value);
-    // 接受 spdlog 常见别名，但持久化时统一使用标准级别名称。
+    // 接受常见别名，但持久化时统一使用标准级别名称。
     if (level == QLatin1String("warning"))
     {
         level = QStringLiteral("warn");
@@ -51,11 +53,6 @@ namespace Config
 void LogConfig::normalize(LogConfig &config)
 {
     config.level = normalizedLevel(config.level);
-    config.flush_level = normalizedLevel(config.flush_level);
-    if (config.pattern.empty())
-    {
-        config.pattern = LogConfig{}.pattern;
-    }
     QString path = QString::fromStdString(config.file_path).trimmed();
     if (path.isEmpty())
     {
@@ -73,10 +70,6 @@ QList<Issue> LogConfig::validate(const LogConfig &config)
     {
         issues.append(Detail::makeIssue(QStringLiteral("level"), QStringLiteral("日志级别无效。")));
     }
-    if (!isSupportedLogLevel(config.flush_level))
-    {
-        issues.append(Detail::makeIssue(QStringLiteral("flush_level"), QStringLiteral("刷新级别无效。")));
-    }
     if (config.file_enabled && !QFileInfo(QString::fromStdString(config.file_path)).isAbsolute())
     {
         issues.append(Detail::makeIssue(QStringLiteral("file_path"), QStringLiteral("启用文件日志时必须使用绝对路径。")));
@@ -89,13 +82,9 @@ QList<Issue> LogConfig::validate(const LogConfig &config)
     {
         issues.append(Detail::makeIssue(QStringLiteral("max_files"), QStringLiteral("滚动日志文件数量必须大于零。")));
     }
-    if (config.async && config.async_queue_size == 0)
+    if (config.file_enabled && config.max_files > MaxLogFileCount)
     {
-        issues.append(Detail::makeIssue(QStringLiteral("async_queue_size"), QStringLiteral("异步队列大小必须大于零。")));
-    }
-    if (config.async && config.async_thread_count == 0)
-    {
-        issues.append(Detail::makeIssue(QStringLiteral("async_thread_count"), QStringLiteral("异步线程数必须大于零。")));
+        issues.append(Detail::makeIssue(QStringLiteral("max_files"), QStringLiteral("QsLog 最多保留 10 个旧日志文件。")));
     }
     return issues;
 }

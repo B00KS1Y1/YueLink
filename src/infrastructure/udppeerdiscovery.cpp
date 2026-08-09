@@ -7,7 +7,7 @@
 #include <QSet>
 #include <QStringList>
 
-#include <spdlog/spdlog.h>
+#include <QsLog.h>
 
 namespace
 {
@@ -36,12 +36,12 @@ bool UdpPeerDiscovery::start(const Network::LocalIdentity &identity, quint16 tcp
 {
     if (m_running)
     {
-        spdlog::debug("已经在运行，忽略启动请求。");
+        QLOG_DEBUG() << QStringLiteral("已经在运行，忽略启动请求。");
         return true;
     }
     if (identity.deviceId.isEmpty() || identity.displayName.isEmpty() || tcpPort == 0)
     {
-        spdlog::error("局域网发现参数无效。");
+        QLOG_ERROR() << QStringLiteral("局域网发现参数无效。");
         setLastError(tr("局域网发现参数无效。"));
         return false;
     }
@@ -49,7 +49,8 @@ bool UdpPeerDiscovery::start(const Network::LocalIdentity &identity, quint16 tcp
     const auto bindMode = QAbstractSocket::ShareAddress | QAbstractSocket::ReuseAddressHint;
     if (!m_socket.bind(QHostAddress::AnyIPv4, DiscoveryPort, bindMode))
     {
-        spdlog::error("[网络.发现] 绑定 UDP 端口失败 端口={} 原因={}", DiscoveryPort, m_socket.errorString().toUtf8().toStdString());
+        QLOG_ERROR() << QStringLiteral("[网络.发现] 绑定 UDP 端口失败 端口=") << DiscoveryPort
+                               << QStringLiteral("原因=") << m_socket.errorString();
         setLastError(tr("无法监听 UDP 发现端口 %1：%2").arg(DiscoveryPort).arg(m_socket.errorString()));
         return false;
     }
@@ -60,7 +61,8 @@ bool UdpPeerDiscovery::start(const Network::LocalIdentity &identity, quint16 tcp
     setLastError({});
     m_heartbeatTimer.start();
     announce();
-    spdlog::info("[网络.发现] UDP 发现服务已启动 端口={} TCP端口={}", DiscoveryPort, tcpPort);
+    QLOG_INFO() << QStringLiteral("[网络.发现] UDP 发现服务已启动 端口=") << DiscoveryPort
+                          << QStringLiteral("TCP端口=") << tcpPort;
     return true;
 }
 
@@ -71,7 +73,7 @@ void UdpPeerDiscovery::stop()
         return;
     }
 
-    spdlog::info("[网络.发现] 正在停止 UDP 发现服务 已跟踪好友数={}", m_lastSeenByPeer.size());
+    QLOG_INFO() << QStringLiteral("[网络.发现] 正在停止 UDP 发现服务 已跟踪好友数=") << m_lastSeenByPeer.size();
     m_heartbeatTimer.stop();
     sendPresence(QStringLiteral("goodbye"));
     m_socket.close();
@@ -83,7 +85,7 @@ void UdpPeerDiscovery::stop()
     }
     m_tcpPort = 0;
     m_running = false;
-    spdlog::info("[网络.发现] UDP 发现服务已停止");
+    QLOG_INFO() << QStringLiteral("[网络.发现] UDP 发现服务已停止");
 }
 
 void UdpPeerDiscovery::updateIdentity(const Network::LocalIdentity &identity)
@@ -93,7 +95,7 @@ void UdpPeerDiscovery::updateIdentity(const Network::LocalIdentity &identity)
     {
         announce();
     }
-    spdlog::info("[网络.发现] 本机身份信息已更新");
+    QLOG_INFO() << QStringLiteral("[网络.发现] 本机身份信息已更新");
 }
 
 void UdpPeerDiscovery::announce()
@@ -111,7 +113,7 @@ void UdpPeerDiscovery::recordPeerActivity(const QString &peerId)
     if (m_running && !peerId.isEmpty() && peerId != m_identity.deviceId)
     {
         m_lastSeenByPeer.insert(peerId, QDateTime::currentMSecsSinceEpoch());
-        spdlog::trace("[网络.发现] 已记录好友活动 好友标识={}", peerId.toUtf8().toStdString());
+        QLOG_TRACE() << QStringLiteral("[网络.发现] 已记录好友活动 好友标识=") << peerId;
     }
 }
 
@@ -134,7 +136,8 @@ void UdpPeerDiscovery::readPendingDatagrams()
         const QJsonDocument document = QJsonDocument::fromJson(datagram.data(), &parseError);
         if (parseError.error != QJsonParseError::NoError || !document.isObject())
         {
-            spdlog::trace("[网络.发现] 已忽略格式错误的 UDP 数据报 地址={}", datagram.senderAddress().toString().toStdString());
+            QLOG_TRACE() << QStringLiteral("[网络.发现] 已忽略格式错误的 UDP 数据报 地址=")
+                                   << datagram.senderAddress().toString();
             continue;
         }
 
@@ -155,7 +158,8 @@ void UdpPeerDiscovery::readPendingDatagrams()
         }
         if (!peer.isValid() || peer.peerId == m_identity.deviceId)
         {
-            spdlog::trace("[网络.发现] 已忽略无效或来自本机的在线通告 地址={}", datagram.senderAddress().toString().toStdString());
+            QLOG_TRACE() << QStringLiteral("[网络.发现] 已忽略无效或来自本机的在线通告 地址=")
+                                   << datagram.senderAddress().toString();
             continue;
         }
 
@@ -164,7 +168,7 @@ void UdpPeerDiscovery::readPendingDatagrams()
         {
             if (m_lastSeenByPeer.remove(peer.peerId))
             {
-                spdlog::info("[网络.发现] 好友已通告离线 好友标识={}", peer.peerId.toUtf8().toStdString());
+                QLOG_INFO() << QStringLiteral("[网络.发现] 好友已通告离线 好友标识=") << peer.peerId;
                 emit peerLost(peer.peerId);
             }
             continue;
@@ -183,14 +187,13 @@ void UdpPeerDiscovery::readPendingDatagrams()
         recordPeerActivity(peer.peerId);
         if (isNewPeer)
         {
-            spdlog::info("[网络.发现] 已发现在线好友 好友标识={} 地址={} 端口={}",
-                         peer.peerId.toUtf8().toStdString(),
-                         peer.address.toString().toStdString(),
-                         peer.tcpPort);
+            QLOG_INFO() << QStringLiteral("[网络.发现] 已发现在线好友 好友标识=") << peer.peerId
+                                  << QStringLiteral("地址=") << peer.address.toString()
+                                  << QStringLiteral("端口=") << peer.tcpPort;
         }
         else
         {
-            spdlog::trace("[网络.发现] 收到好友心跳 好友标识={}", peer.peerId.toUtf8().toStdString());
+            QLOG_TRACE() << QStringLiteral("[网络.发现] 收到好友心跳 好友标识=") << peer.peerId;
         }
         emit peerFound(peer);
     }
@@ -225,12 +228,12 @@ void UdpPeerDiscovery::sendPresence(const QString &type)
     {
         if (m_socket.writeDatagram(payload, destination, DiscoveryPort) < 0)
         {
-            spdlog::warn("[网络.发现] UDP 广播失败 目标地址={} 原因={}",
-                         destination.toString().toStdString(),
-                         m_socket.errorString().toUtf8().toStdString());
+            QLOG_WARN() << QStringLiteral("[网络.发现] UDP 广播失败 目标地址=") << destination.toString()
+                                  << QStringLiteral("原因=") << m_socket.errorString();
         }
     }
-    spdlog::trace("[网络.发现] 在线状态已广播 类型={} 目标数={}", type.toUtf8().toStdString(), destinations.size());
+    QLOG_TRACE() << QStringLiteral("[网络.发现] 在线状态已广播 类型=") << type
+                           << QStringLiteral("目标数=") << destinations.size();
 }
 
 void UdpPeerDiscovery::sendPresenceTo(const QHostAddress &address)
@@ -242,9 +245,8 @@ void UdpPeerDiscovery::sendPresenceTo(const QHostAddress &address)
     }
     if (m_socket.writeDatagram(payload, address, DiscoveryPort) < 0)
     {
-        spdlog::warn("[网络.发现] UDP 发现回应失败 目标地址={} 原因={}",
-                     address.toString().toUtf8().toStdString(),
-                     m_socket.errorString().toUtf8().toStdString());
+        QLOG_WARN() << QStringLiteral("[网络.发现] UDP 发现回应失败 目标地址=") << address.toString()
+                              << QStringLiteral("原因=") << m_socket.errorString();
     }
 }
 
@@ -279,7 +281,7 @@ void UdpPeerDiscovery::expirePeers()
     for (const QString &peerId : expired)
     {
         m_lastSeenByPeer.remove(peerId);
-        spdlog::info("[网络.发现] 好友已超时离线 好友标识={}", peerId.toUtf8().toStdString());
+        QLOG_INFO() << QStringLiteral("[网络.发现] 好友已超时离线 好友标识=") << peerId;
         emit peerLost(peerId);
     }
 }
@@ -293,7 +295,7 @@ void UdpPeerDiscovery::setLastError(const QString &error)
     m_lastError = error;
     if (!error.isEmpty())
     {
-        spdlog::error("[网络.发现] 服务错误 原因={}", error.toUtf8().toStdString());
+        QLOG_ERROR() << QStringLiteral("[网络.发现] 服务错误 原因=") << error;
         emit errorOccurred(error);
     }
 }
