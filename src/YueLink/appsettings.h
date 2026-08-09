@@ -25,6 +25,8 @@ class AppSettings : public QObject
     Q_PROPERTY(QString downloadDirectory READ downloadDirectory NOTIFY settingsChanged)
     Q_PROPERTY(QString logLevel READ logLevel NOTIFY settingsChanged)
     Q_PROPERTY(QString logFilePath READ logFilePath NOTIFY settingsChanged)
+    Q_PROPERTY(bool sourceLocationEnabled READ sourceLocationEnabled NOTIFY settingsChanged)
+    Q_PROPERTY(bool separateThreadEnabled READ separateThreadEnabled NOTIFY settingsChanged)
     Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged)
 
 public:
@@ -76,6 +78,16 @@ public:
      */
     [[nodiscard]] QString logFilePath() const;
     /**
+     * @brief 返回日志是否包含调用点的源码文件路径和行号。
+     * @return 已配置包含源码位置时返回 @c true。
+     */
+    [[nodiscard]] bool sourceLocationEnabled() const;
+    /**
+     * @brief 返回日志是否通过 QsLog 的专用单线程队列异步写入。
+     * @return 已配置独立线程写入时返回 @c true。
+     */
+    [[nodiscard]] bool separateThreadEnabled() const;
+    /**
      * @brief 返回最近一次设置保存错误。
      * @return 最近错误文本；没有错误时返回空字符串。
      */
@@ -91,6 +103,8 @@ public:
      * @param downloadDirectory 接收文件目录；空值或相对路径由配置层恢复为默认目录。
      * @param logLevel 日志级别。
      * @param logFilePath 日志文件路径；空值使用默认文件名，相对路径由配置层解析。
+     * @param sourceLocationEnabled 是否在日志中包含调用点的源码文件路径和行号。
+     * @param separateThreadEnabled 是否通过 QsLog 的专用单线程队列异步写入日志。
      * @return 设置保存成功时返回 @c true。
      */
     Q_INVOKABLE bool save(const QString &themeMode,
@@ -100,7 +114,9 @@ public:
                           bool notificationsEnabled,
                           const QString &downloadDirectory,
                           const QString &logLevel,
-                          const QString &logFilePath);
+                          const QString &logFilePath,
+                          bool sourceLocationEnabled,
+                          bool separateThreadEnabled);
 
 signals:
     /** @brief 任一已保存设置发生变化时发出。 */
@@ -142,6 +158,8 @@ private:
     QString m_lastError;
     bool m_animationsEnabled = true;
     bool m_notificationsEnabled = true;
+    bool m_sourceLocationEnabled = false;
+    bool m_separateThreadEnabled = true;
 };
 
 #endif // APPSETTINGS_H

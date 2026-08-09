@@ -34,10 +34,8 @@ struct LogConfig final : ConfigBase<LogConfig>
     bool source_location_enabled = false;
     /// 是否通过 QsLog 的专用单线程队列异步写入日志。
     bool separate_thread_enabled = true;
-
     /// 是否启用调试控制台输出。
     bool console_enabled = true;
-
     /// 是否启用滚动文件输出。
     bool file_enabled = true;
     /// 日志文件路径；相对路径按应用日志目录解析。
@@ -61,15 +59,8 @@ struct LogConfig final : ConfigBase<LogConfig>
     [[nodiscard]] static QList<Issue> validate(const LogConfig &config);
 };
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(LogConfig,
-                                                level,
-                                                source_location_enabled,
-                                                separate_thread_enabled,
-                                                console_enabled,
-                                                file_enabled,
-                                                file_path,
-                                                max_file_size,
-                                                max_files)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
+    LogConfig, level, source_location_enabled, separate_thread_enabled, console_enabled, file_enabled, file_path, max_file_size, max_files)
 
 } // namespace Config
 

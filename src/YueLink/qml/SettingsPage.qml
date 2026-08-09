@@ -22,6 +22,8 @@ Item {
         downloadDirectoryInput.text = AppSettings.downloadDirectory;
         logLevelSelect.currentIndex = logLevelSelect.indexOfValue(AppSettings.logLevel);
         logFilePathInput.text = AppSettings.logFilePath;
+        sourceLocationSwitch.checked = AppSettings.sourceLocationEnabled;
+        separateThreadSwitch.checked = AppSettings.separateThreadEnabled;
         root.errorText = "";
     }
 
@@ -33,7 +35,9 @@ Item {
                              notificationsSwitch.checked,
                              downloadDirectoryInput.text,
                              logLevelSelect.currentValue,
-                             logFilePathInput.text)) {
+                             logFilePathInput.text,
+                             sourceLocationSwitch.checked,
+                             separateThreadSwitch.checked)) {
             root.errorText = "";
             root.saved();
         } else {
@@ -387,6 +391,58 @@ Item {
                             iconSize: 16
                             contentDescription: qsTr("选择日志文件路径")
                             onClicked: root.openLogFileDialog()
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 16
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 2
+
+                            HusText {
+                                Layout.fillWidth: true
+                                text: qsTr("记录源码位置")
+                                color: HusTheme.Primary.colorTextBase
+                                font.pixelSize: HusTheme.Primary.fontPrimarySize
+                                font.weight: Font.Medium
+                            }
+                        }
+
+                        HusSwitch {
+                            id: sourceLocationSwitch
+
+                            Layout.preferredWidth: 48
+                            Layout.preferredHeight: 28
+                            contentDescription: qsTr("在日志中记录源码位置")
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 16
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 2
+
+                            HusText {
+                                Layout.fillWidth: true
+                                text: qsTr("独立线程写入")
+                                color: HusTheme.Primary.colorTextBase
+                                font.pixelSize: HusTheme.Primary.fontPrimarySize
+                                font.weight: Font.Medium
+                            }
+                        }
+
+                        HusSwitch {
+                            id: separateThreadSwitch
+
+                            Layout.preferredWidth: 48
+                            Layout.preferredHeight: 28
+                            contentDescription: qsTr("通过独立线程异步写入日志")
                         }
                     }
 

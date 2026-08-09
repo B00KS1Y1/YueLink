@@ -34,6 +34,8 @@ AppSettings::AppSettings(QObject *parent)
     m_downloadDirectory = QString::fromStdString(application.download_directory);
     m_logLevel = normalizedLogLevel(QString::fromStdString(log.level));
     m_logFilePath = QString::fromStdString(log.file_path);
+    m_sourceLocationEnabled = log.source_location_enabled;
+    m_separateThreadEnabled = log.separate_thread_enabled;
 }
 
 QString AppSettings::themeMode() const
@@ -76,6 +78,16 @@ QString AppSettings::logFilePath() const
     return m_logFilePath;
 }
 
+bool AppSettings::sourceLocationEnabled() const
+{
+    return m_sourceLocationEnabled;
+}
+
+bool AppSettings::separateThreadEnabled() const
+{
+    return m_separateThreadEnabled;
+}
+
 QString AppSettings::lastError() const
 {
     return m_lastError;
@@ -88,7 +100,9 @@ bool AppSettings::save(const QString &themeMode,
                        bool notificationsEnabled,
                        const QString &downloadDirectory,
                        const QString &logLevel,
-                       const QString &logFilePath)
+                       const QString &logFilePath,
+                       bool sourceLocationEnabled,
+                       bool separateThreadEnabled)
 {
     const QString normalizedMode = normalizedThemeMode(themeMode);
     if (normalizedMode != themeMode.trimmed().toLower())
@@ -156,6 +170,8 @@ bool AppSettings::save(const QString &themeMode,
     Config::LogConfig newLog = previousLog;
     newLog.level = normalizedLevel.toStdString();
     newLog.file_path = logFilePath.toStdString();
+    newLog.source_location_enabled = sourceLocationEnabled;
+    newLog.separate_thread_enabled = separateThreadEnabled;
     const Config::Result logResult = Config::set(std::move(newLog));
     if (!logResult)
     {
@@ -181,7 +197,8 @@ bool AppSettings::save(const QString &themeMode,
     const QString savedLogFilePath = QString::fromStdString(savedLog.file_path);
     const bool changed = m_themeMode != normalizedMode || m_primaryColor != normalizedColor || m_animationsEnabled != animationsEnabled ||
                          m_navigationMode != normalizedNavigation || m_notificationsEnabled != notificationsEnabled ||
-                         m_downloadDirectory != savedDownloadDirectory || m_logLevel != normalizedLevel || m_logFilePath != savedLogFilePath;
+                         m_downloadDirectory != savedDownloadDirectory || m_logLevel != normalizedLevel || m_logFilePath != savedLogFilePath ||
+                         m_sourceLocationEnabled != savedLog.source_location_enabled || m_separateThreadEnabled != savedLog.separate_thread_enabled;
     m_themeMode = normalizedMode;
     m_primaryColor = normalizedColor;
     m_animationsEnabled = animationsEnabled;
@@ -190,19 +207,18 @@ bool AppSettings::save(const QString &themeMode,
     m_downloadDirectory = savedDownloadDirectory;
     m_logLevel = normalizedLevel;
     m_logFilePath = savedLogFilePath;
+    m_sourceLocationEnabled = savedLog.source_location_enabled;
+    m_separateThreadEnabled = savedLog.separate_thread_enabled;
     Logging::setLevel(normalizedLevel.toStdString());
     setLastError({});
     if (changed)
     {
         emit settingsChanged();
     }
-    QLOG_INFO() << QStringLiteral("[设置] 应用设置已保存 主题=") << normalizedMode
-                          << QStringLiteral("导航布局=") << normalizedNavigation
-                          << QStringLiteral("动画=") << animationsEnabled
-                          << QStringLiteral("通知=") << notificationsEnabled
-                          << QStringLiteral("下载目录=") << savedDownloadDirectory
-                          << QStringLiteral("日志级别=") << normalizedLevel
-                          << QStringLiteral("日志路径=") << savedLogFilePath;
+    QLOG_INFO() << QStringLiteral("[设置] 应用设置已保存 主题=") << normalizedMode << QStringLiteral("导航布局=") << normalizedNavigation
+                << QStringLiteral("动画=") << animationsEnabled << QStringLiteral("通知=") << notificationsEnabled << QStringLiteral("下载目录=")
+                << savedDownloadDirectory << QStringLiteral("日志级别=") << normalizedLevel << QStringLiteral("日志路径=") << savedLogFilePath
+                << QStringLiteral("源码位置=") << savedLog.source_location_enabled << QStringLiteral("独立线程=") << savedLog.separate_thread_enabled;
     return true;
 }
 
