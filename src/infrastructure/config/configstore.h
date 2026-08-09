@@ -87,7 +87,7 @@ public:
      * @brief 返回当前配置副本。
      * @return 受读锁保护的一致内存配置副本。
      */
-    [[nodiscard]] T get() const
+    [[nodiscard]] T value() const
     {
         QReadLocker locker(&m_lock);
         return m_config;
@@ -438,7 +438,7 @@ private:
 
     mutable QReadWriteLock m_lock; ///< 保护以下全部可变存储状态。
     QString m_filePath;            ///< 当前配置文件的规范化绝对路径。
-    T m_config{};                  ///< 最近一次成功发布的内存配置。
+    T m_config = {};               ///< 最近一次成功发布的内存配置。
     quint64 m_revision = 0;        ///< 每次发布不同配置值时递增的类型内修订号。
     bool m_initialized = false;    ///< 是否至少执行过一次初始化流程。
 };

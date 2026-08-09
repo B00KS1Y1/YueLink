@@ -223,7 +223,7 @@ Domain::OperationResult ChatCoordinator::updateLocalProfile(
                                                 tr("头像颜色无效。"));
     const QString normalizedColor = parsedColor.name(QColor::HexRgb);
 
-    Config::IdentityConfig updated = Config::get<Config::IdentityConfig>();
+    Config::IdentityConfig updated = Config::value<Config::IdentityConfig>();
     updated.device_id = m_identity.deviceId.toStdString();
     updated.display_name = normalizedName.toStdString();
     updated.avatar_path = normalizedAvatarPath.toStdString();
@@ -518,7 +518,7 @@ bool ChatCoordinator::initializeIdentity()
         setLastError(loadResult.errorMessage);
         return false;
     }
-    Config::IdentityConfig config = Config::get<Config::IdentityConfig>();
+    Config::IdentityConfig config = Config::value<Config::IdentityConfig>();
     QString deviceId = QString::fromStdString(config.device_id).trimmed();
     QString displayName = QString::fromStdString(config.display_name).trimmed();
     QString avatarPath = QString::fromStdString(config.avatar_path).trimmed();

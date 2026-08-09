@@ -1,18 +1,23 @@
 qt_add_library(YueLinkRuntime STATIC
+    config/applicationconfig.cpp
     config/applicationconfig.h
     config/config.h
     config/configapi.h
     config/configbase.h
     config/configmanager.cpp
     config/configmanager.h
-    config/configpolicies.cpp
+    config/configpolicyutils.cpp
+    config/configpolicyutils_p.h
     config/configregistry.h
-    config/configserializer.h
     config/configstore.h
+    config/databaseconfig.cpp
     config/databaseconfig.h
+    config/identityconfig.cpp
     config/identityconfig.h
+    config/logconfig.cpp
     config/logconfig.h
     config/result.h
+    config/themeconfig.cpp
     config/themeconfig.h
     logging.cpp
     logging.h

@@ -20,9 +20,9 @@ constexpr auto DefaultLogLevel = "info";
 AppSettings::AppSettings(QObject *parent)
 : QObject(parent)
 {
-    const Config::ThemeConfig theme = Config::get<Config::ThemeConfig>();
-    const Config::ApplicationConfig application = Config::get<Config::ApplicationConfig>();
-    const Config::LogConfig log = Config::get<Config::LogConfig>();
+    const Config::ThemeConfig theme = Config::value<Config::ThemeConfig>();
+    const Config::ApplicationConfig application = Config::value<Config::ApplicationConfig>();
+    const Config::LogConfig log = Config::value<Config::LogConfig>();
     m_themeMode = normalizedThemeMode(QString::fromStdString(theme.mode));
     m_primaryColor = QColor(QString::fromStdString(theme.primary_color)).isValid()
                          ? QColor(QString::fromStdString(theme.primary_color)).name(QColor::HexRgb).toUpper()
@@ -118,9 +118,9 @@ bool AppSettings::save(const QString &themeMode,
     }
 
     const QString normalizedColor = color.name(QColor::HexRgb).toUpper();
-    const Config::ThemeConfig previousTheme = Config::get<Config::ThemeConfig>();
-    const Config::ApplicationConfig previousApplication = Config::get<Config::ApplicationConfig>();
-    const Config::LogConfig previousLog = Config::get<Config::LogConfig>();
+    const Config::ThemeConfig previousTheme = Config::value<Config::ThemeConfig>();
+    const Config::ApplicationConfig previousApplication = Config::value<Config::ApplicationConfig>();
+    const Config::LogConfig previousLog = Config::value<Config::LogConfig>();
 
     Config::ThemeConfig newTheme = previousTheme;
     newTheme.mode = normalizedMode.toStdString();
@@ -174,8 +174,8 @@ bool AppSettings::save(const QString &themeMode,
         return false;
     }
 
-    const Config::ApplicationConfig savedApplication = Config::get<Config::ApplicationConfig>();
-    const Config::LogConfig savedLog = Config::get<Config::LogConfig>();
+    const Config::ApplicationConfig savedApplication = Config::value<Config::ApplicationConfig>();
+    const Config::LogConfig savedLog = Config::value<Config::LogConfig>();
     const QString savedDownloadDirectory = QString::fromStdString(savedApplication.download_directory);
     const QString savedLogFilePath = QString::fromStdString(savedLog.file_path);
     const bool changed = m_themeMode != normalizedMode || m_primaryColor != normalizedColor || m_animationsEnabled != animationsEnabled ||

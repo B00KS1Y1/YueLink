@@ -22,21 +22,21 @@ namespace Config
  */
 enum class ErrorCode
 {
-    None,                 ///< 操作成功。
-    OperationFailed,      ///< 未细分的通用操作失败。
-    NotInitialized,       ///< 配置存储尚未初始化。
-    InvalidPath,          ///< 配置路径无效或目录创建失败。
-    OpenFailed,           ///< 配置文件无法打开。
-    ReadFailed,           ///< 配置文件读取失败。
-    ParseFailed,          ///< JSON 语法、根节点或字段类型无法解析。
-    UnsupportedVersion,   ///< 文件 schema 版本无效或高于程序支持版本。
-    MigrationFailed,      ///< 旧 schema 迁移到当前版本失败。
-    ValidationFailed,     ///< 配置字段不满足业务约束。
-    SerializationFailed,  ///< 配置与 JSON 之间的转换或比较失败。
-    WriteFailed,          ///< 临时配置文件写入不完整。
-    CommitFailed,         ///< 原子替换原配置文件失败。
-    MutationFailed,       ///< @c update 修改器抛出异常。
-    Conflict              ///< 修改期间配置已被其他线程发布，当前候选值未提交。
+    None,                ///< 操作成功。
+    OperationFailed,     ///< 未细分的通用操作失败。
+    NotInitialized,      ///< 配置存储尚未初始化。
+    InvalidPath,         ///< 配置路径无效或目录创建失败。
+    OpenFailed,          ///< 配置文件无法打开。
+    ReadFailed,          ///< 配置文件读取失败。
+    ParseFailed,         ///< JSON 语法、根节点或字段类型无法解析。
+    UnsupportedVersion,  ///< 文件 schema 版本无效或高于程序支持版本。
+    MigrationFailed,     ///< 旧 schema 迁移到当前版本失败。
+    ValidationFailed,    ///< 配置字段不满足业务约束。
+    SerializationFailed, ///< 配置与 JSON 之间的转换或比较失败。
+    WriteFailed,         ///< 临时配置文件写入不完整。
+    CommitFailed,        ///< 原子替换原配置文件失败。
+    MutationFailed,      ///< @c update 修改器抛出异常。
+    Conflict             ///< 修改期间配置已被其他线程发布，当前候选值未提交。
 };
 
 /**

@@ -101,7 +101,7 @@ bool SqliteChatRepository::initialize(QString *errorMessage)
         return true;
     }
 
-    const Config::DatabaseConfig config = Config::get<Config::DatabaseConfig>();
+    const Config::DatabaseConfig config = Config::value<Config::DatabaseConfig>();
     m_databasePath = QString::fromStdString(config.sqlite.file_path);
     if (!QDir().mkpath(QFileInfo(m_databasePath).absolutePath()))
     {
@@ -574,7 +574,7 @@ QSqlDatabase SqliteChatRepository::database() const
 
 bool SqliteChatRepository::configureDatabase(QString *errorMessage)
 {
-    const Config::SqliteConfig config = Config::get<Config::DatabaseConfig>().sqlite;
+    const Config::SqliteConfig config = Config::value<Config::DatabaseConfig>().sqlite;
     return executeStatement(QStringLiteral("PRAGMA busy_timeout=%1").arg(static_cast<qulonglong>(qBound<std::size_t>(1, config.busy_timeout_ms, 600000))),
                             errorMessage) &&
            executeStatement(QStringLiteral("PRAGMA foreign_keys=%1").arg(config.foreign_keys_enabled ? QStringLiteral("ON") : QStringLiteral("OFF")),

@@ -60,12 +60,15 @@ if (!result)
 下载目录、日志文件和 SQLite 文件路径均在配置加载或写入阶段完成规范化与校验。
 配置发布后业务模块直接使用最终绝对路径，不再自行回退或重复校验。
 
+身份配置会在同一边界规范化 UUID、展示名称、头像绝对路径和头像颜色；首次启动时
+设备标识与展示名称允许为空，由身份初始化流程补全，非空持久化值必须满足相应格式和长度约束。
+
 ## 读取
 
-`get<T>()` 返回线程安全的配置副本：
+`value<T>()` 返回线程安全的配置副本：
 
 ```cpp
-const Config::ThemeConfig theme = Config::get<Config::ThemeConfig>();
+const Config::ThemeConfig theme = Config::value<Config::ThemeConfig>();
 ```
 
 需要检测并发变化时可读取带修订号的快照：
@@ -95,7 +98,7 @@ const Config::Result result = Config::update<Config::ThemeConfig>(
 整体替换配置使用 `set<T>()`：
 
 ```cpp
-Config::ThemeConfig theme = Config::get<Config::ThemeConfig>();
+Config::ThemeConfig theme = Config::value<Config::ThemeConfig>();
 theme.mode = "light";
 const Config::Result result = Config::set(std::move(theme));
 ```
@@ -121,8 +124,11 @@ const Config::Result resetResult = Config::reset<Config::ThemeConfig>();
 2. 在配置类型中声明稳定 `Key`、`FileName` 和成员默认值；
 3. 使用 `NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT` 声明自动映射；
 4. 将类型加入 `configregistry.h` 的 `BuiltInConfigs`；
-5. 将头文件加入 `src/infrastructure/CMakeLists.txt`；
-6. 只有存在特殊规则时才在配置类型中声明并实现 `defaults()`、`normalize()`、`validate()` 或 `migrate()`。
+5. 将头文件及可选的同名实现文件加入 `src/infrastructure/CMakeLists.txt`；
+6. 只有存在特殊规则时才在配置类型中声明 `defaults()`、`normalize()`、`validate()` 或 `migrate()`，并在同名 `.cpp` 中实现。
+
+注册表会在编译期检查所有配置的 `Key` 和 `FileName` 是否唯一；重复标识会直接触发静态断言。
+跨配置复用的规范化与校验辅助逻辑统一放在私有 `configpolicyutils_p.h/.cpp` 中，不集中存放具体配置策略。
 
 示例：
 
@@ -144,7 +150,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(NetworkConfig,
 加入注册表后即可使用稳定接口：
 
 ```cpp
-const NetworkConfig network = Config::get<NetworkConfig>();
+const NetworkConfig network = Config::value<NetworkConfig>();
 ```
 
 ## 命名和兼容规范

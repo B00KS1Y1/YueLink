@@ -73,9 +73,9 @@ public:
      * @tparam T 已注册配置类型。
      * @return 受读锁保护的一致配置副本。
      */
-    template <typename T> [[nodiscard]] T get() const
+    template <typename T> [[nodiscard]] T value() const
     {
-        return store<T>().get();
+        return store<T>().value();
     }
 
     /**
@@ -164,6 +164,9 @@ private:
      * @brief 构造不带 QObject 父对象的进程级配置管理器。
      */
     ConfigManager();
+
+    /** @brief 禁止复制和移动进程级配置管理器单例。 */
+    Q_DISABLE_COPY_MOVE(ConfigManager)
 
     /**
      * @brief 返回指定类型的可写配置存储。

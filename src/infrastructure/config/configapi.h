@@ -41,9 +41,9 @@ namespace Config
  * @tparam T 已注册配置类型。
  * @return 受读锁保护的一致配置副本。
  */
-template <typename T> [[nodiscard]] T get()
+template <typename T> [[nodiscard]] T value()
 {
-    return ConfigManager::instance().get<T>();
+    return ConfigManager::instance().value<T>();
 }
 
 /**

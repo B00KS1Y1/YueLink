@@ -21,7 +21,7 @@ void initialize()
     }
 
     const Config::Result configResult = Config::initialize(configDirectory);
-    const Config::Result loggingResult = Logging::initialize(Config::get<Config::LogConfig>());
+    const Config::Result loggingResult = Logging::initialize(Config::value<Config::LogConfig>());
     if (!loggingResult)
     {
         qWarning().noquote() << "初始化日志失败：" << loggingResult.errorMessage;

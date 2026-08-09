@@ -23,6 +23,29 @@ template <typename... Types> struct ConfigList
 {
 };
 
+namespace Detail
+{
+/**
+ * @brief 比较两个以空字符结尾的编译期文本是否相同。
+ * @param[in] left 左侧文本。
+ * @param[in] right 右侧文本。
+ * @return 两个文本逐字符相同时返回 @c true。
+ */
+[[nodiscard]] constexpr bool equalText(const char *left, const char *right)
+{
+    while (*left != '\0' && *right != '\0')
+    {
+        if (*left != *right)
+        {
+            return false;
+        }
+        ++left;
+        ++right;
+    }
+    return *left == *right;
+}
+} // namespace Detail
+
 /**
  * @brief 应用内置配置的唯一注册清单。
  *
@@ -54,7 +77,42 @@ template <typename... Types> struct AreConfigTypes<ConfigList<Types...>> : std::
 {
 };
 
+/**
+ * @brief 判断清单中全部配置类型的稳定键名是否唯一。
+ * @tparam List 配置类型清单。
+ */
+template <typename List> struct AreConfigKeysUnique;
+
+template <> struct AreConfigKeysUnique<ConfigList<>> : std::true_type
+{
+};
+
+template <typename First, typename... Rest>
+struct AreConfigKeysUnique<ConfigList<First, Rest...>>
+    : std::bool_constant<((!Detail::equalText(First::Key, Rest::Key)) && ...) && AreConfigKeysUnique<ConfigList<Rest...>>::value>
+{
+};
+
+/**
+ * @brief 判断清单中全部配置类型的持久化文件名是否唯一。
+ * @tparam List 配置类型清单。
+ */
+template <typename List> struct AreConfigFileNamesUnique;
+
+template <> struct AreConfigFileNamesUnique<ConfigList<>> : std::true_type
+{
+};
+
+template <typename First, typename... Rest>
+struct AreConfigFileNamesUnique<ConfigList<First, Rest...>>
+    : std::bool_constant<((!Detail::equalText(First::FileName, Rest::FileName)) && ...) &&
+                         AreConfigFileNamesUnique<ConfigList<Rest...>>::value>
+{
+};
+
 static_assert(AreConfigTypes<BuiltInConfigs>::value, "All registered configuration types must derive from ConfigBase<T>.");
+static_assert(AreConfigKeysUnique<BuiltInConfigs>::value, "Registered configuration keys must be unique.");
+static_assert(AreConfigFileNamesUnique<BuiltInConfigs>::value, "Registered configuration file names must be unique.");
 
 } // namespace Config
 
