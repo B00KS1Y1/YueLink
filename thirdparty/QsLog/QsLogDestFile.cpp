@@ -1,28 +1,3 @@
-// Copyright (c) 2013, Razvan Petru
-// All rights reserved.
-
-// Redistribution and use in source and binary forms, with or without modification,
-// are permitted provided that the following conditions are met:
-
-// * Redistributions of source code must retain the above copyright notice, this
-//   list of conditions and the following disclaimer.
-// * Redistributions in binary form must reproduce the above copyright notice, this
-//   list of conditions and the following disclaimer in the documentation and/or other
-//   materials provided with the distribution.
-// * The name of the contributors may not be used to endorse or promote products
-//   derived from this software without specific prior written permission.
-
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-// IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-// INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-// BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-// LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-// OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
-// OF THE POSSIBILITY OF SUCH DAMAGE.
-
 #include "QsLogDestFile.h"
 #include <QDateTime>
 #include <QStringConverter>
@@ -60,6 +35,8 @@ bool QsLogging::SizeRotationStrategy::shouldRotate()
 
 // Algorithm assumes backups will be named filename.X, where 1 <= X <= mBackupsCount.
 // All X's will be shifted up.
+// 此算法假定备份文件命名为 filename.X，其中 1 <= X <= mBackupsCount；
+// 所有 X 值都将依次增大。
 void QsLogging::SizeRotationStrategy::rotate()
 {
     if (!mBackupsCount) {
@@ -69,6 +46,7 @@ void QsLogging::SizeRotationStrategy::rotate()
     }
 
      // 1. find the last existing backup than can be shifted up
+     // 1. 查找最后一个仍可向后顺移的现有备份。
      const QString logNamePattern = mFileName + QString::fromUtf8(".%1");
      int lastExistingBackupIndex = 0;
      for (int i = 1;i <= mBackupsCount;++i) {
@@ -80,6 +58,7 @@ void QsLogging::SizeRotationStrategy::rotate()
      }
 
      // 2. shift up
+     // 2. 将备份编号依次增大。
      for (int i = lastExistingBackupIndex;i >= 1;--i) {
          const QString oldName = logNamePattern.arg(i);
          const QString newName = logNamePattern.arg(i + 1);
@@ -92,6 +71,7 @@ void QsLogging::SizeRotationStrategy::rotate()
      }
 
      // 3. rename current log file
+     // 3. 重命名当前日志文件。
      const QString newName = logNamePattern.arg(1);
      if (QFile::exists(newName))
          QFile::remove(newName);

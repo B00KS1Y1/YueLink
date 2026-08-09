@@ -18,7 +18,7 @@ namespace Logging
 
 /**
  * @brief 根据配置初始化进程级 QsLog 日志系统。
- * @param[in] config 日志级别、控制台输出和滚动文件设置。
+ * @param[in] config 日志级别、源码位置、写入线程、控制台输出和滚动文件设置。
  * @return 初始化成功时返回成功结果，否则返回包含错误原因的失败结果并启用控制台回退日志。
  */
 [[nodiscard]] Config::Result initialize(const Config::LogConfig &config);

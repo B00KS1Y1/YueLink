@@ -1,34 +1,7 @@
-// Copyright (c) 2013, Razvan Petru
-// All rights reserved.
-
-// Redistribution and use in source and binary forms, with or without modification,
-// are permitted provided that the following conditions are met:
-
-// * Redistributions of source code must retain the above copyright notice, this
-//   list of conditions and the following disclaimer.
-// * Redistributions in binary form must reproduce the above copyright notice, this
-//   list of conditions and the following disclaimer in the documentation and/or other
-//   materials provided with the distribution.
-// * The name of the contributors may not be used to endorse or promote products
-//   derived from this software without specific prior written permission.
-
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-// IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-// INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-// BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-// LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-// OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
-// OF THE POSSIBILITY OF SUCH DAMAGE.
-
 #include "QsLog.h"
 #include "QsLogDest.h"
-#ifdef QS_LOG_SEPARATE_THREAD
 #include <QThreadPool>
 #include <QRunnable>
-#endif
 #include <QMutex>
 #include <QVector>
 #include <QDateTime>
@@ -48,6 +21,7 @@ static const char ErrorString[] = "ERROR";
 static const char FatalString[] = "FATAL";
 
 // not using Qt::ISODate because we need the milliseconds too
+// 未使用 Qt::ISODate，因为这里还需要包含毫秒。
 static const QString fmtDateTime("yyyy-MM-ddThh:mm:ss.zzz");
 
 static Logger* sInstance = 0;
@@ -76,7 +50,6 @@ static const char* LevelToText(Level theLevel)
     }
 }
 
-#ifdef QS_LOG_SEPARATE_THREAD
 class LogWriterRunnable : public QRunnable
 {
 public:
@@ -87,24 +60,22 @@ private:
     QString mMessage;
     Level mLevel;
 };
-#endif
 
 class LoggerImpl
 {
 public:
     LoggerImpl();
 
-#ifdef QS_LOG_SEPARATE_THREAD
     QThreadPool threadPool;
-#endif
     QMutex logMutex;
     Level level;
     DestinationList destList;
     bool includeTimeStamp;
     bool includeLogLevel;
+    bool includeSourceLocation;
+    bool useSeparateThread;
 };
 
-#ifdef QS_LOG_SEPARATE_THREAD
 LogWriterRunnable::LogWriterRunnable(QString message, Level level)
     : QRunnable()
     , mMessage(message)
@@ -116,20 +87,20 @@ void LogWriterRunnable::run()
 {
     Logger::instance().write(mMessage, mLevel);
 }
-#endif
 
 
 LoggerImpl::LoggerImpl()
     : level(InfoLevel)
     , includeTimeStamp(true)
     , includeLogLevel(true)
+    , includeSourceLocation(false)
+    , useSeparateThread(false)
 {
     // assume at least file + console
+    // 假定至少会使用文件和控制台两个输出目标。
     destList.reserve(2);
-#ifdef QS_LOG_SEPARATE_THREAD
     threadPool.setMaxThreadCount(1);
     threadPool.setExpiryTimeout(-1);
-#endif
 }
 
 
@@ -154,6 +125,7 @@ void Logger::destroyInstance()
 
 // tries to extract the level from a string log message. If available, conversionSucceeded will
 // contain the conversion result.
+// 尝试从字符串日志消息中提取级别；如果提供了 conversionSucceeded，它将保存转换结果。
 Level Logger::levelFromLogMessage(const QString& logMessage, bool* conversionSucceeded)
 {
     if (conversionSucceeded)
@@ -179,9 +151,7 @@ Level Logger::levelFromLogMessage(const QString& logMessage, bool* conversionSuc
 
 Logger::~Logger()
 {
-#ifdef QS_LOG_SEPARATE_THREAD
     d->threadPool.waitForDone();
-#endif
     delete d;
     d = 0;
 }
@@ -222,7 +192,31 @@ bool Logger::includeLogLevel() const
     return d->includeLogLevel;
 }
 
+void Logger::setIncludeSourceLocation(bool enabled)
+{
+    d->includeSourceLocation = enabled;
+}
+
+bool Logger::includeSourceLocation() const
+{
+    return d->includeSourceLocation;
+}
+
+void Logger::setUseSeparateThread(bool enabled)
+{
+    const bool wasEnabled = d->useSeparateThread;
+    d->useSeparateThread = enabled;
+    if (wasEnabled && !enabled)
+        d->threadPool.waitForDone();
+}
+
+bool Logger::useSeparateThread() const
+{
+    return d->useSeparateThread;
+}
+
 //! creates the complete log message and passes it to the logger
+//! 创建完整的日志消息并将其传递给日志记录器。
 void Logger::Helper::writeToLog()
 {
     const char* const levelName = LevelToText(level);
@@ -249,24 +243,27 @@ Logger::Helper::~Helper()
     }
     catch(std::exception&) {
         // you shouldn't throw exceptions from a sink
+        // 不应从日志输出目标中抛出异常。
         Q_ASSERT(!"exception in logger helper destructor");
         throw;
     }
 }
 
 //! directs the message to the task queue or writes it directly
+//! 将消息送入任务队列，或直接写出。
 void Logger::enqueueWrite(const QString& message, Level level)
 {
-#ifdef QS_LOG_SEPARATE_THREAD
-    LogWriterRunnable *r = new LogWriterRunnable(message, level);
-    d->threadPool.start(r);
-#else
-    write(message, level);
-#endif
+    if (d->useSeparateThread) {
+        LogWriterRunnable *r = new LogWriterRunnable(message, level);
+        d->threadPool.start(r);
+    } else {
+        write(message, level);
+    }
 }
 
 //! Sends the message to all the destinations. The level for this message is passed in case
 //! it's useful for processing in the destination.
+//! 将消息发送到所有输出目标；同时传入该消息的级别，以便输出目标按需处理。
 void Logger::write(const QString& message, Level level)
 {
     QMutexLocker lock(&d->logMutex);
@@ -276,4 +273,4 @@ void Logger::write(const QString& message, Level level)
     }
 }
 
-} // end namespace
+} // end namespace / 命名空间结束

@@ -1,9 +1,3 @@
-/*
- * Copyright (C) 2008  Remko Troncon
- * Licensed under the MIT license.
- * See COPYING for license details.
- */
-
 #ifndef QtTestUtil_TestRegistration_H
 #define QtTestUtil_TestRegistration_H
 
@@ -16,6 +10,8 @@ namespace QtTestUtil {
 	 * creation of an instance of the test class.
 	 * This class is used by QTTESTUTIL_REGISTER_TEST(), and you should not 
 	 * use this class directly.
+	 * 测试包装类，用于管理测试注册以及测试类实例的静态创建。
+	 * QTTESTUTIL_REGISTER_TEST() 会使用此类，不应直接使用本类。
 	 */
 	template<typename TestClass>
 	class TestRegistration {

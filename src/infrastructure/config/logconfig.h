@@ -19,7 +19,7 @@ namespace Config
 {
 
 /**
- * @brief 保存 QsLog 的过滤、控制台输出与滚动文件设置。
+ * @brief 保存 QsLog 的过滤、源码位置、写入线程、控制台输出与滚动文件设置。
  */
 struct LogConfig final : ConfigBase<LogConfig>
 {
@@ -30,6 +30,10 @@ struct LogConfig final : ConfigBase<LogConfig>
 
     /// 最低输出级别，可取 trace、debug、info、warn、error、critical 或 off。
     std::string level = "info";
+    /// 是否在每条日志中包含调用点的源码文件路径和行号。
+    bool source_location_enabled = false;
+    /// 是否通过 QsLog 的专用单线程队列异步写入日志。
+    bool separate_thread_enabled = true;
 
     /// 是否启用调试控制台输出。
     bool console_enabled = true;
@@ -59,6 +63,8 @@ struct LogConfig final : ConfigBase<LogConfig>
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(LogConfig,
                                                 level,
+                                                source_location_enabled,
+                                                separate_thread_enabled,
                                                 console_enabled,
                                                 file_enabled,
                                                 file_path,

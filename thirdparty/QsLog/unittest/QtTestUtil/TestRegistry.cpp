@@ -1,9 +1,3 @@
-/*
- * Copyright (C) 2008  Remko Troncon
- * Licensed under the MIT license.
- * See COPYING for license details.
- */
-
 #include "QtTestUtil/TestRegistry.h"
 
 #include <QtTest/QtTest>

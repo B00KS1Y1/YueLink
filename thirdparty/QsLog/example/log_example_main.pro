@@ -1,4 +1,5 @@
 #This project links with QsLog dynamically and outputs an executable file.
+#此项目动态链接 QsLog 并生成可执行文件。
 
 QT -= gui
 TARGET = log_example

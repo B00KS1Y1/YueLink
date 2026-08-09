@@ -66,6 +66,8 @@ void installFallbackLogger()
     QsLogging::Logger::destroyInstance();
     QsLogging::Logger &logger = QsLogging::Logger::instance();
     logger.setLoggingLevel(QsLogging::InfoLevel);
+    logger.setIncludeSourceLocation(false);
+    logger.setUseSeparateThread(false);
     logger.addDestination(QsLogging::DestinationFactory::MakeDebugOutputDestination());
 }
 } // namespace
@@ -121,6 +123,8 @@ Config::Result Logging::initialize(const Config::LogConfig &config)
         QsLogging::Logger::destroyInstance();
         QsLogging::Logger &logger = QsLogging::Logger::instance();
         logger.setLoggingLevel(level);
+        logger.setIncludeSourceLocation(config.source_location_enabled);
+        logger.setUseSeparateThread(config.separate_thread_enabled);
         for (const QsLogging::DestinationPtr &destination : std::as_const(destinations))
         {
             logger.addDestination(destination);
@@ -130,8 +134,9 @@ Config::Result Logging::initialize(const Config::LogConfig &config)
         {
             QLOG_WARN() << QStringLiteral("[日志]") << warning;
         }
-        QLOG_INFO() << QStringLiteral("[日志] 初始化完成 级别=") << normalizedLevelName(config.level) << QStringLiteral("控制台=")
-                              << config.console_enabled << QStringLiteral("文件=") << config.file_enabled;
+        QLOG_INFO() << QStringLiteral("[日志] 初始化完成 级别=") << normalizedLevelName(config.level) << QStringLiteral("源码位置=")
+                              << config.source_location_enabled << QStringLiteral("独立线程=") << config.separate_thread_enabled
+                              << QStringLiteral("控制台=") << config.console_enabled << QStringLiteral("文件=") << config.file_enabled;
         if (!logPath.isEmpty())
         {
             QLOG_DEBUG() << QStringLiteral("[日志] 文件输出路径=") << logPath;

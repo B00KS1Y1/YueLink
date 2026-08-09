@@ -6,6 +6,7 @@
 #include <QtGlobal>
 
 // A destination that tracks log messages
+// 一个用于跟踪日志消息的输出目标。
 class MockDestination : public QsLogging::Destination
 {
 public:
@@ -68,6 +69,7 @@ private:
 };
 
 // Autotests for QsLog
+// QsLog 自动化测试。
 class TestLog : public QObject
 {
     Q_OBJECT

@@ -1,29 +1,3 @@
-// Copyright (c) 2014, Razvan Petru
-// Copyright (c) 2014, Omar Carey
-// All rights reserved.
-
-// Redistribution and use in source and binary forms, with or without modification,
-// are permitted provided that the following conditions are met:
-
-// * Redistributions of source code must retain the above copyright notice, this
-//   list of conditions and the following disclaimer.
-// * Redistributions in binary form must reproduce the above copyright notice, this
-//   list of conditions and the following disclaimer in the documentation and/or other
-//   materials provided with the distribution.
-// * The name of the contributors may not be used to endorse or promote products
-//   derived from this software without specific prior written permission.
-
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-// IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-// INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-// BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-// LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-// OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
-// OF THE POSSIBILITY OF SUCH DAMAGE.
-
 #ifndef QSLOGDESTFUNCTOR_H
 #define QSLOGDESTFUNCTOR_H
 
@@ -37,6 +11,10 @@ namespace QsLogging
 // called from a different thread or even a different binary. You should not access QsLog from
 // inside LogFunction and should not perform any time-consuming operations.
 // logMessageReady is connected through a queued connection and trace messages are not included
+// 提供多种类似函数的输出目标。
+// 这是一种高级输出目标类型。根据配置，LogFunction 可能会从其他线程甚至其他二进制模块中调用。
+// 不应在 LogFunction 内部访问 QsLog，也不应执行任何耗时操作。
+// logMessageReady 使用队列连接，并且不包含跟踪级别的消息。
 class FunctorDestination : public QObject, public Destination
 {
     Q_OBJECT
@@ -44,11 +22,12 @@ public:
     explicit FunctorDestination(LogFunction f);
     FunctorDestination(QObject *receiver, const char *member);
 
-    virtual void write(const QString &message, Level level);
-    virtual bool isValid();
+    void write(const QString &message, Level level) override;
+    bool isValid() override;
 
 protected:
     // int used to avoid registering a new enum type
+    // 使用 int 以避免注册新的枚举类型。
     Q_SIGNAL void logMessageReady(const QString &message, int level);
 
 private:

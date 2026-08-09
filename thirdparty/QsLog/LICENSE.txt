@@ -22,3 +22,21 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
 LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
+
+版权所有 (c) 2014, Razvan Petru
+保留所有权利。
+
+在满足以下条件的前提下，允许以源代码或二进制形式重新分发和使用本软件，
+无论是否经过修改：
+
+* 重新分发源代码时，必须保留上述版权声明、本条件列表以及下述免责声明。
+* 以二进制形式重新分发时，必须在随分发提供的文档和/或其他材料中复制
+  上述版权声明、本条件列表以及下述免责声明。
+* 未经事先书面许可，不得使用贡献者的姓名为基于本软件的产品背书或推广。
+
+本软件由版权所有者和贡献者按“原样”提供，不作任何明示或默示保证，包括但不限于
+对适销性和特定用途适用性的默示保证。在任何情况下，版权所有者或贡献者均不对
+任何直接、间接、偶然、特殊、惩戒性或后果性损害承担责任（包括但不限于采购替代
+商品或服务、使用损失、数据或利润损失或业务中断），无论这些损害如何产生，也无论
+基于何种责任理论，无论是合同责任、严格责任还是侵权责任（包括疏忽或其他原因）；
+即使已被告知可能发生此类损害，亦是如此。

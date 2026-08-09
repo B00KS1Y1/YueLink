@@ -1,4 +1,5 @@
 # This pro file will build QsLog as a shared library
+# 此 pro 文件会将 QsLog 构建为共享库。
 include(QsLog.pri)
 
 TARGET = QsLog
@@ -19,6 +20,7 @@ win32 {
 
 unix:!macx {
     # make install will install the shared object in the appropriate folders
+    # make install 会将共享对象安装到适当的目录中。
     headers.files = QsLog.h QsLogDest.h QsLogLevel.h
     headers.path = /usr/include/$(QMAKE_TARGET)
 
