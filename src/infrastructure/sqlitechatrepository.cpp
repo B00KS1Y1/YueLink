@@ -39,6 +39,11 @@ QDateTime timestampFromText(const QString &text)
     return timestamp.isValid() ? timestamp : QDateTime::currentDateTimeUtc();
 }
 
+QString nonNullText(const QString &text)
+{
+    return text.isNull() ? QStringLiteral("") : text;
+}
+
 QString normalizedSynchronousMode(QString mode)
 {
     mode = mode.trimmed().toLower();
@@ -366,9 +371,9 @@ bool SqliteChatRepository::saveConversation(const Domain::Conversation &conversa
                                  "unread_count=excluded.unread_count, member_count=excluded.member_count"));
     query.bindValue(QStringLiteral(":id"), conversation.conversationId);
     query.bindValue(QStringLiteral(":kind"), Domain::conversationKindName(conversation.kind));
-    query.bindValue(QStringLiteral(":peer"), conversation.peerId);
+    query.bindValue(QStringLiteral(":peer"), nonNullText(conversation.peerId));
     query.bindValue(QStringLiteral(":title"), conversation.title);
-    query.bindValue(QStringLiteral(":last_message"), conversation.lastMessage);
+    query.bindValue(QStringLiteral(":last_message"), nonNullText(conversation.lastMessage));
     query.bindValue(QStringLiteral(":activity"), timestampText(conversation.lastActivity));
     query.bindValue(QStringLiteral(":unread"), qMax(0, conversation.unreadCount));
     query.bindValue(QStringLiteral(":members"), qMax(0, conversation.memberCount));
@@ -449,7 +454,7 @@ bool SqliteChatRepository::updateConversation(
     QSqlQuery query(database());
     query.prepare(QStringLiteral("UPDATE conversations SET last_message=:message, last_activity_utc=:activity, "
                                  "unread_count=MAX(0, unread_count+:delta) WHERE conversation_id=:id"));
-    query.bindValue(QStringLiteral(":message"), lastMessage);
+    query.bindValue(QStringLiteral(":message"), nonNullText(lastMessage));
     query.bindValue(QStringLiteral(":activity"), timestampText(timestamp));
     query.bindValue(QStringLiteral(":delta"), incrementUnread ? 1 : 0);
     query.bindValue(QStringLiteral(":id"), conversationId);
@@ -489,15 +494,15 @@ bool SqliteChatRepository::saveMessage(const Domain::Message &message, QString *
     query.bindValue(QStringLiteral(":message"), message.messageId);
     query.bindValue(QStringLiteral(":conversation"), message.conversationId);
     query.bindValue(QStringLiteral(":sender"), message.senderId);
-    query.bindValue(QStringLiteral(":text"), message.text);
+    query.bindValue(QStringLiteral(":text"), nonNullText(message.text));
     query.bindValue(QStringLiteral(":timestamp"), timestampText(message.timestamp));
     query.bindValue(QStringLiteral(":status"), Domain::deliveryStateName(message.deliveryState));
     query.bindValue(QStringLiteral(":kind"), Domain::messageKindName(message.kind));
-    query.bindValue(QStringLiteral(":file_name"), message.fileName);
-    query.bindValue(QStringLiteral(":file_size_text"), message.legacyFileSizeText);
+    query.bindValue(QStringLiteral(":file_name"), nonNullText(message.fileName));
+    query.bindValue(QStringLiteral(":file_size_text"), nonNullText(message.legacyFileSizeText));
     query.bindValue(QStringLiteral(":file_size"), qMax<qint64>(0, message.fileSize));
     query.bindValue(QStringLiteral(":progress"), qBound(0.0, message.fileProgress, 1.0));
-    query.bindValue(QStringLiteral(":path"), message.filePath);
+    query.bindValue(QStringLiteral(":path"), nonNullText(message.filePath));
     if (!query.exec())
     {
         setError(errorMessage, query.lastError().text());
@@ -558,7 +563,7 @@ bool SqliteChatRepository::saveDelivery(const Domain::MessageDelivery &delivery,
     query.bindValue(QStringLiteral(":conversation"), delivery.conversationId);
     query.bindValue(QStringLiteral(":recipient"), delivery.recipientId);
     query.bindValue(QStringLiteral(":state"), Domain::deliveryStateName(delivery.state));
-    query.bindValue(QStringLiteral(":error"), delivery.errorMessage);
+    query.bindValue(QStringLiteral(":error"), nonNullText(delivery.errorMessage));
     query.bindValue(QStringLiteral(":attempt"), timestampText(delivery.lastAttempt));
     if (!query.exec())
     {
