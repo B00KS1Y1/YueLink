@@ -8,6 +8,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QJsonObject>
+#include <QNetworkProxy>
 #include <QSaveFile>
 #include <QTcpSocket>
 #include <QUuid>
@@ -92,6 +93,7 @@ bool TcpChatTransport::sendFile(const Network::PeerEndpoint &peer, const QUrl &f
     transfer->lastActivityMs = QDateTime::currentMSecsSinceEpoch();
 
     auto *socket = new QTcpSocket(this);
+    socket->setProxy(QNetworkProxy(QNetworkProxy::NoProxy));
     m_outgoingFiles.insert(socket, transfer);
     QLOG_INFO() << QStringLiteral("[网络.文件] 文件发送已开始 好友标识=") << peer.peerId
                           << QStringLiteral("传输标识=") << transfer->info.transferId

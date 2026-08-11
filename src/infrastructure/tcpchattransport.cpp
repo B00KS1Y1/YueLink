@@ -5,6 +5,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QNetworkProxy>
 #include <QTcpSocket>
 #include <QtEndian>
 
@@ -15,6 +16,7 @@
 TcpChatTransport::TcpChatTransport(QObject *parent)
 : IChatTransport(parent)
 {
+    m_server.setProxy(QNetworkProxy(QNetworkProxy::NoProxy));
     connect(&m_server,
             &QTcpServer::newConnection,
             this,
@@ -157,6 +159,7 @@ void TcpChatTransport::sendFramedEvent(const Network::PeerEndpoint &peer,
                                        const QByteArray &frame)
 {
     auto *socket = new QTcpSocket(this);
+    socket->setProxy(QNetworkProxy(QNetworkProxy::NoProxy));
     socket->setProperty("peerId", peer.peerId);
     socket->setProperty("messageId", eventId);
     socket->setProperty("frameType", frameType);
