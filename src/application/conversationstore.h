@@ -29,8 +29,7 @@ public:
      * @param repository 数据仓储；其生命周期由本对象管理。
      * @param parent 可选的 QObject 父对象。
      */
-    explicit ConversationStore(std::unique_ptr<IChatRepository> repository,
-                               QObject *parent = nullptr);
+    explicit ConversationStore(std::unique_ptr<IChatRepository> repository, QObject *parent = nullptr);
     /** @brief 销毁会话存储及其拥有的数据仓储。 */
     ~ConversationStore() override;
 
@@ -62,8 +61,7 @@ public:
      * @param[out] result 找到时接收会话；允许为空。
      * @return 会话存在时返回 @c true。
      */
-    [[nodiscard]] bool conversation(const QString &conversationId,
-                                    Domain::Conversation *result) const;
+    [[nodiscard]] bool conversation(const QString &conversationId, Domain::Conversation *result) const;
     /**
      * @brief 查找群组。
      * @param groupId 群组标识。
@@ -76,40 +74,34 @@ public:
      * @param groupId 群组标识。
      * @return 群组成员；群组未知时返回空列表。
      */
-    [[nodiscard]] QList<Domain::GroupMember> groupMembers(
-        const QString &groupId) const;
+    [[nodiscard]] QList<Domain::GroupMember> groupMembers(const QString &groupId) const;
     /**
      * @brief 返回指定会话的最近消息并按需加载缓存。
      * @param conversationId 会话标识。
      * @param limit 最多返回的消息数量，限制在 1 到 5000。
      * @return 按本地插入顺序排列的消息。
      */
-    [[nodiscard]] QList<Domain::Message> messages(const QString &conversationId,
-                                                  int limit = 500);
+    [[nodiscard]] QList<Domain::Message> messages(const QString &conversationId, int limit = 500);
     /**
      * @brief 根据消息标识查找消息并按需访问仓储。
      * @param messageId 消息标识。
      * @param[out] result 找到时接收消息；允许为空。
      * @return 消息存在时返回 @c true。
      */
-    [[nodiscard]] bool message(const QString &messageId,
-                               Domain::Message *result);
+    [[nodiscard]] bool message(const QString &messageId, Domain::Message *result);
     /**
      * @brief 返回指定联系人的待投递消息。
      * @param peerId 接收方设备标识。
      * @return 当前处于等待状态的投递记录。
      */
-    [[nodiscard]] QList<Domain::MessageDelivery> pendingDeliveriesForPeer(
-        const QString &peerId) const;
+    [[nodiscard]] QList<Domain::MessageDelivery> pendingDeliveriesForPeer(const QString &peerId) const;
     /**
      * @brief 返回消息的已发送数与总接收方数。
      * @param messageId 消息标识。
      * @param[out] deliveredCount 接收已发送数；允许为空。
      * @param[out] totalCount 接收总数；允许为空。
      */
-    void deliveryCounts(const QString &messageId,
-                        int *deliveredCount,
-                        int *totalCount) const;
+    void deliveryCounts(const QString &messageId, int *deliveredCount, int *totalCount) const;
     /**
      * @brief 返回当前在线联系人数量。
      * @return 在线联系人数量。
@@ -144,8 +136,7 @@ public:
      * @param conversationId 会话标识。
      * @return 结构化操作结果。
      */
-    [[nodiscard]] Domain::OperationResult markConversationRead(
-        const QString &conversationId);
+    [[nodiscard]] Domain::OperationResult markConversationRead(const QString &conversationId);
     /**
      * @brief 幂等追加消息并更新会话摘要。
      * @param message 待追加消息。
@@ -153,18 +144,14 @@ public:
      * @param incrementUnread 是否增加未读数。
      * @return 新消息成功保存时返回 @c true；重复或失败时返回 @c false。
      */
-    [[nodiscard]] bool appendMessage(Domain::Message message,
-                                     const QString &summary,
-                                     bool incrementUnread);
+    [[nodiscard]] bool appendMessage(Domain::Message message, const QString &summary, bool incrementUnread);
     /**
      * @brief 更新消息状态并持久化。
      * @param conversationId 会话标识。
      * @param messageId 消息标识。
      * @param state 新状态。
      */
-    void updateMessageState(const QString &conversationId,
-                            const QString &messageId,
-                            Domain::DeliveryState state);
+    void updateMessageState(const QString &conversationId, const QString &messageId, Domain::DeliveryState state);
     /**
      * @brief 更新文件传输消息。
      * @param conversationId 会话标识。
@@ -173,11 +160,7 @@ public:
      * @param state 新状态。
      * @param filePath 可用时提供本地路径。
      */
-    void updateFileTransfer(const QString &conversationId,
-                            const QString &messageId,
-                            qreal progress,
-                            Domain::DeliveryState state,
-                            const QString &filePath = {});
+    void updateFileTransfer(const QString &conversationId, const QString &messageId, qreal progress, Domain::DeliveryState state, const QString &filePath = {});
     /**
      * @brief 新增或更新逐成员投递并重算聚合状态。
      * @param delivery 投递记录。
@@ -215,9 +198,7 @@ signals:
      * @param messageId 消息标识。
      * @param state 新状态。
      */
-    void messageStateChanged(const QString &conversationId,
-                             const QString &messageId,
-                             Domain::DeliveryState state);
+    void messageStateChanged(const QString &conversationId, const QString &messageId, Domain::DeliveryState state);
     /**
      * @brief 逐成员投递统计发生变化时发出。
      * @param conversationId 会话标识。
@@ -225,10 +206,7 @@ signals:
      * @param deliveredCount 已发送数量。
      * @param totalCount 接收方总数。
      */
-    void deliveryChanged(const QString &conversationId,
-                         const QString &messageId,
-                         int deliveredCount,
-                         int totalCount);
+    void deliveryChanged(const QString &conversationId, const QString &messageId, int deliveredCount, int totalCount);
     /**
      * @brief 文件传输消息发生变化时发出。
      * @param conversationId 会话标识。
@@ -237,11 +215,7 @@ signals:
      * @param state 新状态。
      * @param filePath 可用时为本地路径。
      */
-    void fileTransferChanged(const QString &conversationId,
-                             const QString &messageId,
-                             qreal progress,
-                             Domain::DeliveryState state,
-                             const QString &filePath);
+    void fileTransferChanged(const QString &conversationId, const QString &messageId, qreal progress, Domain::DeliveryState state, const QString &filePath);
     /**
      * @brief 仓储操作失败时发出。
      * @param reason 用户可读的失败原因。
@@ -261,17 +235,13 @@ private:
      * @param timestamp 最近活动时间。
      * @param incrementUnread 是否增加未读数。
      */
-    void updateConversationSummary(const QString &conversationId,
-                                   const QString &lastMessage,
-                                   const QDateTime &timestamp,
-                                   bool incrementUnread);
+    void updateConversationSummary(const QString &conversationId, const QString &lastMessage, const QDateTime &timestamp, bool incrementUnread);
     /**
      * @brief 根据逐成员记录重算群消息聚合状态。
      * @param conversationId 会话标识。
      * @param messageId 消息标识。
      */
-    void recomputeAggregateState(const QString &conversationId,
-                                 const QString &messageId);
+    void recomputeAggregateState(const QString &conversationId, const QString &messageId);
     /**
      * @brief 查找联系人列表索引。
      * @param peerId 联系人设备标识。
@@ -295,8 +265,7 @@ private:
      * @param conversationId 会话标识。
      * @return 会话指针；不存在时返回 @c nullptr。
      */
-    [[nodiscard]] Domain::Conversation *mutableConversation(
-        const QString &conversationId);
+    [[nodiscard]] Domain::Conversation *mutableConversation(const QString &conversationId);
     /**
      * @brief 记录并广播仓储错误。
      * @param operation 失败操作名称。

@@ -28,10 +28,7 @@ public:
      * @param localIdentity 非拥有的本地身份；必须覆盖本对象生命周期。
      * @param parent 可选的 QObject 父对象。
      */
-    TransferCoordinator(IChatTransport *transport,
-                        ConversationStore *conversations,
-                        const Network::LocalIdentity *localIdentity,
-                        QObject *parent = nullptr);
+    TransferCoordinator(IChatTransport *transport, ConversationStore *conversations, const Network::LocalIdentity *localIdentity, QObject *parent = nullptr);
     /** @brief 销毁文件传输协调器。 */
     ~TransferCoordinator() override;
 
@@ -41,24 +38,21 @@ public:
      * @param filePath 本地文件路径。
      * @return 包含成功或失败信息的结构化结果。
      */
-    [[nodiscard]] Domain::OperationResult sendFile(const Domain::Peer &peer,
-                                                   const QString &filePath);
+    [[nodiscard]] Domain::OperationResult sendFile(const Domain::Peer &peer, const QString &filePath);
     /**
      * @brief 向指定在线节点发送多个本地文件。
      * @param peer 目标节点信息。
      * @param filePaths 本地文件路径列表，单次最多处理 100 个。
      * @return 已接受发送的文件数量。
      */
-    [[nodiscard]] int sendFiles(const Domain::Peer &peer,
-                                const QStringList &filePaths);
+    [[nodiscard]] int sendFiles(const Domain::Peer &peer, const QStringList &filePaths);
     /**
      * @brief 取消正在进行的文件传输。
      * @param peerId 远端节点标识。
      * @param transferId 文件传输标识。
      * @return 包含成功或失败信息的结构化结果。
      */
-    [[nodiscard]] Domain::OperationResult cancel(const QString &peerId,
-                                                 const QString &transferId);
+    [[nodiscard]] Domain::OperationResult cancel(const QString &peerId, const QString &transferId);
 
 signals:
     /**
@@ -73,9 +67,7 @@ signals:
      * @param reason 便于用户阅读的失败原因。
      * @param incoming 失败的传输是否为接收方向。
      */
-    void fileTransferFailed(const QString &peerId,
-                            const QString &reason,
-                            bool incoming);
+    void fileTransferFailed(const QString &peerId, const QString &reason, bool incoming);
     /**
      * @brief 批量文件传输请求存在一般性错误时发出。
      * @param reason 便于用户阅读的失败原因。

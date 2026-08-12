@@ -80,8 +80,7 @@ public:
      * @param[out] result 找到时接收会话；允许为空。
      * @return 会话存在时返回 @c true。
      */
-    [[nodiscard]] bool conversation(const QString &conversationId,
-                                    Domain::Conversation *result) const;
+    [[nodiscard]] bool conversation(const QString &conversationId, Domain::Conversation *result) const;
     /**
      * @brief 查找群组。
      * @param groupId 群组标识。
@@ -94,25 +93,21 @@ public:
      * @param groupId 群组标识。
      * @return 群成员列表。
      */
-    [[nodiscard]] QList<Domain::GroupMember> groupMembers(
-        const QString &groupId) const;
+    [[nodiscard]] QList<Domain::GroupMember> groupMembers(const QString &groupId) const;
     /**
      * @brief 返回会话最近消息。
      * @param conversationId 会话标识。
      * @param limit 最大消息数量。
      * @return 消息列表。
      */
-    [[nodiscard]] QList<Domain::Message> messages(const QString &conversationId,
-                                                  int limit = 500);
+    [[nodiscard]] QList<Domain::Message> messages(const QString &conversationId, int limit = 500);
     /**
      * @brief 返回群消息逐成员发送统计。
      * @param messageId 消息标识。
      * @param[out] deliveredCount 接收已发送数量；允许为空。
      * @param[out] totalCount 接收总数；允许为空。
      */
-    void deliveryCounts(const QString &messageId,
-                        int *deliveredCount,
-                        int *totalCount) const;
+    void deliveryCounts(const QString &messageId, int *deliveredCount, int *totalCount) const;
     /**
      * @brief 返回在线联系人数。
      * @return 在线联系人数。
@@ -151,17 +146,14 @@ public:
      * @param conversationId 会话标识。
      * @return 结构化操作结果。
      */
-    [[nodiscard]] Domain::OperationResult markConversationRead(
-        const QString &conversationId);
+    [[nodiscard]] Domain::OperationResult markConversationRead(const QString &conversationId);
     /**
      * @brief 创建群聊并向在线成员发送快照。
      * @param name 群名称，1 到 64 个字符。
      * @param memberIds 至少两个、最多三十一个联系人标识。
      * @return 成功时 value 为新群会话标识。
      */
-    [[nodiscard]] Domain::OperationResult createGroup(
-        const QString &name,
-        const QStringList &memberIds);
+    [[nodiscard]] Domain::OperationResult createGroup(const QString &name, const QStringList &memberIds);
     /**
      * @brief 更新本地资料并保存。
      * @param displayName 显示名称。
@@ -169,45 +161,35 @@ public:
      * @param avatarColor 头像背景色。
      * @return 结构化操作结果。
      */
-    [[nodiscard]] Domain::OperationResult updateLocalProfile(
-        const QString &displayName,
-        const QString &avatarPath,
-        const QString &avatarColor);
+    [[nodiscard]] Domain::OperationResult updateLocalProfile(const QString &displayName, const QString &avatarPath, const QString &avatarColor);
     /**
      * @brief 向直接会话或群聊发送文本。
      * @param conversationId 会话标识。
      * @param text 消息文本。
      * @return 成功时 value 为消息标识。
      */
-    [[nodiscard]] Domain::OperationResult sendText(
-        const QString &conversationId,
-        const QString &text);
+    [[nodiscard]] Domain::OperationResult sendText(const QString &conversationId, const QString &text);
     /**
      * @brief 向直接会话发送文件。
      * @param conversationId 直接会话标识。
      * @param filePath 本地文件路径。
      * @return 结构化操作结果；群聊会返回不支持错误。
      */
-    [[nodiscard]] Domain::OperationResult sendFile(
-        const QString &conversationId,
-        const QString &filePath);
+    [[nodiscard]] Domain::OperationResult sendFile(const QString &conversationId, const QString &filePath);
     /**
      * @brief 向直接会话发送多个文件。
      * @param conversationId 直接会话标识。
      * @param filePaths 本地文件路径列表。
      * @return 已接受的文件数量。
      */
-    [[nodiscard]] int sendFiles(const QString &conversationId,
-                                const QStringList &filePaths);
+    [[nodiscard]] int sendFiles(const QString &conversationId, const QStringList &filePaths);
     /**
      * @brief 取消直接会话中的文件传输。
      * @param conversationId 直接会话标识。
      * @param transferId 文件传输标识。
      * @return 结构化操作结果。
      */
-    [[nodiscard]] Domain::OperationResult cancelFileTransfer(
-        const QString &conversationId,
-        const QString &transferId);
+    [[nodiscard]] Domain::OperationResult cancelFileTransfer(const QString &conversationId, const QString &transferId);
 
 signals:
     /** @brief 本地资料发生变化时发出。 */
@@ -246,9 +228,7 @@ signals:
      * @param messageId 消息标识。
      * @param state 新状态。
      */
-    void messageStateChanged(const QString &conversationId,
-                             const QString &messageId,
-                             Domain::DeliveryState state);
+    void messageStateChanged(const QString &conversationId, const QString &messageId, Domain::DeliveryState state);
     /**
      * @brief 逐成员投递统计变化时发出。
      * @param conversationId 会话标识。
@@ -256,10 +236,7 @@ signals:
      * @param deliveredCount 已发送数量。
      * @param totalCount 接收方总数。
      */
-    void deliveryChanged(const QString &conversationId,
-                         const QString &messageId,
-                         int deliveredCount,
-                         int totalCount);
+    void deliveryChanged(const QString &conversationId, const QString &messageId, int deliveredCount, int totalCount);
     /**
      * @brief 文件传输消息变化时发出。
      * @param conversationId 会话标识。
@@ -268,11 +245,7 @@ signals:
      * @param state 新状态。
      * @param filePath 本地路径。
      */
-    void fileTransferChanged(const QString &conversationId,
-                             const QString &messageId,
-                             qreal progress,
-                             Domain::DeliveryState state,
-                             const QString &filePath);
+    void fileTransferChanged(const QString &conversationId, const QString &messageId, qreal progress, Domain::DeliveryState state, const QString &filePath);
     /**
      * @brief 收到消息时发出。
      * @param conversationId 会话标识。
@@ -297,9 +270,7 @@ signals:
      * @param reason 原因。
      * @param incoming 是否为接收方向。
      */
-    void fileTransferFailed(const QString &conversationId,
-                            const QString &reason,
-                            bool incoming);
+    void fileTransferFailed(const QString &conversationId, const QString &reason, bool incoming);
     /**
      * @brief 一般性操作失败时发出。
      * @param reason 原因。
@@ -339,8 +310,7 @@ private:
      * @param group 领域群组。
      * @return 可发送的网络快照。
      */
-    [[nodiscard]] Network::GroupSnapshot networkSnapshot(
-        const Domain::Group &group) const;
+    [[nodiscard]] Network::GroupSnapshot networkSnapshot(const Domain::Group &group) const;
     /**
      * @brief 更新公开的最近错误。
      * @param error 新错误；空值清除。
@@ -353,9 +323,7 @@ private:
      * @param fileOperation 是否为文件操作，用于选择错误信号。
      * @return 联系人在线且服务运行时返回 @c true。
      */
-    [[nodiscard]] bool resolveOnlineDirectPeer(const QString &conversationId,
-                                               Domain::Peer *peerRecord,
-                                               bool fileOperation);
+    [[nodiscard]] bool resolveOnlineDirectPeer(const QString &conversationId, Domain::Peer *peerRecord, bool fileOperation);
 
     std::unique_ptr<IPeerDiscovery> m_discovery;
     std::unique_ptr<IChatTransport> m_transport;
