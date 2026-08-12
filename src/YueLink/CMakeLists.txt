@@ -1,57 +1,73 @@
+file(GLOB_RECURSE YUELINK_CPP_SOURCES
+    CONFIGURE_DEPENDS
+    RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
+    "*.cc"
+    "*.cpp"
+    "*.cxx"
+    "*.h"
+    "*.hh"
+    "*.hpp"
+    "*.hxx"
+    "*.ui"
+)
+
+set(YUELINK_MAIN_SOURCES ${YUELINK_CPP_SOURCES})
+list(FILTER YUELINK_MAIN_SOURCES
+    INCLUDE
+    REGEX "(^|/)main\\.(cc|cpp|cxx)$"
+)
+list(REMOVE_ITEM YUELINK_CPP_SOURCES
+    ${YUELINK_MAIN_SOURCES}
+)
+
+file(GLOB_RECURSE YUELINK_QML_FILES
+    CONFIGURE_DEPENDS
+    RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
+    "qml/*.js"
+    "qml/*.mjs"
+    "qml/*.qml"
+)
+
+file(GLOB_RECURSE YUELINK_ASSET_FILES
+    CONFIGURE_DEPENDS
+    RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
+    "assets/*"
+)
+
+set(YUELINK_WINDOWS_RESOURCE_FILES ${YUELINK_ASSET_FILES})
+list(FILTER YUELINK_WINDOWS_RESOURCE_FILES
+    INCLUDE
+    REGEX "\\.rc$"
+)
+list(FILTER YUELINK_ASSET_FILES
+    EXCLUDE
+    REGEX "\\.rc$"
+)
+
 qt_add_executable(YueLink
-    main.cpp
+    ${YUELINK_MAIN_SOURCES}
 )
 
 qt_add_resources(YueLink yuelink_app_assets
     PREFIX "/yuelink"
     BASE "${CMAKE_CURRENT_SOURCE_DIR}"
     FILES
-        assets/yuelink-app-icon.png
+        ${YUELINK_ASSET_FILES}
 )
 
 if(WIN32)
     target_sources(YueLink
         PRIVATE
-            assets/yuelink.rc
+            ${YUELINK_WINDOWS_RESOURCE_FILES}
     )
 endif()
 
 qt_add_qml_module(YueLink
     URI YueLink
     QML_FILES
-        qml/AboutWindow.qml
-        qml/ChatContent.qml
-        qml/FriendListPanel.qml
-        qml/GroupCreateDialog.qml
-        qml/GroupInfoPanel.qml
-        qml/Main.qml
-        qml/MessageComposer.qml
-        qml/ProfileEditPage.qml
-        qml/SettingsPage.qml
-        qml/UserInfoPanel.qml
+        ${YUELINK_QML_FILES}
     SOURCES
-        appsettings.cpp
-        appsettings.h
-        chatmessagemodel.cpp
-        chatmessagemodel.h
-        conversationlistviewmodel.cpp
-        conversationlistviewmodel.h
-        conversationviewmodel.cpp
-        conversationviewmodel.h
-        desktopfilelauncher.cpp
-        desktopfilelauncher.h
-        desktopintegration.cpp
-        desktopintegration.h
-        desktopnotificationservice.cpp
-        desktopnotificationservice.h
-        ifilelauncher.h
-        inotificationservice.h
-        lanchatmanager.cpp
-        lanchatmanager.h
-        peerlistviewmodel.cpp
-        peerlistviewmodel.h
-        sidebaritemmodel.cpp
-        sidebaritemmodel.h
+        ${YUELINK_CPP_SOURCES}
 )
 
 set_target_properties(YueLink PROPERTIES
@@ -71,9 +87,7 @@ target_include_directories(YueLink
 target_link_libraries(YueLink
     PRIVATE
         YueLink::Application
-        YueLink::Network
-        YueLink::Persistence
-        YueLink::Runtime
+        YueLink::Infrastructure
         Qt6::Core
         Qt6::Quick
         Qt6::QuickControls2

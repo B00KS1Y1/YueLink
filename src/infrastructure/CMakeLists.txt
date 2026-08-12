@@ -1,6 +1,29 @@
+file(GLOB_RECURSE YUELINK_INFRASTRUCTURE_SOURCES
+    CONFIGURE_DEPENDS
+    RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
+    "*.cc"
+    "*.cpp"
+    "*.cxx"
+    "*.h"
+    "*.hh"
+    "*.hpp"
+    "*.hxx"
+    "*.ui"
+)
+
+# Paths remains a separate foundation because the config target depends on it.
+set(YUELINK_PATH_SOURCES ${YUELINK_INFRASTRUCTURE_SOURCES})
+list(FILTER YUELINK_PATH_SOURCES
+    INCLUDE
+    REGEX "(^|/)path\\.(cc|cpp|cxx|h|hh|hpp|hxx)$"
+)
+
+list(REMOVE_ITEM YUELINK_INFRASTRUCTURE_SOURCES
+    ${YUELINK_PATH_SOURCES}
+)
+
 qt_add_library(YueLinkPaths STATIC
-    path.cpp
-    path.h
+    ${YUELINK_PATH_SOURCES}
 )
 
 add_library(YueLink::Paths ALIAS YueLinkPaths)
@@ -21,74 +44,25 @@ target_link_libraries(YueLinkPaths
         Qt6::Core
 )
 
-qt_add_library(YueLinkRuntime STATIC
-    logging.cpp
-    logging.h
-    runtimebootstrap.cpp
-    runtimebootstrap.h
+qt_add_library(YueLinkInfrastructure STATIC
+    ${YUELINK_INFRASTRUCTURE_SOURCES}
 )
 
-add_library(YueLink::Runtime ALIAS YueLinkRuntime)
+add_library(YueLink::Infrastructure ALIAS YueLinkInfrastructure)
 
-target_include_directories(YueLinkRuntime
+target_include_directories(YueLinkInfrastructure
     PUBLIC
         ${PROJECT_SOURCE_DIR}/src
 )
 
-target_link_libraries(YueLinkRuntime
+target_link_libraries(YueLinkInfrastructure
     PUBLIC
         YueLink::Config
+        YueLink::Domain
         YueLink::Paths
         Qt6::Core
-    PRIVATE
-        QsLog::QsLog
-)
-
-qt_add_library(YueLinkNetwork STATIC
-    tcpchattransport.cpp
-    tcpchattransport.h
-    tcpfiletransfer.cpp
-    udppeerdiscovery.cpp
-    udppeerdiscovery.h
-    wireprotocol.cpp
-    wireprotocol.h
-)
-
-add_library(YueLink::Network ALIAS YueLinkNetwork)
-
-target_include_directories(YueLinkNetwork
-    PUBLIC
-        ${PROJECT_SOURCE_DIR}/src
-)
-
-target_link_libraries(YueLinkNetwork
-    PUBLIC
-        YueLink::Domain
-        Qt6::Core
         Qt6::Network
-    PRIVATE
-        YueLink::Runtime
-        QsLog::QsLog
-)
-
-qt_add_library(YueLinkPersistence STATIC
-    sqlitechatrepository.cpp
-    sqlitechatrepository.h
-)
-
-add_library(YueLink::Persistence ALIAS YueLinkPersistence)
-
-target_include_directories(YueLinkPersistence
-    PUBLIC
-        ${PROJECT_SOURCE_DIR}/src
-)
-
-target_link_libraries(YueLinkPersistence
-    PUBLIC
-        YueLink::Domain
-        Qt6::Core
         Qt6::Sql
     PRIVATE
-        YueLink::Runtime
         QsLog::QsLog
 )

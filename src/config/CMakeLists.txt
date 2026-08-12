@@ -1,24 +1,18 @@
+file(GLOB_RECURSE YUELINK_CONFIG_SOURCES
+    CONFIGURE_DEPENDS
+    RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
+    "*.cc"
+    "*.cpp"
+    "*.cxx"
+    "*.h"
+    "*.hh"
+    "*.hpp"
+    "*.hxx"
+    "*.ui"
+)
+
 qt_add_library(YueLinkConfig STATIC
-    applicationconfig.cpp
-    applicationconfig.h
-    config.h
-    configapi.h
-    configbase.h
-    configmanager.cpp
-    configmanager.h
-    configpolicyutils.cpp
-    configpolicyutils_p.h
-    configregistry.h
-    configstore.h
-    databaseconfig.cpp
-    databaseconfig.h
-    identityconfig.cpp
-    identityconfig.h
-    logconfig.cpp
-    logconfig.h
-    result.h
-    themeconfig.cpp
-    themeconfig.h
+    ${YUELINK_CONFIG_SOURCES}
 )
 
 add_library(YueLink::Config ALIAS YueLinkConfig)

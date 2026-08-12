@@ -1,10 +1,18 @@
+file(GLOB_RECURSE YUELINK_APPLICATION_SOURCES
+    CONFIGURE_DEPENDS
+    RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
+    "*.cc"
+    "*.cpp"
+    "*.cxx"
+    "*.h"
+    "*.hh"
+    "*.hpp"
+    "*.hxx"
+    "*.ui"
+)
+
 qt_add_library(YueLinkApplication STATIC
-    chatcoordinator.cpp
-    chatcoordinator.h
-    conversationstore.cpp
-    conversationstore.h
-    transfercoordinator.cpp
-    transfercoordinator.h
+    ${YUELINK_APPLICATION_SOURCES}
 )
 
 add_library(YueLink::Application ALIAS YueLinkApplication)
@@ -19,7 +27,7 @@ target_link_libraries(YueLinkApplication
         YueLink::Domain
         Qt6::Core
     PRIVATE
-        YueLink::Runtime
+        YueLink::Config
         Qt6::Gui
         QsLog::QsLog
 )
