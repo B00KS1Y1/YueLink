@@ -8,9 +8,12 @@
 #include "config/configapi.h"
 
 #include <QColor>
+#include <QCryptographicHash>
 #include <QDateTime>
+#include <QFile>
 #include <QFileInfo>
 #include <QImageReader>
+#include <QMimeDatabase>
 #include <QSet>
 #include <QSysInfo>
 #include <QUuid>
@@ -302,10 +305,85 @@ Domain::OperationResult ChatCoordinator::sendText(const QString &conversationId,
         return Domain::OperationResult::failure(QStringLiteral("message.invalid"), tr("消息需要包含 1 到 2000 个字符。"));
     }
 
+    return sendPayload(conversationId, Domain::TextPayload{content});
+}
+
+Domain::OperationResult ChatCoordinator::sendImage(const QString &conversationId,
+                                                   const QString &filePath,
+                                                   const QString &caption)
+{
+    const QString normalizedCaption = caption.trimmed();
+    if (normalizedCaption.size() > 2000)
+    {
+        return Domain::OperationResult::failure(QStringLiteral("image.caption_too_long"),
+                                                tr("图片说明不能超过 2000 个字符。"));
+    }
+    QImageReader reader(filePath);
+    const QSize dimensions = reader.size();
+    if (!dimensions.isValid())
+    {
+        return Domain::OperationResult::failure(QStringLiteral("image.invalid"),
+                                                tr("无法读取图片信息。"));
+    }
+    Domain::AttachmentDescriptor descriptor;
+    QString error;
+    if (!attachmentDescriptor(filePath, &descriptor, &error))
+    {
+        return Domain::OperationResult::failure(QStringLiteral("image.invalid"), error);
+    }
+    return sendPayload(conversationId,
+                       Domain::ImagePayload{std::move(descriptor), dimensions,
+                                            normalizedCaption},
+                       QFileInfo(filePath).absoluteFilePath());
+}
+
+int ChatCoordinator::sendImages(const QString &conversationId,
+                                const QStringList &filePaths)
+{
+    constexpr qsizetype MaximumBatchSize = 100;
+    int accepted = 0;
+    const qsizetype count = qMin(filePaths.size(), MaximumBatchSize);
+    for (qsizetype index = 0; index < count; ++index)
+    {
+        accepted += sendImage(conversationId, filePaths.at(index)) ? 1 : 0;
+    }
+    return accepted;
+}
+
+Domain::OperationResult ChatCoordinator::sendEmoji(const QString &conversationId,
+                                                   const QString &packageId,
+                                                   const QString &emojiId,
+                                                   const QString &fallbackText)
+{
+    const Domain::EmojiPayload payload{packageId.trimmed(), emojiId.trimmed(),
+                                       fallbackText.trimmed()};
+    if (payload.packageId.isEmpty() || payload.packageId.size() > 128
+        || payload.emojiId.isEmpty() || payload.emojiId.size() > 128
+        || payload.fallbackText.isEmpty() || payload.fallbackText.size() > 64)
+    {
+        return Domain::OperationResult::failure(QStringLiteral("emoji.invalid"),
+                                                tr("表情信息无效。"));
+    }
+    return sendPayload(conversationId, payload);
+}
+
+Domain::OperationResult ChatCoordinator::sendPayload(
+    const QString &conversationId, Domain::MessagePayload payload,
+    const QString &localPath)
+{
     Domain::Conversation conversation;
     if (!m_conversations->conversation(conversationId, &conversation))
     {
-        return Domain::OperationResult::failure(QStringLiteral("conversation.unknown"), tr("会话不存在。"));
+        return Domain::OperationResult::failure(QStringLiteral("conversation.unknown"),
+                                                tr("会话不存在。"));
+    }
+
+    const bool attachment = std::holds_alternative<Domain::ImagePayload>(payload)
+                            || std::holds_alternative<Domain::FilePayload>(payload);
+    if (attachment && conversation.kind != Domain::ConversationKind::Direct)
+    {
+        return Domain::OperationResult::failure(QStringLiteral("attachment.group_unsupported"),
+                                                tr("群聊暂不支持附件。"));
     }
 
     Domain::Group group;
@@ -327,13 +405,27 @@ Domain::OperationResult ChatCoordinator::sendText(const QString &conversationId,
     }
 
     Domain::Message message;
-    message.messageId = QUuid::createUuid().toString(QUuid::WithoutBraces);
-    message.conversationId = conversationId;
-    message.senderId = m_identity.deviceId;
-    message.text = content;
-    message.timestamp = QDateTime::currentDateTimeUtc();
-    message.deliveryState = Domain::DeliveryState::Sending;
-    if (!m_conversations->appendMessage(message, content, false))
+    message.metadata.messageId = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    message.metadata.conversationId = conversationId;
+    message.metadata.senderId = m_identity.deviceId;
+    message.metadata.timestamp = QDateTime::currentDateTimeUtc();
+    message.payload = std::move(payload);
+    message.deliveryState = attachment ? Domain::DeliveryState::Transferring
+                                       : Domain::DeliveryState::Sending;
+    message.localAttachment.filePath = localPath;
+
+    if (attachment)
+    {
+        Domain::Peer peerRecord;
+        if (!resolveOnlineDirectPeer(conversationId, &peerRecord, true))
+        {
+            return Domain::OperationResult::failure(QStringLiteral("peer.offline"),
+                                                    tr("联系人当前不在线。"));
+        }
+        return m_transfers->sendAttachment(peerRecord, message);
+    }
+
+    if (!m_conversations->appendMessage(message, Domain::messageSummary(message), false))
     {
         return Domain::OperationResult::failure(QStringLiteral("message.save"), tr("无法保存待发送消息。"));
     }
@@ -343,11 +435,18 @@ Domain::OperationResult ChatCoordinator::sendText(const QString &conversationId,
         Domain::Peer peerRecord;
         if (!resolveOnlineDirectPeer(conversationId, &peerRecord, false))
         {
-            m_conversations->updateMessageState(conversationId, message.messageId, Domain::DeliveryState::Failed);
+            m_conversations->updateMessageState(conversationId, message.metadata.messageId, Domain::DeliveryState::Failed);
             return Domain::OperationResult::failure(QStringLiteral("peer.offline"), tr("联系人当前不在线。"));
         }
-        m_transport->sendText(peerRecord.endpoint, message.messageId, {}, content, message.timestamp);
-        return Domain::OperationResult::success(message.messageId);
+        QString error;
+        if (!m_transport->sendMessage(peerRecord.endpoint, message, &error))
+        {
+            m_conversations->updateMessageState(conversationId,
+                                                message.metadata.messageId,
+                                                Domain::DeliveryState::Failed);
+            return Domain::OperationResult::failure(QStringLiteral("message.rejected"), error);
+        }
+        return Domain::OperationResult::success(message.metadata.messageId);
     }
 
     for (const Domain::GroupMember &member : group.members)
@@ -357,7 +456,7 @@ Domain::OperationResult ChatCoordinator::sendText(const QString &conversationId,
             continue;
         }
         Domain::MessageDelivery delivery;
-        delivery.messageId = message.messageId;
+        delivery.messageId = message.metadata.messageId;
         delivery.conversationId = conversationId;
         delivery.recipientId = member.peerId;
         m_conversations->saveDelivery(std::move(delivery));
@@ -369,23 +468,71 @@ Domain::OperationResult ChatCoordinator::sendText(const QString &conversationId,
             dispatchPendingToPeer(member.peerId);
         }
     }
-    return Domain::OperationResult::success(message.messageId);
+    return Domain::OperationResult::success(message.metadata.messageId);
 }
 
 Domain::OperationResult ChatCoordinator::sendFile(const QString &conversationId, const QString &filePath)
 {
-    Domain::Peer peerRecord;
-    if (!resolveOnlineDirectPeer(conversationId, &peerRecord, true))
+    Domain::AttachmentDescriptor descriptor;
+    QString error;
+    if (!attachmentDescriptor(filePath, &descriptor, &error))
     {
-        return Domain::OperationResult::failure(QStringLiteral("file.unsupported"), tr("群聊暂不支持文件，或联系人当前离线。"));
+        return Domain::OperationResult::failure(QStringLiteral("file.invalid"), error);
     }
-    return m_transfers->sendFile(peerRecord, filePath);
+    return sendPayload(conversationId, Domain::FilePayload{std::move(descriptor)},
+                       QFileInfo(filePath).absoluteFilePath());
 }
 
 int ChatCoordinator::sendFiles(const QString &conversationId, const QStringList &filePaths)
 {
-    Domain::Peer peerRecord;
-    return resolveOnlineDirectPeer(conversationId, &peerRecord, true) ? m_transfers->sendFiles(peerRecord, filePaths) : 0;
+    constexpr qsizetype MaximumBatchSize = 100;
+    int accepted = 0;
+    const qsizetype count = qMin(filePaths.size(), MaximumBatchSize);
+    for (qsizetype index = 0; index < count; ++index)
+    {
+        accepted += sendFile(conversationId, filePaths.at(index)) ? 1 : 0;
+    }
+    return accepted;
+}
+
+bool ChatCoordinator::attachmentDescriptor(const QString &filePath,
+                                           Domain::AttachmentDescriptor *descriptor,
+                                           QString *errorMessage) const
+{
+    QFile file(QFileInfo(filePath).absoluteFilePath());
+    const QFileInfo info(file);
+    if (!info.isFile() || !file.open(QIODevice::ReadOnly))
+    {
+        if (errorMessage)
+            *errorMessage = tr("无法读取文件。");
+        return false;
+    }
+    Domain::AttachmentDescriptor value;
+    value.attachmentId = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    value.fileName = info.fileName();
+    value.mimeType = QMimeDatabase().mimeTypeForFile(info).name();
+    value.fileSize = info.size();
+    constexpr qint64 MaximumAttachmentSize = 2LL * 1024 * 1024 * 1024;
+    if (value.fileName.size() > 255 || value.fileSize < 0
+        || value.fileSize > MaximumAttachmentSize)
+    {
+        if (errorMessage)
+            *errorMessage = tr("文件名过长或文件大小超过 2 GB。");
+        return false;
+    }
+    QCryptographicHash hash(QCryptographicHash::Sha256);
+    if (!hash.addData(&file))
+    {
+        if (errorMessage)
+            *errorMessage = tr("无法计算文件摘要。");
+        return false;
+    }
+    value.sha256 = hash.result();
+    if (descriptor)
+        *descriptor = std::move(value);
+    if (errorMessage)
+        errorMessage->clear();
+    return true;
 }
 
 Domain::OperationResult ChatCoordinator::cancelFileTransfer(const QString &conversationId, const QString &transferId)
@@ -429,41 +576,41 @@ void ChatCoordinator::connectServices()
         }
         dispatchPendingToPeer(endpoint.peerId);
     });
-    connect(m_transport.get(), &IChatTransport::textReceived, this, &ChatCoordinator::handleTextMessage);
+    connect(m_transport.get(), &IChatTransport::messageReceived, this, &ChatCoordinator::handleMessage);
     connect(m_transport.get(), &IChatTransport::groupSnapshotReceived, this, &ChatCoordinator::handleGroupSnapshot);
-    connect(m_transport.get(), &IChatTransport::textSent, this, [this](const QString &peerId, const QString &messageId) {
+    connect(m_transport.get(), &IChatTransport::messageSent, this, [this](const QString &peerId, const QString &messageId) {
         Domain::Message message;
         if (!m_conversations->message(messageId, &message))
         {
             return;
         }
         Domain::Conversation conversation;
-        if (m_conversations->conversation(message.conversationId, &conversation) && conversation.kind == Domain::ConversationKind::Group)
+        if (m_conversations->conversation(message.metadata.conversationId, &conversation) && conversation.kind == Domain::ConversationKind::Group)
         {
             Domain::MessageDelivery delivery;
             delivery.messageId = messageId;
-            delivery.conversationId = message.conversationId;
+            delivery.conversationId = message.metadata.conversationId;
             delivery.recipientId = peerId;
             delivery.state = Domain::DeliveryState::Sent;
             m_conversations->saveDelivery(std::move(delivery));
         }
         else
         {
-            m_conversations->updateMessageState(message.conversationId, messageId, Domain::DeliveryState::Sent);
+            m_conversations->updateMessageState(message.metadata.conversationId, messageId, Domain::DeliveryState::Sent);
         }
     });
-    connect(m_transport.get(), &IChatTransport::textSendFailed, this, [this](const QString &peerId, const QString &messageId, const QString &reason) {
+    connect(m_transport.get(), &IChatTransport::messageSendFailed, this, [this](const QString &peerId, const QString &messageId, const QString &reason) {
         Domain::Message message;
         if (!m_conversations->message(messageId, &message))
         {
             return;
         }
         Domain::Conversation conversation;
-        if (m_conversations->conversation(message.conversationId, &conversation) && conversation.kind == Domain::ConversationKind::Group)
+        if (m_conversations->conversation(message.metadata.conversationId, &conversation) && conversation.kind == Domain::ConversationKind::Group)
         {
             Domain::MessageDelivery delivery;
             delivery.messageId = messageId;
-            delivery.conversationId = message.conversationId;
+            delivery.conversationId = message.metadata.conversationId;
             delivery.recipientId = peerId;
             delivery.state = Domain::DeliveryState::Pending;
             delivery.errorMessage = reason;
@@ -471,8 +618,8 @@ void ChatCoordinator::connectServices()
         }
         else
         {
-            m_conversations->updateMessageState(message.conversationId, messageId, Domain::DeliveryState::Failed);
-            emit sendFailed(message.conversationId, tr("消息发送失败：%1").arg(reason));
+            m_conversations->updateMessageState(message.metadata.conversationId, messageId, Domain::DeliveryState::Failed);
+            emit sendFailed(message.metadata.conversationId, tr("消息发送失败：%1").arg(reason));
         }
     });
     connect(m_transport.get(), &IChatTransport::errorOccurred, this, &ChatCoordinator::setLastError);
@@ -570,51 +717,50 @@ bool ChatCoordinator::initializeIdentity()
     return true;
 }
 
-void ChatCoordinator::handleTextMessage(const Network::TextMessage &message)
+void ChatCoordinator::handleMessage(const Domain::Message &message,
+                                    const Network::PeerEndpoint &sender)
 {
-    m_conversations->observePeer(message.sender);
+    m_conversations->observePeer(sender);
     QString conversationId;
-    if (message.groupId.isEmpty())
+    if (message.metadata.conversationId.isEmpty())
     {
-        conversationId = Domain::directConversationId(message.sender.peerId);
+        conversationId = Domain::directConversationId(sender.peerId);
     }
     else
     {
         Domain::Group group;
-        if (!m_conversations->group(message.groupId, &group))
+        if (!m_conversations->group(message.metadata.conversationId, &group))
         {
             constexpr qsizetype MaximumPendingGroupMessages = 256;
             if (m_pendingGroupMessages.size() >= MaximumPendingGroupMessages)
             {
                 m_pendingGroupMessages.erase(m_pendingGroupMessages.begin());
             }
-            m_pendingGroupMessages.insert(message.groupId, message);
+            m_pendingGroupMessages.insert(message.metadata.conversationId, message);
             return;
         }
         bool senderIsMember = false;
         bool localIsMember = false;
         for (const Domain::GroupMember &member : group.members)
         {
-            senderIsMember = senderIsMember || member.peerId == message.sender.peerId;
+            senderIsMember = senderIsMember || member.peerId == sender.peerId;
             localIsMember = localIsMember || member.peerId == m_identity.deviceId;
         }
         if (!senderIsMember || !localIsMember)
         {
             return;
         }
-        conversationId = message.groupId;
+        conversationId = message.metadata.conversationId;
     }
 
-    Domain::Message received;
-    received.messageId = message.messageId;
-    received.conversationId = conversationId;
-    received.senderId = message.sender.peerId;
-    received.text = message.text;
-    received.timestamp = message.timestamp;
+    Domain::Message received = message;
+    received.metadata.conversationId = conversationId;
+    received.metadata.senderId = sender.peerId;
     received.deliveryState = Domain::DeliveryState::Received;
-    if (m_conversations->appendMessage(std::move(received), message.text, true))
+    const QString summary = Domain::messageSummary(received);
+    if (m_conversations->appendMessage(std::move(received), summary, true))
     {
-        emit messageReceived(conversationId, message.text);
+        emit messageReceived(conversationId, summary);
     }
 }
 
@@ -643,14 +789,18 @@ void ChatCoordinator::handleGroupSnapshot(const Network::GroupSnapshot &snapshot
         return;
     }
 
-    QList<Network::TextMessage> pending = m_pendingGroupMessages.values(snapshot.groupId);
+    QList<Domain::Message> pending = m_pendingGroupMessages.values(snapshot.groupId);
     m_pendingGroupMessages.remove(snapshot.groupId);
-    std::sort(pending.begin(), pending.end(), [](const Network::TextMessage &left, const Network::TextMessage &right) {
-        return left.timestamp < right.timestamp;
+    std::sort(pending.begin(), pending.end(), [](const Domain::Message &left, const Domain::Message &right) {
+        return left.metadata.timestamp < right.metadata.timestamp;
     });
-    for (const Network::TextMessage &message : pending)
+    for (const Domain::Message &message : pending)
     {
-        handleTextMessage(message);
+        Domain::Peer sender;
+        if (m_conversations->peer(message.metadata.senderId, &sender))
+        {
+            handleMessage(message, sender.endpoint);
+        }
     }
 }
 
@@ -735,7 +885,13 @@ void ChatCoordinator::dispatchPendingToPeer(const QString &peerId)
         delivery.state = Domain::DeliveryState::Sending;
         delivery.errorMessage.clear();
         m_conversations->saveDelivery(delivery);
-        m_transport->sendText(peerRecord.endpoint, message.messageId, message.conversationId, message.text, message.timestamp);
+        QString error;
+        if (!m_transport->sendMessage(peerRecord.endpoint, message, &error))
+        {
+            delivery.state = Domain::DeliveryState::Pending;
+            delivery.errorMessage = error;
+            m_conversations->saveDelivery(std::move(delivery));
+        }
     }
 }
 

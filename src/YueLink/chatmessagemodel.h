@@ -37,6 +37,10 @@ public:
         FileProgressRole,
         FilePathRole,
         FileUrlRole,
+        ImageWidthRole,
+        ImageHeightRole,
+        EmojiPackageIdRole,
+        EmojiIdRole,
         SearchTextRole
     };
 
@@ -55,6 +59,10 @@ public:
         QString filePath;
         QUrl fileUrl;
         qreal fileProgress = 0.0;
+        int imageWidth = 0;
+        int imageHeight = 0;
+        QString emojiPackageId;
+        QString emojiId;
         int deliveredCount = 0;
         int totalRecipientCount = 0;
         bool fromMe = false;

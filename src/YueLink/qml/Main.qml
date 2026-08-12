@@ -569,6 +569,10 @@ HusWindow {
                 filesEnabled: root.selectedConversationKind === "direct"
                               && root.selectedConversationOnline
                 errorText: root.operationError
+                onImagesSelected: imageUrls => {
+                    if (root.selectedConversationId.length > 0)
+                        LanChat.sendImages(root.selectedConversationId, imageUrls);
+                }
                 onFilesSelected: fileUrls => {
                     if (root.selectedConversationId.length > 0)
                         LanChat.sendFiles(root.selectedConversationId, fileUrls);

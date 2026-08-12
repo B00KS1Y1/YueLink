@@ -1,6 +1,6 @@
 /**
  * @file networktypes.h
- * @brief 定义网络身份、群组快照、消息及文件传输事件类型。
+ * @brief 定义网络身份、群组快照及传输方向类型。
  * @author xili <1424858143@qq.com>
  * @date 2026-07-21
  */
@@ -40,15 +40,6 @@ struct PeerEndpoint
     }
 };
 
-struct TextMessage
-{
-    QString messageId;   ///< 消息标识。
-    QString groupId;     ///< 群组标识；为空表示直聊。
-    PeerEndpoint sender; ///< 发送方端点。
-    QString text;        ///< 文本内容。
-    QDateTime timestamp; ///< 发送时间。
-};
-
 struct GroupMemberInfo
 {
     QString peerId;      ///< 成员设备标识。
@@ -76,44 +67,10 @@ enum class TransferDirection
     Incoming  ///< 接收文件。
 };
 
-struct FileTransferInfo
-{
-    QString transferId;                                        ///< 传输标识。
-    PeerEndpoint peer;                                         ///< 远端节点。
-    QString fileName;                                          ///< 文件名。
-    QString filePath;                                          ///< 本地文件路径。
-    qint64 fileSize = 0;                                       ///< 文件大小（字节）。
-    QDateTime timestamp;                                       ///< 发起时间。
-    TransferDirection direction = TransferDirection::Outgoing; ///< 传输方向。
-};
-
-struct FileTransferProgress
-{
-    QString peerId;                                            ///< 远端设备标识。
-    QString transferId;                                        ///< 传输标识。
-    TransferDirection direction = TransferDirection::Outgoing; ///< 传输方向。
-    qreal progress = 0.0;                                      ///< 传输进度，范围为 0.0～1.0。
-};
-
-struct FileTransferResult
-{
-    QString peerId;                                            ///< 远端设备标识。
-    QString transferId;                                        ///< 传输标识。
-    QString filePath;                                          ///< 本地文件路径。
-    QString errorMessage;                                      ///< 错误或取消原因。
-    TransferDirection direction = TransferDirection::Outgoing; ///< 传输方向。
-    bool success = false;                                      ///< 是否成功。
-    bool cancelled = false;                                    ///< 是否取消。
-};
-
 } // namespace Network
 
 Q_DECLARE_METATYPE(Network::PeerEndpoint)
-Q_DECLARE_METATYPE(Network::TextMessage)
 Q_DECLARE_METATYPE(Network::GroupSnapshot)
 Q_DECLARE_METATYPE(Network::TransferDirection)
-Q_DECLARE_METATYPE(Network::FileTransferInfo)
-Q_DECLARE_METATYPE(Network::FileTransferProgress)
-Q_DECLARE_METATYPE(Network::FileTransferResult)
 
 #endif // NETWORKTYPES_H

@@ -33,19 +33,13 @@ public:
     ~TransferCoordinator() override;
 
     /**
-     * @brief 向指定在线节点发送本地文件。
+     * @brief 向指定在线节点发送附件消息。
      * @param peer 目标节点信息。
-     * @param filePath 本地文件路径。
+     * @param message 已构造的附件消息。
      * @return 包含成功或失败信息的结构化结果。
      */
-    [[nodiscard]] Domain::OperationResult sendFile(const Domain::Peer &peer, const QString &filePath);
-    /**
-     * @brief 向指定在线节点发送多个本地文件。
-     * @param peer 目标节点信息。
-     * @param filePaths 本地文件路径列表，单次最多处理 100 个。
-     * @return 已接受发送的文件数量。
-     */
-    [[nodiscard]] int sendFiles(const Domain::Peer &peer, const QStringList &filePaths);
+    [[nodiscard]] Domain::OperationResult sendAttachment(
+        const Domain::Peer &peer, const Domain::Message &message);
     /**
      * @brief 取消正在进行的文件传输。
      * @param peerId 远端节点标识。
@@ -79,17 +73,17 @@ private:
      * @brief 处理文件传输开始事件并创建会话消息。
      * @param transfer 文件传输元数据。
      */
-    void handleStarted(const Network::FileTransferInfo &transfer);
+    void handleStarted(const Domain::AttachmentTransferInfo &transfer);
     /**
      * @brief 处理文件传输进度事件。
      * @param progress 文件传输进度。
      */
-    void handleProgress(const Network::FileTransferProgress &progress);
+    void handleProgress(const Domain::AttachmentTransferProgress &progress);
     /**
      * @brief 处理文件传输完成、失败或取消事件。
      * @param result 文件传输最终结果。
      */
-    void handleFinished(const Network::FileTransferResult &result);
+    void handleFinished(const Domain::AttachmentTransferResult &result);
 
     IChatTransport *m_transport = nullptr;
     ConversationStore *m_conversations = nullptr;

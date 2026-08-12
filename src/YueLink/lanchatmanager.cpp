@@ -257,6 +257,42 @@ bool LanChatManager::sendFile(const QString &conversationId,
                                                      fileUrl.toLocalFile()));
 }
 
+bool LanChatManager::sendImage(const QString &conversationId,
+                               const QUrl &imageUrl)
+{
+    if (!imageUrl.isLocalFile())
+    {
+        emit fileTransferFailed(conversationId, tr("仅支持发送本地图片。"));
+        return false;
+    }
+    return static_cast<bool>(m_coordinator->sendImage(conversationId,
+                                                      imageUrl.toLocalFile()));
+}
+
+int LanChatManager::sendImages(const QString &conversationId,
+                               const QList<QUrl> &imageUrls)
+{
+    QStringList paths;
+    paths.reserve(imageUrls.size());
+    for (const QUrl &url : imageUrls)
+    {
+        if (url.isLocalFile())
+            paths.append(url.toLocalFile());
+    }
+    return m_coordinator->sendImages(conversationId, paths);
+}
+
+bool LanChatManager::sendEmoji(const QString &conversationId,
+                               const QString &packageId,
+                               const QString &emojiId,
+                               const QString &fallbackText)
+{
+    return static_cast<bool>(m_coordinator->sendEmoji(conversationId,
+                                                      packageId,
+                                                      emojiId,
+                                                      fallbackText));
+}
+
 int LanChatManager::sendFiles(const QString &conversationId,
                               const QList<QUrl> &fileUrls)
 {

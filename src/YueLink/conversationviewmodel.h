@@ -129,7 +129,7 @@ private:
     /**
      * @brief 格式化文件大小。
      * @param bytes 文件字节数。
-     * @param fallback 旧记录回退文本。
+     * @param fallback 不可用时的回退文本。
      * @return 本地化文件大小文本。
      */
     [[nodiscard]] static QString displayFileSize(qint64 bytes,

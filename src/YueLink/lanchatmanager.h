@@ -247,6 +247,34 @@ public:
     Q_INVOKABLE bool sendFile(const QString &conversationId,
                               const QUrl &fileUrl);
     /**
+     * @brief 向指定直接会话发送本地图片。
+     * @param conversationId 目标直接会话标识。
+     * @param imageUrl 本地图片 URL。
+     * @return 图片传输请求被接受时返回 @c true。
+     */
+    Q_INVOKABLE bool sendImage(const QString &conversationId,
+                               const QUrl &imageUrl);
+    /**
+     * @brief 向指定直接会话发送多个本地图片。
+     * @param conversationId 目标直接会话标识。
+     * @param imageUrls 本地图片 URL 列表。
+     * @return 已接受发送的图片数量。
+     */
+    Q_INVOKABLE int sendImages(const QString &conversationId,
+                               const QList<QUrl> &imageUrls);
+    /**
+     * @brief 向指定会话发送表情。
+     * @param conversationId 目标会话标识。
+     * @param packageId 表情包标识。
+     * @param emojiId 表情标识。
+     * @param fallbackText 回退文本。
+     * @return 消息被接受发送时返回 @c true。
+     */
+    Q_INVOKABLE bool sendEmoji(const QString &conversationId,
+                               const QString &packageId,
+                               const QString &emojiId,
+                               const QString &fallbackText);
+    /**
      * @brief 向指定直接会话发送多个本地文件。
      * @param conversationId 目标直接会话标识。
      * @param fileUrls 本地文件 URL 列表。

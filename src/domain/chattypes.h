@@ -10,11 +10,16 @@
 
 #include "networktypes.h"
 
+#include <QByteArray>
 #include <QDateTime>
+#include <QJsonObject>
 #include <QList>
+#include <QSize>
 #include <QString>
 
+#include <optional>
 #include <utility>
+#include <variant>
 
 namespace Domain
 {
@@ -34,7 +39,9 @@ enum class ConversationKind
 enum class MessageKind
 {
     Text, ///< 文本消息。
-    File  ///< 文件消息。
+    Image, ///< 图片消息。
+    File,  ///< 文件消息。
+    Emoji  ///< 表情消息。
 };
 
 /**
@@ -97,20 +104,87 @@ struct Group
     QList<GroupMember> members; ///< 群成员列表。
 };
 
+struct MessageMetadata
+{
+    QString messageId;      ///< 消息标识。
+    QString conversationId; ///< 所属会话标识。
+    QString senderId;       ///< 发送方设备标识。
+    QDateTime timestamp;    ///< 消息时间。
+};
+
+struct TextPayload
+{
+    QString text; ///< 文本内容。
+};
+
+struct AttachmentDescriptor
+{
+    QString attachmentId; ///< 附件标识。
+    QString fileName;     ///< 文件名。
+    QString mimeType;     ///< MIME 类型。
+    qint64 fileSize = 0;  ///< 文件大小（字节）。
+    QByteArray sha256;    ///< 文件 SHA-256 摘要。
+};
+
+struct ImagePayload
+{
+    AttachmentDescriptor attachment; ///< 图片附件信息。
+    QSize dimensions;                ///< 图片像素尺寸。
+    QString caption;                 ///< 图片说明。
+};
+
+struct FilePayload
+{
+    AttachmentDescriptor attachment; ///< 文件附件信息。
+};
+
+struct EmojiPayload
+{
+    QString packageId;    ///< 表情包标识。
+    QString emojiId;      ///< 表情标识。
+    QString fallbackText; ///< 不支持该表情时显示的文本。
+};
+
+using MessagePayload = std::variant<TextPayload, ImagePayload, FilePayload, EmojiPayload>;
+
+struct LocalAttachment
+{
+    QString filePath;     ///< 本地文件路径。
+    qreal progress = 0.0; ///< 传输进度，范围为 0.0～1.0。
+};
+
 struct Message
 {
-    QString messageId;                                     ///< 消息标识。
-    QString conversationId;                                ///< 所属会话标识。
-    QString senderId;                                      ///< 发送方设备标识。
-    QString text;                                          ///< 文本内容。
-    QDateTime timestamp;                                   ///< 消息时间。
+    MessageMetadata metadata;                              ///< 公共消息元数据。
+    MessagePayload payload = TextPayload{};                ///< 类型化消息载荷。
     DeliveryState deliveryState = DeliveryState::Received; ///< 投递状态。
-    MessageKind kind = MessageKind::Text;                  ///< 消息类型。
-    QString fileName;                                      ///< 文件名。
-    QString filePath;                                      ///< 本地文件路径。
-    QString legacyFileSizeText;                            ///< 旧版文件大小文本。
-    qint64 fileSize = 0;                                   ///< 文件大小（字节）。
-    qreal fileProgress = 0.0;                              ///< 文件进度，范围为 0.0～1.0。
+    LocalAttachment localAttachment;                       ///< 本地附件状态。
+};
+
+struct AttachmentTransferInfo
+{
+    Message message;                ///< 传输对应的消息。
+    Network::PeerEndpoint peer;     ///< 远端节点。
+    Network::TransferDirection direction = Network::TransferDirection::Outgoing; ///< 传输方向。
+};
+
+struct AttachmentTransferProgress
+{
+    QString peerId;                                                        ///< 远端设备标识。
+    QString messageId;                                                     ///< 消息标识。
+    Network::TransferDirection direction = Network::TransferDirection::Outgoing; ///< 传输方向。
+    qreal progress = 0.0;                                                  ///< 传输进度，范围为 0.0～1.0。
+};
+
+struct AttachmentTransferResult
+{
+    QString peerId;                                                           ///< 远端设备标识。
+    QString messageId;                                                        ///< 消息标识。
+    QString filePath;                                                         ///< 本地文件路径。
+    QString errorMessage;                                                     ///< 错误或取消原因。
+    Network::TransferDirection direction = Network::TransferDirection::Outgoing; ///< 传输方向。
+    bool success = false;                                                      ///< 是否成功。
+    bool cancelled = false;                                                    ///< 是否取消。
 };
 
 struct MessageDelivery
@@ -224,6 +298,50 @@ struct OperationResult
 [[nodiscard]] MessageKind messageKindFromName(const QString &name);
 
 /**
+ * @brief 返回消息载荷类型。
+ * @param message 消息。
+ * @return 消息类型。
+ */
+[[nodiscard]] MessageKind messageKind(const Message &message);
+
+/**
+ * @brief 返回消息的文本内容。
+ * @param message 消息。
+ * @return 文本正文、图片说明或表情回退文本；文件消息返回空字符串。
+ */
+[[nodiscard]] QString messageText(const Message &message);
+
+/**
+ * @brief 返回消息附件信息。
+ * @param message 消息。
+ * @return 图片或文件附件信息；其他类型返回 @c nullptr。
+ */
+[[nodiscard]] const AttachmentDescriptor *messageAttachment(const Message &message);
+
+/**
+ * @brief 生成会话列表使用的消息摘要。
+ * @param message 消息。
+ * @return 消息摘要。
+ */
+[[nodiscard]] QString messageSummary(const Message &message);
+
+/**
+ * @brief 将消息载荷序列化为 JSON。
+ * @param payload 消息载荷。
+ * @return JSON 对象。
+ */
+[[nodiscard]] QJsonObject messagePayloadToJson(const MessagePayload &payload);
+
+/**
+ * @brief 从 JSON 解析消息载荷。
+ * @param kind 消息类型。
+ * @param object JSON 对象。
+ * @return 有效载荷；格式无效时返回空值。
+ */
+[[nodiscard]] std::optional<MessagePayload> messagePayloadFromJson(MessageKind kind,
+                                                                  const QJsonObject &object);
+
+/**
  * @brief 将群成员角色转换为用于持久化的名称。
  * @param role 待转换的成员角色。
  * @return @p role 对应的稳定文本表示。
@@ -238,5 +356,11 @@ struct OperationResult
 [[nodiscard]] GroupRole groupRoleFromName(const QString &name);
 
 } // namespace Domain
+
+Q_DECLARE_METATYPE(Domain::Message)
+Q_DECLARE_METATYPE(Domain::DeliveryState)
+Q_DECLARE_METATYPE(Domain::AttachmentTransferInfo)
+Q_DECLARE_METATYPE(Domain::AttachmentTransferProgress)
+Q_DECLARE_METATYPE(Domain::AttachmentTransferResult)
 
 #endif // CHATTYPES_H

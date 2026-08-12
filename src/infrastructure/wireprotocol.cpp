@@ -35,22 +35,23 @@ QJsonObject envelope(const Network::LocalIdentity &identity,
 }
 } // namespace
 
-QByteArray Network::WireProtocol::textFrame(const LocalIdentity &identity,
-                                            quint16 senderPort,
-                                            const PeerEndpoint &recipient,
-                                            const QString &messageId,
-                                            const QString &groupId,
-                                            const QString &text,
-                                            const QDateTime &timestamp)
+QByteArray Network::WireProtocol::messageFrame(const LocalIdentity &identity,
+                                               quint16 senderPort,
+                                               const PeerEndpoint &recipient,
+                                               const Domain::Message &message)
 {
     QJsonObject object = envelope(identity,
                                   senderPort,
                                   recipient,
                                   QStringLiteral("message"),
-                                  timestamp);
-    object.insert(QStringLiteral("messageId"), messageId);
-    object.insert(QStringLiteral("groupId"), groupId);
-    object.insert(QStringLiteral("text"), text);
+                                  message.metadata.timestamp);
+    object.insert(QStringLiteral("messageId"), message.metadata.messageId);
+    object.insert(QStringLiteral("conversationId"),
+                  message.metadata.conversationId.startsWith(QLatin1String("group:"))
+                      ? message.metadata.conversationId
+                      : QString{});
+    object.insert(QStringLiteral("kind"), Domain::messageKindName(Domain::messageKind(message)));
+    object.insert(QStringLiteral("payload"), Domain::messagePayloadToJson(message.payload));
     return frame(object);
 }
 
@@ -84,22 +85,20 @@ QByteArray Network::WireProtocol::groupSnapshotFrame(
     return frame(object);
 }
 
-QByteArray Network::WireProtocol::fileHeaderFrame(const LocalIdentity &identity,
-                                                  quint16 senderPort,
-                                                  const PeerEndpoint &recipient,
-                                                  const QString &transferId,
-                                                  const QString &fileName,
-                                                  qint64 fileSize,
-                                                  const QDateTime &timestamp)
+QByteArray Network::WireProtocol::attachmentHeaderFrame(const LocalIdentity &identity,
+                                                        quint16 senderPort,
+                                                        const PeerEndpoint &recipient,
+                                                        const Domain::Message &message)
 {
     QJsonObject object = envelope(identity,
                                   senderPort,
                                   recipient,
-                                  QStringLiteral("file"),
-                                  timestamp);
-    object.insert(QStringLiteral("transferId"), transferId);
-    object.insert(QStringLiteral("fileName"), fileName);
-    object.insert(QStringLiteral("fileSize"), fileSize);
+                                  QStringLiteral("attachment"),
+                                  message.metadata.timestamp);
+    object.insert(QStringLiteral("messageId"), message.metadata.messageId);
+    object.insert(QStringLiteral("conversationId"), QString{});
+    object.insert(QStringLiteral("kind"), Domain::messageKindName(Domain::messageKind(message)));
+    object.insert(QStringLiteral("payload"), Domain::messagePayloadToJson(message.payload));
     return frame(object);
 }
 

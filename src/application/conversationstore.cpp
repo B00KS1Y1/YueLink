@@ -129,7 +129,7 @@ bool ConversationStore::message(const QString &messageId, Domain::Message *resul
     {
         for (const Domain::Message &candidate : conversationMessages)
         {
-            if (candidate.messageId == messageId)
+            if (candidate.metadata.messageId == messageId)
             {
                 if (result)
                 {
@@ -404,11 +404,11 @@ Domain::OperationResult ConversationStore::markConversationRead(const QString &c
 bool ConversationStore::appendMessage(Domain::Message message, const QString &summary, bool incrementUnread)
 {
     Domain::Message duplicate;
-    if (this->message(message.messageId, &duplicate))
+    if (this->message(message.metadata.messageId, &duplicate))
     {
         return false;
     }
-    if (!mutableConversation(message.conversationId))
+    if (!mutableConversation(message.metadata.conversationId))
     {
         return false;
     }
@@ -419,9 +419,12 @@ bool ConversationStore::appendMessage(Domain::Message message, const QString &su
         reportRepositoryError("saveMessage", error);
         return false;
     }
-    m_loadedConversations.insert(message.conversationId);
-    m_messages[message.conversationId].append(message);
-    updateConversationSummary(message.conversationId, summary, message.timestamp, incrementUnread);
+    m_loadedConversations.insert(message.metadata.conversationId);
+    m_messages[message.metadata.conversationId].append(message);
+    updateConversationSummary(message.metadata.conversationId,
+                              summary,
+                              message.metadata.timestamp,
+                              incrementUnread);
     emit messageAdded(message);
     return true;
 }
@@ -435,7 +438,7 @@ void ConversationStore::updateMessageState(const QString &conversationId, const 
     QList<Domain::Message> &values = m_messages[conversationId];
     for (Domain::Message &message : values)
     {
-        if (message.messageId != messageId || message.deliveryState == state)
+        if (message.metadata.messageId != messageId || message.deliveryState == state)
         {
             continue;
         }
@@ -460,22 +463,32 @@ void ConversationStore::updateFileTransfer(
     QList<Domain::Message> &values = m_messages[conversationId];
     for (Domain::Message &message : values)
     {
-        if (message.messageId != messageId)
+        if (message.metadata.messageId != messageId)
         {
             continue;
         }
-        message.fileProgress = qBound(0.0, progress, 1.0);
+        message.localAttachment.progress = qBound(0.0, progress, 1.0);
         message.deliveryState = state;
         if (!filePath.isEmpty())
         {
-            message.filePath = filePath;
+            message.localAttachment.filePath = filePath;
         }
         QString error;
-        if (m_repositoryReady && !m_repository->updateFileTransfer(conversationId, messageId, message.fileProgress, state, filePath, &error))
+        if (m_repositoryReady
+            && !m_repository->updateFileTransfer(conversationId,
+                                                 messageId,
+                                                 message.localAttachment.progress,
+                                                 state,
+                                                 filePath,
+                                                 &error))
         {
             reportRepositoryError("updateFileTransfer", error);
         }
-        emit fileTransferChanged(conversationId, messageId, message.fileProgress, state, message.filePath);
+        emit fileTransferChanged(conversationId,
+                                 messageId,
+                                 message.localAttachment.progress,
+                                 state,
+                                 message.localAttachment.filePath);
         return;
     }
 }

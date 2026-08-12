@@ -5,6 +5,7 @@
 #include "wireprotocol.h"
 
 #include <QDir>
+#include <QCryptographicHash>
 #include <QFile>
 #include <QFileInfo>
 #include <QJsonObject>
@@ -20,11 +21,23 @@ namespace
 constexpr qint64 FileChunkSize = 64 * 1024;
 constexpr qint64 MaximumPendingBytes = 256 * 1024;
 constexpr qreal ProgressStep = 0.01;
+
+struct FileTransferData
+{
+    Domain::Message message;
+    Network::PeerEndpoint peer;
+    QString transferId;
+    QString fileName;
+    QString filePath;
+    qint64 fileSize = 0;
+    QDateTime timestamp;
+    Network::TransferDirection direction = Network::TransferDirection::Outgoing;
+};
 } // namespace
 
 struct TcpChatTransport::OutgoingFileTransfer
 {
-    Network::FileTransferInfo info;
+    FileTransferData info;
     QFile file;
     qint64 headerSize = 0;
     qint64 socketBytesWritten = 0;
@@ -34,14 +47,17 @@ struct TcpChatTransport::OutgoingFileTransfer
 
 struct TcpChatTransport::IncomingFileTransfer
 {
-    Network::FileTransferInfo info;
+    FileTransferData info;
     QSaveFile file;
+    QCryptographicHash hash{QCryptographicHash::Sha256};
     qint64 receivedBytes = 0;
     qint64 lastActivityMs = 0;
     qreal reportedProgress = 0.0;
 };
 
-bool TcpChatTransport::sendFile(const Network::PeerEndpoint &peer, const QUrl &fileUrl, QString *errorMessage)
+bool TcpChatTransport::sendAttachment(const Network::PeerEndpoint &peer,
+                                      const Domain::Message &message,
+                                      QString *errorMessage)
 {
     const auto fail = [errorMessage](const QString &message) {
         QLOG_WARN() << QStringLiteral("[网络.文件] 已拒绝文件发送请求 原因=") << message;
@@ -60,12 +76,14 @@ bool TcpChatTransport::sendFile(const Network::PeerEndpoint &peer, const QUrl &f
     {
         return fail(tr("好友的网络地址无效。"));
     }
-    if (!fileUrl.isLocalFile())
+    const Domain::AttachmentDescriptor *attachment = Domain::messageAttachment(message);
+    if (!attachment || message.metadata.messageId.isEmpty()
+        || message.localAttachment.filePath.isEmpty())
     {
-        return fail(tr("只能发送本地文件。"));
+        return fail(tr("附件消息无效。"));
     }
 
-    const QFileInfo fileInfo(fileUrl.toLocalFile());
+    const QFileInfo fileInfo(message.localAttachment.filePath);
     if (!fileInfo.exists() || !fileInfo.isFile())
     {
         return fail(tr("要发送的文件不存在。"));
@@ -74,14 +92,20 @@ bool TcpChatTransport::sendFile(const Network::PeerEndpoint &peer, const QUrl &f
     {
         return fail(tr("文件大小不能超过 2 GB。"));
     }
+    if (attachment->fileName != fileInfo.fileName()
+        || attachment->fileSize != fileInfo.size())
+    {
+        return fail(tr("附件信息与本地文件不一致。"));
+    }
 
     auto *transfer = new OutgoingFileTransfer;
-    transfer->info.transferId = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    transfer->info.message = message;
+    transfer->info.transferId = message.metadata.messageId;
     transfer->info.peer = peer;
     transfer->info.fileName = fileInfo.fileName();
     transfer->info.filePath = fileInfo.absoluteFilePath();
     transfer->info.fileSize = fileInfo.size();
-    transfer->info.timestamp = QDateTime::currentDateTimeUtc();
+    transfer->info.timestamp = message.metadata.timestamp;
     transfer->info.direction = Network::TransferDirection::Outgoing;
     transfer->file.setFileName(transfer->info.filePath);
     if (!transfer->file.open(QIODevice::ReadOnly))
@@ -109,13 +133,9 @@ bool TcpChatTransport::sendFile(const Network::PeerEndpoint &peer, const QUrl &f
         QLOG_DEBUG() << QStringLiteral("[网络.文件] 文件发送连接已建立 好友标识=") << transfer->info.peer.peerId
                                << QStringLiteral("传输标识=") << transfer->info.transferId;
 
-        const QByteArray header = Network::WireProtocol::fileHeaderFrame(m_identity,
-                                                                         listeningPort(),
-                                                                         transfer->info.peer,
-                                                                         transfer->info.transferId,
-                                                                         transfer->info.fileName,
-                                                                         transfer->info.fileSize,
-                                                                         transfer->info.timestamp);
+        const QByteArray header = Network::WireProtocol::attachmentHeaderFrame(
+            m_identity, listeningPort(), transfer->info.peer,
+            transfer->info.message);
         transfer->headerSize = header.size();
         transfer->lastActivityMs = QDateTime::currentMSecsSinceEpoch();
         if (socket->write(header) != header.size())
@@ -142,7 +162,7 @@ bool TcpChatTransport::sendFile(const Network::PeerEndpoint &peer, const QUrl &f
             QLOG_TRACE() << QStringLiteral("[网络.文件] 文件发送进度 好友标识=") << transfer->info.peer.peerId
                                    << QStringLiteral("传输标识=") << transfer->info.transferId
                                    << QStringLiteral("进度=") << QString::number(progress * 100.0, 'f', 0) << QLatin1Char('%');
-            emit fileTransferProgressed({transfer->info.peer.peerId, transfer->info.transferId, Network::TransferDirection::Outgoing, progress});
+            emit attachmentTransferProgressed({transfer->info.peer.peerId, transfer->info.transferId, Network::TransferDirection::Outgoing, progress});
         }
         pumpOutgoingFile(socket);
     });
@@ -157,7 +177,9 @@ bool TcpChatTransport::sendFile(const Network::PeerEndpoint &peer, const QUrl &f
         socket->deleteLater();
     });
 
-    emit fileTransferStarted(transfer->info);
+    emit attachmentTransferStarted({transfer->info.message,
+                                    transfer->info.peer,
+                                    transfer->info.direction});
     socket->connectToHost(peer.address, peer.tcpPort);
     if (errorMessage)
     {
@@ -194,7 +216,8 @@ bool TcpChatTransport::cancelFileTransfer(const QString &peerId, const QString &
     return false;
 }
 
-bool TcpChatTransport::handleIncomingFileHeader(const QJsonObject &object, QTcpSocket *socket)
+bool TcpChatTransport::handleIncomingAttachmentHeader(const QJsonObject &object,
+                                                      QTcpSocket *socket)
 {
     if (!Network::WireProtocol::isEnvelopeFor(object, m_identity))
     {
@@ -204,14 +227,32 @@ bool TcpChatTransport::handleIncomingFileHeader(const QJsonObject &object, QTcpS
     }
 
     const Network::PeerEndpoint peer = incomingPeer(object, socket);
-    const QString transferId = object.value(QStringLiteral("transferId")).toString().trimmed();
-    QString fileName = object.value(QStringLiteral("fileName")).toString().trimmed();
-    fileName.replace(QLatin1Char('\\'), QLatin1Char('/'));
-    fileName = fileName.section(QLatin1Char('/'), -1);
-    const qint64 fileSize = object.value(QStringLiteral("fileSize")).toInteger(-1);
-    if (!peer.isValid() || peer.peerId == m_identity.deviceId || transferId.isEmpty() || transferId.size() > 128 || fileName.isEmpty() ||
+    const QString transferId = object.value(QStringLiteral("messageId")).toString().trimmed();
+    const QString conversationId = object.value(QStringLiteral("conversationId")).toString();
+    const Domain::MessageKind kind = Domain::messageKindFromName(
+        object.value(QStringLiteral("kind")).toString());
+    const auto payload = Domain::messagePayloadFromJson(
+        kind, object.value(QStringLiteral("payload")).toObject());
+    if (!payload || (kind != Domain::MessageKind::Image && kind != Domain::MessageKind::File))
+    {
+        return false;
+    }
+    Domain::Message message;
+    message.metadata = {transferId, Domain::directConversationId(peer.peerId),
+                        peer.peerId, timestampFrom(object)};
+    message.payload = *payload;
+    message.deliveryState = Domain::DeliveryState::Receiving;
+    const Domain::AttachmentDescriptor *attachment = Domain::messageAttachment(message);
+    Q_ASSERT(attachment);
+    QString fileName = attachment->fileName.trimmed();
+    QString safeFileName = fileName;
+    safeFileName.replace(QLatin1Char('\\'), QLatin1Char('/'));
+    safeFileName = safeFileName.section(QLatin1Char('/'), -1);
+    const qint64 fileSize = attachment->fileSize;
+    if (!peer.isValid() || peer.peerId == m_identity.deviceId || transferId.isEmpty() || transferId.size() > 128 || fileName != safeFileName || fileName.isEmpty() ||
         fileName == QLatin1String(".") || fileName == QLatin1String("..") || fileName.size() > 255 || fileName.contains(QChar::Null) || fileSize < 0 ||
-        fileSize > Network::WireProtocol::MaximumFileSize || !rememberEventId(transferId))
+        fileSize > Network::WireProtocol::MaximumFileSize || !conversationId.isEmpty()
+        || !rememberEventId(transferId))
     {
         QLOG_WARN() << QStringLiteral("[网络.文件] 接收文件头无效或重复 地址=") << socket->peerAddress().toString()
                               << QStringLiteral("传输标识=") << transferId
@@ -228,6 +269,7 @@ bool TcpChatTransport::handleIncomingFileHeader(const QJsonObject &object, QTcpS
     }
 
     auto *transfer = new IncomingFileTransfer;
+    transfer->info.message = std::move(message);
     transfer->info.transferId = transferId;
     transfer->info.peer = peer;
     transfer->info.fileName = fileName;
@@ -235,6 +277,7 @@ bool TcpChatTransport::handleIncomingFileHeader(const QJsonObject &object, QTcpS
     transfer->info.fileSize = fileSize;
     transfer->info.timestamp = timestampFrom(object);
     transfer->info.direction = Network::TransferDirection::Incoming;
+    transfer->info.message.localAttachment.filePath = receivePath;
     transfer->file.setFileName(receivePath);
     if (!transfer->file.open(QIODevice::WriteOnly))
     {
@@ -253,7 +296,9 @@ bool TcpChatTransport::handleIncomingFileHeader(const QJsonObject &object, QTcpS
                           << QStringLiteral("文件名=") << fileName
                           << QStringLiteral("大小=") << fileSize;
     emit peerObserved(peer);
-    emit fileTransferStarted(transfer->info);
+    emit attachmentTransferStarted({transfer->info.message,
+                                    transfer->info.peer,
+                                    transfer->info.direction});
     return true;
 }
 
@@ -269,6 +314,7 @@ bool TcpChatTransport::consumeIncomingFile(QTcpSocket *socket, QByteArray &buffe
     const qsizetype consumedBytes = static_cast<qsizetype>(qMin<qint64>(remainingBytes, buffer.size()));
     if (consumedBytes > 0)
     {
+        const QByteArray chunk(buffer.constData(), consumedBytes);
         const qint64 writtenBytes = transfer->file.write(buffer.constData(), consumedBytes);
         if (writtenBytes != consumedBytes)
         {
@@ -276,8 +322,9 @@ bool TcpChatTransport::consumeIncomingFile(QTcpSocket *socket, QByteArray &buffe
             failIncomingFile(socket, tr("写入接收文件失败：%1").arg(reason));
             return false;
         }
-        buffer.remove(0, consumedBytes);
         transfer->receivedBytes += writtenBytes;
+        transfer->hash.addData(chunk);
+        buffer.remove(0, consumedBytes);
         transfer->lastActivityMs = QDateTime::currentMSecsSinceEpoch();
 
         const qreal progress = transfer->info.fileSize == 0 ? 1.0 : static_cast<qreal>(transfer->receivedBytes) / static_cast<qreal>(transfer->info.fileSize);
@@ -287,12 +334,20 @@ bool TcpChatTransport::consumeIncomingFile(QTcpSocket *socket, QByteArray &buffe
             QLOG_TRACE() << QStringLiteral("[网络.文件] 文件接收进度 好友标识=") << transfer->info.peer.peerId
                                    << QStringLiteral("传输标识=") << transfer->info.transferId
                                    << QStringLiteral("进度=") << QString::number(progress * 100.0, 'f', 0) << QLatin1Char('%');
-            emit fileTransferProgressed({transfer->info.peer.peerId, transfer->info.transferId, Network::TransferDirection::Incoming, progress});
+            emit attachmentTransferProgressed({transfer->info.peer.peerId, transfer->info.transferId, Network::TransferDirection::Incoming, progress});
         }
     }
 
     if (transfer->receivedBytes < transfer->info.fileSize)
     {
+        return false;
+    }
+
+    const Domain::AttachmentDescriptor *attachment =
+        Domain::messageAttachment(transfer->info.message);
+    if (!attachment || transfer->hash.result() != attachment->sha256)
+    {
+        failIncomingFile(socket, tr("文件校验失败。"));
         return false;
     }
 
@@ -306,13 +361,13 @@ bool TcpChatTransport::consumeIncomingFile(QTcpSocket *socket, QByteArray &buffe
     transfer = m_incomingFiles.take(socket);
     if (transfer->reportedProgress < 1.0)
     {
-        emit fileTransferProgressed({transfer->info.peer.peerId, transfer->info.transferId, Network::TransferDirection::Incoming, 1.0});
+        emit attachmentTransferProgressed({transfer->info.peer.peerId, transfer->info.transferId, Network::TransferDirection::Incoming, 1.0});
     }
     QLOG_INFO() << QStringLiteral("[网络.文件] 文件接收已完成 好友标识=") << transfer->info.peer.peerId
                           << QStringLiteral("传输标识=") << transfer->info.transferId
                           << QStringLiteral("文件名=") << transfer->info.fileName
                           << QStringLiteral("大小=") << transfer->info.fileSize;
-    emit fileTransferFinished({transfer->info.peer.peerId, transfer->info.transferId, transfer->info.filePath, {}, Network::TransferDirection::Incoming, true});
+    emit attachmentTransferFinished({transfer->info.peer.peerId, transfer->info.transferId, transfer->info.filePath, {}, Network::TransferDirection::Incoming, true});
     delete transfer;
     return true;
 }
@@ -339,7 +394,7 @@ void TcpChatTransport::failIncomingFile(QTcpSocket *socket, const QString &reaso
                               << QStringLiteral("原因=") << reason;
     }
     transfer->file.cancelWriting();
-    emit fileTransferFinished(
+    emit attachmentTransferFinished(
         {transfer->info.peer.peerId, transfer->info.transferId, transfer->info.filePath, reason, Network::TransferDirection::Incoming, false, cancelled});
     delete transfer;
     socket->abort();
@@ -390,13 +445,13 @@ void TcpChatTransport::finishOutgoingFile(QTcpSocket *socket)
     transfer->file.close();
     if (transfer->reportedProgress < 1.0)
     {
-        emit fileTransferProgressed({transfer->info.peer.peerId, transfer->info.transferId, Network::TransferDirection::Outgoing, 1.0});
+        emit attachmentTransferProgressed({transfer->info.peer.peerId, transfer->info.transferId, Network::TransferDirection::Outgoing, 1.0});
     }
     QLOG_INFO() << QStringLiteral("[网络.文件] 文件发送已完成 好友标识=") << transfer->info.peer.peerId
                           << QStringLiteral("传输标识=") << transfer->info.transferId
                           << QStringLiteral("文件名=") << transfer->info.fileName
                           << QStringLiteral("大小=") << transfer->info.fileSize;
-    emit fileTransferFinished({transfer->info.peer.peerId, transfer->info.transferId, transfer->info.filePath, {}, Network::TransferDirection::Outgoing, true});
+    emit attachmentTransferFinished({transfer->info.peer.peerId, transfer->info.transferId, transfer->info.filePath, {}, Network::TransferDirection::Outgoing, true});
     delete transfer;
     socket->disconnectFromHost();
 }
@@ -423,7 +478,7 @@ void TcpChatTransport::failOutgoingFile(QTcpSocket *socket, const QString &reaso
                               << QStringLiteral("原因=") << reason;
     }
     transfer->file.close();
-    emit fileTransferFinished(
+    emit attachmentTransferFinished(
         {transfer->info.peer.peerId, transfer->info.transferId, transfer->info.filePath, reason, Network::TransferDirection::Outgoing, false, cancelled});
     delete transfer;
     socket->abort();

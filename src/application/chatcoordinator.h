@@ -170,6 +170,36 @@ public:
      */
     [[nodiscard]] Domain::OperationResult sendText(const QString &conversationId, const QString &text);
     /**
+     * @brief 向直接会话发送图片。
+     * @param conversationId 直接会话标识。
+     * @param filePath 本地图片路径。
+     * @param caption 图片说明。
+     * @return 成功时 value 为消息标识。
+     */
+    [[nodiscard]] Domain::OperationResult sendImage(const QString &conversationId,
+                                                    const QString &filePath,
+                                                    const QString &caption = {});
+    /**
+     * @brief 向直接会话发送多个图片。
+     * @param conversationId 直接会话标识。
+     * @param filePaths 本地图片路径列表。
+     * @return 已接受的图片数量。
+     */
+    [[nodiscard]] int sendImages(const QString &conversationId,
+                                 const QStringList &filePaths);
+    /**
+     * @brief 向会话发送表情。
+     * @param conversationId 会话标识。
+     * @param packageId 表情包标识。
+     * @param emojiId 表情标识。
+     * @param fallbackText 回退文本。
+     * @return 成功时 value 为消息标识。
+     */
+    [[nodiscard]] Domain::OperationResult sendEmoji(const QString &conversationId,
+                                                    const QString &packageId,
+                                                    const QString &emojiId,
+                                                    const QString &fallbackText);
+    /**
      * @brief 向直接会话发送文件。
      * @param conversationId 直接会话标识。
      * @param filePath 本地文件路径。
@@ -286,10 +316,33 @@ private:
      */
     [[nodiscard]] bool initializeIdentity();
     /**
-     * @brief 处理收到的文本消息。
-     * @param message 网络消息。
+     * @brief 处理收到的消息。
+     * @param message 领域消息。
+     * @param sender 发送方端点。
      */
-    void handleTextMessage(const Network::TextMessage &message);
+    void handleMessage(const Domain::Message &message,
+                       const Network::PeerEndpoint &sender);
+    /**
+     * @brief 发送已构造的消息。
+     * @param conversationId 目标会话标识。
+     * @param payload 类型化载荷。
+     * @param localPath 附件本地路径；非附件消息为空。
+     * @return 成功时 value 为消息标识。
+     */
+    [[nodiscard]] Domain::OperationResult sendPayload(
+        const QString &conversationId,
+        Domain::MessagePayload payload,
+        const QString &localPath = {});
+    /**
+     * @brief 构造附件描述。
+     * @param filePath 本地文件路径。
+     * @param[out] descriptor 接收附件描述。
+     * @param[out] errorMessage 失败时接收错误说明。
+     * @return 文件有效且可读取时返回 @c true。
+     */
+    [[nodiscard]] bool attachmentDescriptor(const QString &filePath,
+                                            Domain::AttachmentDescriptor *descriptor,
+                                            QString *errorMessage) const;
     /**
      * @brief 处理收到的群组快照。
      * @param snapshot 网络群组快照。
@@ -333,7 +386,7 @@ private:
     QString m_localAvatarPath;
     QString m_localAvatarColor;
     QString m_lastError;
-    QMultiHash<QString, Network::TextMessage> m_pendingGroupMessages;
+    QMultiHash<QString, Domain::Message> m_pendingGroupMessages;
     bool m_identityReady = false;
     bool m_running = false;
 };

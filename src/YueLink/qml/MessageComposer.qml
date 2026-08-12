@@ -19,6 +19,7 @@ Item {
                                                    HusTheme.Primary.colorBgBase,
                                                    HusTheme.isDark ? 0.54 : 0.62)
 
+    signal imagesSelected(var imageUrls)
     signal filesSelected(var fileUrls)
 
     function submitMessage(): void {
@@ -51,8 +52,14 @@ Item {
         if (imageUrls.length === 0)
             return false;
 
-        filesSelected(imageUrls);
+        imagesSelected(imageUrls);
         return true;
+    }
+
+    function isImageUrl(url): bool {
+        const path = url.toString().toLowerCase();
+        return [".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp"]
+                .some(extension => path.endsWith(extension));
     }
 
     onConversationIdChanged: switchDraft(conversationId)
@@ -118,6 +125,18 @@ Item {
                                 ? qsTr("发送文件")
                                 : qsTr("当前会话暂不支持发送文件")
             onClicked: fileDialog.open()
+        }
+
+        HusIconButton {
+            width: 40
+            height: 40
+            padding: 0
+            type: HusButton.Type_Text
+            iconSource: HusIcon.SmileOutlined
+            iconSize: 20
+            enabled: root.sendEnabled
+            contentDescription: qsTr("发送表情")
+            onClicked: emojiPopup.open()
         }
     }
 
@@ -236,7 +255,18 @@ Item {
                 return;
             }
             drop.acceptProposedAction();
-            root.filesSelected(drop.urls);
+            const imageUrls = [];
+            const fileUrls = [];
+            for (const url of drop.urls) {
+                if (root.isImageUrl(url))
+                    imageUrls.push(url);
+                else
+                    fileUrls.push(url);
+            }
+            if (imageUrls.length > 0)
+                root.imagesSelected(imageUrls);
+            if (fileUrls.length > 0)
+                root.filesSelected(fileUrls);
         }
     }
 
@@ -254,6 +284,36 @@ Item {
         title: qsTr("选择要发送的图片，可多选")
         fileMode: FileDialog.OpenFiles
         nameFilters: [qsTr("图片文件 (*.png *.jpg *.jpeg *.bmp *.gif *.webp)")]
-        onAccepted: root.filesSelected(selectedFiles)
+        onAccepted: root.imagesSelected(selectedFiles)
+    }
+
+    HusPopup {
+        id: emojiPopup
+
+        x: 92
+        y: 48
+        width: 240
+        height: 64
+        contentItem: Row {
+            spacing: 6
+
+            Repeater {
+                model: ["😀", "😂", "😍", "👍", "🎉"]
+
+                HusButton {
+                    required property string modelData
+
+                    width: 40
+                    height: 40
+                    type: HusButton.Type_Text
+                    text: modelData
+                    onClicked: {
+                        LanChat.sendEmoji(root.conversationId, "builtin",
+                                          modelData, modelData);
+                        emojiPopup.close();
+                    }
+                }
+            }
+        }
     }
 }

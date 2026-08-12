@@ -1,6 +1,6 @@
 /**
  * @file tcpchattransport.h
- * @brief 声明基于 TCP 的聊天与文件传输实现。
+ * @brief 声明基于 TCP 的聊天与附件传输实现。
  * @author xili <1424858143@qq.com>
  * @date 2026-07-21
  */
@@ -62,18 +62,15 @@ public:
     [[nodiscard]] QString lastError() const override;
 
     /**
-     * @brief 向指定节点发送文本消息。
+     * @brief 向指定节点发送消息。
      * @param peer 目标节点。
-     * @param messageId 唯一消息标识。
-     * @param groupId 群聊标识；直接会话传入空字符串。
-     * @param text 消息内容。
-     * @param timestamp 消息创建时间。
+     * @param message 待发送消息。
+     * @param[out] errorMessage 请求被拒绝时接收错误说明；允许为空。
+     * @return 请求被接受时返回 @c true。
      */
-    void sendText(const Network::PeerEndpoint &peer,
-                  const QString &messageId,
-                  const QString &groupId,
-                  const QString &text,
-                  const QDateTime &timestamp) override;
+    [[nodiscard]] bool sendMessage(const Network::PeerEndpoint &peer,
+                                   const Domain::Message &message,
+                                   QString *errorMessage = nullptr) override;
     /**
      * @brief 向指定节点发送完整群组快照。
      * @param peer 目标节点。
@@ -81,16 +78,6 @@ public:
      */
     void sendGroupSnapshot(const Network::PeerEndpoint &peer,
                            const Network::GroupSnapshot &snapshot) override;
-    /**
-     * @brief 开始向指定节点发送文件。
-     * @param peer 目标节点。
-     * @param fileUrl 本地文件 URL。
-     * @param[out] errorMessage 操作失败时接收错误说明。
-     * @return 文件传输请求被接受时返回 @c true。
-     */
-    [[nodiscard]] bool sendFile(const Network::PeerEndpoint &peer,
-                                const QUrl &fileUrl,
-                                QString *errorMessage) override;
     /**
      * @brief 取消正在进行的文件传输。
      * @param peerId 远端节点标识。
@@ -114,11 +101,11 @@ private:
      */
     void readIncomingData(QTcpSocket *socket);
     /**
-     * @brief 处理收到的文本消息帧。
+     * @brief 处理收到的消息帧。
      * @param object 已解析的消息对象。
      * @param socket 消息来源套接字。
      */
-    void handleIncomingText(const QJsonObject &object, QTcpSocket *socket);
+    void handleIncomingMessage(const QJsonObject &object, QTcpSocket *socket);
     /**
      * @brief 处理收到的群组快照帧。
      * @param object 已解析的群组快照对象。
@@ -127,12 +114,12 @@ private:
     void handleIncomingGroupSnapshot(const QJsonObject &object,
                                      QTcpSocket *socket);
     /**
-     * @brief 处理收到的文件头帧。
-     * @param object 已解析的文件头对象。
-     * @param socket 文件来源套接字。
-     * @return 文件接收上下文创建成功时返回 @c true。
+     * @brief 处理收到的附件头帧。
+     * @param object 已解析的附件头对象。
+     * @param socket 附件来源套接字。
+     * @return 附件接收上下文创建成功时返回 @c true。
      */
-    bool handleIncomingFileHeader(const QJsonObject &object, QTcpSocket *socket);
+    bool handleIncomingAttachmentHeader(const QJsonObject &object, QTcpSocket *socket);
     /**
      * @brief 将缓冲区中的文件数据写入接收文件。
      * @param socket 文件来源套接字。
@@ -151,20 +138,20 @@ private:
                           bool cancelled = false);
 
     /**
-     * @brief 完成文本消息发送任务。
-     * @param socket 文本消息使用的套接字。
+     * @brief 完成短连接事件发送任务。
+     * @param socket 事件使用的套接字。
      */
     void finishOutgoingText(QTcpSocket *socket);
     /**
-     * @brief 结束失败的文本消息发送任务。
-     * @param socket 文本消息使用的套接字。
+     * @brief 结束失败的短连接事件发送任务。
+     * @param socket 事件使用的套接字。
      * @param reason 发送失败原因。
      */
     void failOutgoingText(QTcpSocket *socket, const QString &reason);
     /**
      * @brief 创建短连接并发送一个已编码事件帧。
      * @param peer 目标节点。
-     * @param eventId 文本消息或群组标识。
+     * @param eventId 消息或群组标识。
      * @param frameType 事件类型。
      * @param frame 已编码帧。
      */
@@ -172,6 +159,16 @@ private:
                          const QString &eventId,
                          const QString &frameType,
                          const QByteArray &frame);
+    /**
+     * @brief 开始发送消息携带的本地附件。
+     * @param peer 目标节点。
+     * @param message 附件消息。
+     * @param[out] errorMessage 请求被拒绝时接收错误说明；允许为空。
+     * @return 请求被接受时返回 @c true。
+     */
+    [[nodiscard]] bool sendAttachment(const Network::PeerEndpoint &peer,
+                                      const Domain::Message &message,
+                                      QString *errorMessage);
     /**
      * @brief 向套接字持续写入待发送的文件数据。
      * @param socket 文件发送使用的套接字。

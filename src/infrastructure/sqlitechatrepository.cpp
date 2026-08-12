@@ -4,6 +4,7 @@
 
 #include <QDir>
 #include <QFileInfo>
+#include <QJsonDocument>
 #include <QSqlError>
 #include <QSqlQuery>
 #include <QStringList>
@@ -17,7 +18,7 @@
 
 namespace
 {
-constexpr int CurrentSchemaVersion = 3;
+constexpr int CurrentSchemaVersion = 4;
 
 void setError(QString *target, const QString &message)
 {
@@ -57,26 +58,27 @@ QString normalizedSynchronousMode(QString mode)
 Domain::Message messageFromQuery(const QSqlQuery &query)
 {
     Domain::Message message;
-    message.messageId = query.value(0).toString();
-    message.conversationId = query.value(1).toString();
-    message.senderId = query.value(2).toString();
-    message.text = query.value(3).toString();
-    message.timestamp = timestampFromText(query.value(4).toString());
-    message.deliveryState = Domain::deliveryStateFromName(query.value(5).toString());
-    message.kind = Domain::messageKindFromName(query.value(6).toString());
-    message.fileName = query.value(7).toString();
-    message.legacyFileSizeText = query.value(8).toString();
-    message.fileSize = qMax<qint64>(0, query.value(9).toLongLong());
-    message.fileProgress = qBound(0.0, query.value(10).toDouble(), 1.0);
-    message.filePath = query.value(11).toString();
+    message.metadata.messageId = query.value(0).toString();
+    message.metadata.conversationId = query.value(1).toString();
+    message.metadata.senderId = query.value(2).toString();
+    message.metadata.timestamp = timestampFromText(query.value(3).toString());
+    message.deliveryState = Domain::deliveryStateFromName(query.value(4).toString());
+    const Domain::MessageKind kind = Domain::messageKindFromName(query.value(5).toString());
+    const QJsonDocument payloadDocument = QJsonDocument::fromJson(query.value(6).toByteArray());
+    const auto payload = payloadDocument.isObject()
+                             ? Domain::messagePayloadFromJson(kind, payloadDocument.object())
+                             : std::nullopt;
+    message.payload = payload.value_or(Domain::TextPayload{});
+    message.localAttachment.progress = qBound(0.0, query.value(7).toDouble(), 1.0);
+    message.localAttachment.filePath = query.value(8).toString();
     return message;
 }
 
 QString messageColumns()
 {
-    return QStringLiteral("message_id, conversation_id, sender_id, message_text, "
-                          "timestamp_utc, delivery_status, message_kind, file_name, "
-                          "file_size_text, file_size_bytes, file_progress, file_path");
+    return QStringLiteral("message_id, conversation_id, sender_id, timestamp_utc, "
+                          "delivery_status, message_kind, payload_json, "
+                          "attachment_progress, local_path");
 }
 } // namespace
 
@@ -481,28 +483,32 @@ bool SqliteChatRepository::clearUnread(const QString &conversationId, QString *e
 
 bool SqliteChatRepository::saveMessage(const Domain::Message &message, QString *errorMessage)
 {
-    if (!m_initialized || message.messageId.isEmpty() || message.conversationId.isEmpty() || message.senderId.isEmpty())
+    if (!m_initialized || message.metadata.messageId.isEmpty()
+        || message.metadata.conversationId.isEmpty()
+        || message.metadata.senderId.isEmpty())
     {
         return false;
     }
     QSqlQuery query(database());
-    query.prepare(QStringLiteral("INSERT INTO messages(message_id, conversation_id, sender_id, message_text, "
-                                 "timestamp_utc, delivery_status, message_kind, file_name, file_size_text, "
-                                 "file_size_bytes, file_progress, file_path) VALUES(:message, :conversation, "
-                                 ":sender, :text, :timestamp, :status, :kind, :file_name, :file_size_text, "
-                                 ":file_size, :progress, :path) ON CONFLICT(message_id) DO NOTHING"));
-    query.bindValue(QStringLiteral(":message"), message.messageId);
-    query.bindValue(QStringLiteral(":conversation"), message.conversationId);
-    query.bindValue(QStringLiteral(":sender"), message.senderId);
-    query.bindValue(QStringLiteral(":text"), nonNullText(message.text));
-    query.bindValue(QStringLiteral(":timestamp"), timestampText(message.timestamp));
+    query.prepare(QStringLiteral("INSERT INTO messages(message_id, conversation_id, sender_id, "
+                                 "timestamp_utc, delivery_status, message_kind, payload_json, "
+                                 "attachment_progress, local_path) VALUES(:message, :conversation, "
+                                 ":sender, :timestamp, :status, :kind, :payload, :progress, :path) "
+                                 "ON CONFLICT(message_id) DO NOTHING"));
+    query.bindValue(QStringLiteral(":message"), message.metadata.messageId);
+    query.bindValue(QStringLiteral(":conversation"), message.metadata.conversationId);
+    query.bindValue(QStringLiteral(":sender"), message.metadata.senderId);
+    query.bindValue(QStringLiteral(":timestamp"), timestampText(message.metadata.timestamp));
     query.bindValue(QStringLiteral(":status"), Domain::deliveryStateName(message.deliveryState));
-    query.bindValue(QStringLiteral(":kind"), Domain::messageKindName(message.kind));
-    query.bindValue(QStringLiteral(":file_name"), nonNullText(message.fileName));
-    query.bindValue(QStringLiteral(":file_size_text"), nonNullText(message.legacyFileSizeText));
-    query.bindValue(QStringLiteral(":file_size"), qMax<qint64>(0, message.fileSize));
-    query.bindValue(QStringLiteral(":progress"), qBound(0.0, message.fileProgress, 1.0));
-    query.bindValue(QStringLiteral(":path"), nonNullText(message.filePath));
+    query.bindValue(QStringLiteral(":kind"),
+                    Domain::messageKindName(Domain::messageKind(message)));
+    query.bindValue(QStringLiteral(":payload"),
+                    QJsonDocument(Domain::messagePayloadToJson(message.payload))
+                        .toJson(QJsonDocument::Compact));
+    query.bindValue(QStringLiteral(":progress"),
+                    qBound(0.0, message.localAttachment.progress, 1.0));
+    query.bindValue(QStringLiteral(":path"),
+                    nonNullText(message.localAttachment.filePath));
     if (!query.exec())
     {
         setError(errorMessage, query.lastError().text());
@@ -531,8 +537,8 @@ bool SqliteChatRepository::updateFileTransfer(
     const QString &conversationId, const QString &messageId, qreal progress, Domain::DeliveryState state, const QString &filePath, QString *errorMessage)
 {
     QSqlQuery query(database());
-    query.prepare(QStringLiteral("UPDATE messages SET file_progress=:progress, delivery_status=:status, "
-                                 "file_path=COALESCE(NULLIF(:path, ''), file_path) "
+    query.prepare(QStringLiteral("UPDATE messages SET attachment_progress=:progress, delivery_status=:status, "
+                                 "local_path=COALESCE(NULLIF(:path, ''), local_path) "
                                  "WHERE conversation_id=:conversation AND message_id=:message"));
     query.bindValue(QStringLiteral(":progress"), qBound(0.0, progress, 1.0));
     query.bindValue(QStringLiteral(":status"), Domain::deliveryStateName(state));
@@ -653,11 +659,10 @@ bool SqliteChatRepository::ensureSchema(QString *errorMessage)
                               QStringLiteral("CREATE TABLE IF NOT EXISTS messages("
                                              "id INTEGER PRIMARY KEY AUTOINCREMENT, message_id TEXT NOT NULL UNIQUE, "
                                              "conversation_id TEXT NOT NULL, sender_id TEXT NOT NULL, "
-                                             "message_text TEXT NOT NULL DEFAULT '', timestamp_utc TEXT NOT NULL, "
-                                             "delivery_status TEXT NOT NULL, message_kind TEXT NOT NULL DEFAULT 'text', "
-                                             "file_name TEXT NOT NULL DEFAULT '', file_size_text TEXT NOT NULL DEFAULT '', "
-                                             "file_size_bytes INTEGER NOT NULL DEFAULT 0, file_progress REAL NOT NULL DEFAULT 0, "
-                                             "file_path TEXT NOT NULL DEFAULT '', FOREIGN KEY(conversation_id) "
+                                             "timestamp_utc TEXT NOT NULL, delivery_status TEXT NOT NULL, "
+                                             "message_kind TEXT NOT NULL, payload_json TEXT NOT NULL, "
+                                             "attachment_progress REAL NOT NULL DEFAULT 0, "
+                                             "local_path TEXT NOT NULL DEFAULT '', FOREIGN KEY(conversation_id) "
                                              "REFERENCES conversations(conversation_id) ON DELETE CASCADE)"),
                               QStringLiteral("CREATE INDEX IF NOT EXISTS idx_messages_conversation "
                                              "ON messages(conversation_id, id)"),

@@ -37,8 +37,13 @@ QVariant ChatMessageModel::data(const QModelIndex &index, int role) const
     case FileProgressRole: return message.fileProgress;
     case FilePathRole: return message.filePath;
     case FileUrlRole: return message.fileUrl;
+    case ImageWidthRole: return message.imageWidth;
+    case ImageHeightRole: return message.imageHeight;
+    case EmojiPackageIdRole: return message.emojiPackageId;
+    case EmojiIdRole: return message.emojiId;
     case SearchTextRole:
         return message.messageKind == QLatin1String("file")
+                       || message.messageKind == QLatin1String("image")
                    ? QStringLiteral("%1 %2").arg(message.fileName, message.messageText)
                    : message.messageText;
     default: return {};
@@ -63,6 +68,10 @@ QHash<int, QByteArray> ChatMessageModel::roleNames() const
             {FileProgressRole, "fileProgress"},
             {FilePathRole, "filePath"},
             {FileUrlRole, "fileUrl"},
+            {ImageWidthRole, "imageWidth"},
+            {ImageHeightRole, "imageHeight"},
+            {EmojiPackageIdRole, "emojiPackageId"},
+            {EmojiIdRole, "emojiId"},
             {SearchTextRole, "searchText"}};
 }
 
