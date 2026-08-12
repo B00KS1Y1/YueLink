@@ -1,6 +1,6 @@
 #include "appsettings.h"
 
-#include "infrastructure/config/configapi.h"
+#include "config/configapi.h"
 #include "infrastructure/logging.h"
 
 #include <QColor>

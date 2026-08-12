@@ -1,6 +1,6 @@
 #include "sqlitechatrepository.h"
 
-#include "infrastructure/config/configapi.h"
+#include "config/configapi.h"
 
 #include <QDir>
 #include <QFileInfo>

@@ -25,6 +25,7 @@ endif()
 add_subdirectory(thirdparty/QsLog)
 add_subdirectory(thirdparty/nlohmann_json)
 
+add_subdirectory(src/config)
 add_subdirectory(src/domain)
 add_subdirectory(src/infrastructure)
 add_subdirectory(src/application)

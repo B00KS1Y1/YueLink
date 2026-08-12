@@ -5,7 +5,7 @@
 #include "domain/ichatrepository.h"
 #include "domain/ichattransport.h"
 #include "domain/ipeerdiscovery.h"
-#include "infrastructure/config/configapi.h"
+#include "config/configapi.h"
 
 #include <QColor>
 #include <QDateTime>

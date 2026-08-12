@@ -40,7 +40,7 @@ MinSizeRel 构建保存在可执行文件目录的 `system/configs`。
 应用程序启动时统一加载所有已注册配置：
 
 ```cpp
-#include "infrastructure/config/configapi.h"
+#include "config/configapi.h"
 #include "infrastructure/path.h"
 
 const Config::Result result = Config::initialize(Path::configDirectory());
@@ -124,7 +124,7 @@ const Config::Result resetResult = Config::reset<Config::ThemeConfig>();
 2. 在配置类型中声明稳定 `Key`、`FileName` 和成员默认值；
 3. 使用 `NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT` 声明自动映射；
 4. 将类型加入 `configregistry.h` 的 `BuiltInConfigs`；
-5. 将头文件及可选的同名实现文件加入 `src/infrastructure/CMakeLists.txt`；
+5. 将头文件及可选的同名实现文件加入 `src/config/CMakeLists.txt`；
 6. 只有存在特殊规则时才在配置类型中声明 `defaults()`、`normalize()`、`validate()` 或 `migrate()`，并在同名 `.cpp` 中实现。
 
 注册表会在编译期检查所有配置的 `Key` 和 `FileName` 是否唯一；重复标识会直接触发静态断言。
