@@ -25,31 +25,31 @@ public:
      * @return 数据仓储可用时返回 @c true。
      */
     [[nodiscard]] virtual bool initialize(QString *errorMessage) = 0;
+
     /**
      * @brief 加载全部联系人记录。
      * @param[out] peers 接收联系人记录。
      * @param[out] errorMessage 失败时接收错误说明。
      * @return 加载成功时返回 @c true。
      */
-    [[nodiscard]] virtual bool loadPeers(QList<Domain::Peer> *peers,
-                                         QString *errorMessage) = 0;
+    [[nodiscard]] virtual bool loadPeers(QList<Domain::Peer> *peers, QString *errorMessage) = 0;
+
     /**
      * @brief 加载全部会话摘要。
      * @param[out] conversations 接收会话摘要。
      * @param[out] errorMessage 失败时接收错误说明。
      * @return 加载成功时返回 @c true。
      */
-    [[nodiscard]] virtual bool loadConversations(
-        QList<Domain::Conversation> *conversations,
-        QString *errorMessage) = 0;
+    [[nodiscard]] virtual bool loadConversations(QList<Domain::Conversation> *conversations, QString *errorMessage) = 0;
+
     /**
      * @brief 加载全部群组及其成员。
      * @param[out] groups 接收群组记录。
      * @param[out] errorMessage 失败时接收错误说明。
      * @return 加载成功时返回 @c true。
      */
-    [[nodiscard]] virtual bool loadGroups(QList<Domain::Group> *groups,
-                                          QString *errorMessage) = 0;
+    [[nodiscard]] virtual bool loadGroups(QList<Domain::Group> *groups, QString *errorMessage) = 0;
+
     /**
      * @brief 加载指定会话的最近消息。
      * @param conversationId 会话标识。
@@ -58,10 +58,8 @@ public:
      * @param[out] errorMessage 失败时接收错误说明。
      * @return 加载成功时返回 @c true。
      */
-    [[nodiscard]] virtual bool loadMessages(const QString &conversationId,
-                                            int limit,
-                                            QList<Domain::Message> *messages,
-                                            QString *errorMessage) = 0;
+    [[nodiscard]] virtual bool loadMessages(const QString &conversationId, int limit, QList<Domain::Message> *messages, QString *errorMessage) = 0;
+
     /**
      * @brief 根据消息标识加载单条消息。
      * @param messageId 消息标识。
@@ -69,18 +67,15 @@ public:
      * @param[out] errorMessage 失败时接收错误说明。
      * @return 找到消息时返回 @c true。
      */
-    [[nodiscard]] virtual bool loadMessage(const QString &messageId,
-                                           Domain::Message *message,
-                                           QString *errorMessage) = 0;
+    [[nodiscard]] virtual bool loadMessage(const QString &messageId, Domain::Message *message, QString *errorMessage) = 0;
+
     /**
      * @brief 加载全部逐成员投递记录。
      * @param[out] deliveries 接收投递记录。
      * @param[out] errorMessage 失败时接收错误说明。
      * @return 加载成功时返回 @c true。
      */
-    [[nodiscard]] virtual bool loadDeliveries(
-        QList<Domain::MessageDelivery> *deliveries,
-        QString *errorMessage) = 0;
+    [[nodiscard]] virtual bool loadDeliveries(QList<Domain::MessageDelivery> *deliveries, QString *errorMessage) = 0;
 
     /**
      * @brief 新增或更新联系人端点。
@@ -88,25 +83,24 @@ public:
      * @param[out] errorMessage 失败时接收错误说明。
      * @return 保存成功时返回 @c true。
      */
-    [[nodiscard]] virtual bool upsertPeer(const Domain::Peer &peer,
-                                          QString *errorMessage) = 0;
+    [[nodiscard]] virtual bool upsertPeer(const Domain::Peer &peer, QString *errorMessage) = 0;
+
     /**
      * @brief 新增或更新会话摘要。
      * @param conversation 待保存的会话。
      * @param[out] errorMessage 失败时接收错误说明。
      * @return 保存成功时返回 @c true。
      */
-    [[nodiscard]] virtual bool saveConversation(
-        const Domain::Conversation &conversation,
-        QString *errorMessage) = 0;
+    [[nodiscard]] virtual bool saveConversation(const Domain::Conversation &conversation, QString *errorMessage) = 0;
+
     /**
      * @brief 原子保存群组元数据及完整成员快照。
      * @param group 待保存的群组。
      * @param[out] errorMessage 失败时接收错误说明。
      * @return 保存成功时返回 @c true。
      */
-    [[nodiscard]] virtual bool saveGroup(const Domain::Group &group,
-                                         QString *errorMessage) = 0;
+    [[nodiscard]] virtual bool saveGroup(const Domain::Group &group, QString *errorMessage) = 0;
+
     /**
      * @brief 更新会话摘要与未读数。
      * @param conversationId 会话标识。
@@ -116,28 +110,25 @@ public:
      * @param[out] errorMessage 失败时接收错误说明。
      * @return 更新成功时返回 @c true。
      */
-    [[nodiscard]] virtual bool updateConversation(
-        const QString &conversationId,
-        const QString &lastMessage,
-        const QDateTime &timestamp,
-        bool incrementUnread,
-        QString *errorMessage) = 0;
+    [[nodiscard]] virtual bool
+    updateConversation(const QString &conversationId, const QString &lastMessage, const QDateTime &timestamp, bool incrementUnread, QString *errorMessage) = 0;
+
     /**
      * @brief 清空指定会话未读数。
      * @param conversationId 会话标识。
      * @param[out] errorMessage 失败时接收错误说明。
      * @return 更新成功时返回 @c true。
      */
-    [[nodiscard]] virtual bool clearUnread(const QString &conversationId,
-                                           QString *errorMessage) = 0;
+    [[nodiscard]] virtual bool clearUnread(const QString &conversationId, QString *errorMessage) = 0;
+
     /**
      * @brief 持久化消息。
      * @param message 待保存的消息。
      * @param[out] errorMessage 失败时接收错误说明。
      * @return 保存成功时返回 @c true。
      */
-    [[nodiscard]] virtual bool saveMessage(const Domain::Message &message,
-                                           QString *errorMessage) = 0;
+    [[nodiscard]] virtual bool saveMessage(const Domain::Message &message, QString *errorMessage) = 0;
+
     /**
      * @brief 更新消息投递状态。
      * @param conversationId 会话标识。
@@ -146,11 +137,9 @@ public:
      * @param[out] errorMessage 失败时接收错误说明。
      * @return 更新成功时返回 @c true。
      */
-    [[nodiscard]] virtual bool updateMessageState(
-        const QString &conversationId,
-        const QString &messageId,
-        Domain::DeliveryState state,
-        QString *errorMessage) = 0;
+    [[nodiscard]] virtual bool
+    updateMessageState(const QString &conversationId, const QString &messageId, Domain::DeliveryState state, QString *errorMessage) = 0;
+
     /**
      * @brief 更新文件消息进度、状态与可选路径。
      * @param conversationId 会话标识。
@@ -161,22 +150,20 @@ public:
      * @param[out] errorMessage 失败时接收错误说明。
      * @return 更新成功时返回 @c true。
      */
-    [[nodiscard]] virtual bool updateFileTransfer(
-        const QString &conversationId,
-        const QString &messageId,
-        qreal progress,
-        Domain::DeliveryState state,
-        const QString &filePath,
-        QString *errorMessage) = 0;
+    [[nodiscard]] virtual bool updateFileTransfer(const QString &conversationId,
+                                                  const QString &messageId,
+                                                  qreal progress,
+                                                  Domain::DeliveryState state,
+                                                  const QString &filePath,
+                                                  QString *errorMessage) = 0;
+
     /**
      * @brief 新增或更新逐成员投递记录。
      * @param delivery 待保存的投递记录。
      * @param[out] errorMessage 失败时接收错误说明。
      * @return 保存成功时返回 @c true。
      */
-    [[nodiscard]] virtual bool saveDelivery(
-        const Domain::MessageDelivery &delivery,
-        QString *errorMessage) = 0;
+    [[nodiscard]] virtual bool saveDelivery(const Domain::MessageDelivery &delivery, QString *errorMessage) = 0;
 };
 
 #endif // ICHATREPOSITORY_H

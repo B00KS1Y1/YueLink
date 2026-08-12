@@ -19,104 +19,116 @@
 namespace Domain
 {
 
+/**
+ * @brief 会话类型。
+ */
 enum class ConversationKind
 {
-    Direct,
-    Group
+    Direct, ///< 直接会话。
+    Group   ///< 群组会话。
 };
 
+/**
+ * @brief 消息类型。
+ */
 enum class MessageKind
 {
-    Text,
-    File
+    Text, ///< 文本消息。
+    File  ///< 文件消息。
 };
 
+/**
+ * @brief 投递状态。
+ */
 enum class DeliveryState
 {
-    Pending,
-    Sending,
-    Sent,
-    Partial,
-    Received,
-    Transferring,
-    Receiving,
-    Cancelled,
-    Failed
+    Pending,      ///< 等待发送或重试。
+    Sending,      ///< 发送中。
+    Sent,         ///< 已发送。
+    Partial,      ///< 部分送达。
+    Received,     ///< 已接收。
+    Transferring, ///< 文件发送中。
+    Receiving,    ///< 文件接收中。
+    Cancelled,    ///< 已取消。
+    Failed        ///< 已失败。
 };
 
+/**
+ * @brief 群成员角色。
+ */
 enum class GroupRole
 {
-    Owner,
-    Member
+    Owner, ///< 群主。
+    Member ///< 普通群成员。
 };
 
 struct Peer
 {
-    Network::PeerEndpoint endpoint;
-    bool online = false;
+    Network::PeerEndpoint endpoint; ///< 联系人网络端点。
+    bool online = false;            ///< 是否在线。
 };
 
 struct Conversation
 {
-    QString conversationId;
-    ConversationKind kind = ConversationKind::Direct;
-    QString peerId;
-    QString title;
-    QString lastMessage;
-    QDateTime lastActivity;
-    int unreadCount = 0;
-    int memberCount = 0;
+    QString conversationId;                           ///< 会话标识。
+    ConversationKind kind = ConversationKind::Direct; ///< 会话类型。
+    QString peerId;                                   ///< 联系人标识；群聊时为空。
+    QString title;                                    ///< 会话标题。
+    QString lastMessage;                              ///< 最后一条消息摘要。
+    QDateTime lastActivity;                           ///< 最近活动时间。
+    int unreadCount = 0;                              ///< 未读消息数。
+    int memberCount = 0;                              ///< 会话成员数。
 };
 
 struct GroupMember
 {
-    QString peerId;
-    QString displayName;
-    GroupRole role = GroupRole::Member;
+    QString peerId;                     ///< 成员设备标识。
+    QString displayName;                ///< 成员显示名称。
+    GroupRole role = GroupRole::Member; ///< 成员角色。
 };
 
 struct Group
 {
-    QString groupId;
-    QString name;
-    QString ownerId;
-    quint64 revision = 1;
-    QDateTime createdAt;
-    QList<GroupMember> members;
+    QString groupId;            ///< 群组标识。
+    QString name;               ///< 群组名称。
+    QString ownerId;            ///< 群主设备标识。
+    quint64 revision = 1;       ///< 群组版本号。
+    QDateTime createdAt;        ///< 创建时间。
+    QList<GroupMember> members; ///< 群成员列表。
 };
 
 struct Message
 {
-    QString messageId;
-    QString conversationId;
-    QString senderId;
-    QString text;
-    QDateTime timestamp;
-    DeliveryState deliveryState = DeliveryState::Received;
-    MessageKind kind = MessageKind::Text;
-    QString fileName;
-    QString filePath;
-    QString legacyFileSizeText;
-    qint64 fileSize = 0;
-    qreal fileProgress = 0.0;
+    QString messageId;                                     ///< 消息标识。
+    QString conversationId;                                ///< 所属会话标识。
+    QString senderId;                                      ///< 发送方设备标识。
+    QString text;                                          ///< 文本内容。
+    QDateTime timestamp;                                   ///< 消息时间。
+    DeliveryState deliveryState = DeliveryState::Received; ///< 投递状态。
+    MessageKind kind = MessageKind::Text;                  ///< 消息类型。
+    QString fileName;                                      ///< 文件名。
+    QString filePath;                                      ///< 本地文件路径。
+    QString legacyFileSizeText;                            ///< 旧版文件大小文本。
+    qint64 fileSize = 0;                                   ///< 文件大小（字节）。
+    qreal fileProgress = 0.0;                              ///< 文件进度，范围为 0.0～1.0。
 };
 
 struct MessageDelivery
 {
-    QString messageId;
-    QString conversationId;
-    QString recipientId;
-    DeliveryState state = DeliveryState::Pending;
-    QString errorMessage;
-    QDateTime lastAttempt;
+    QString messageId;                            ///< 消息标识。
+    QString conversationId;                       ///< 会话标识。
+    QString recipientId;                          ///< 接收方设备标识。
+    DeliveryState state = DeliveryState::Pending; ///< 投递状态。
+    QString errorMessage;                         ///< 错误信息。
+    QDateTime lastAttempt;                        ///< 最近尝试时间。
 };
 
 struct OperationResult
 {
-    bool succeeded = true;
-    QString code;
-    QString message;
-    QString value;
+    bool succeeded = true; ///< 是否成功。
+    QString code;          ///< 错误码。
+    QString message;       ///< 错误信息。
+    QString value;         ///< 返回值。
 
     /**
      * @brief 判断操作是否成功完成。

@@ -36,27 +36,34 @@ public:
      * @return 节点发现启动成功时返回 @c true。
      */
     [[nodiscard]] virtual bool start(const Network::LocalIdentity &identity, quint16 tcpPort) = 0;
+
     /** @brief 停止节点发现，并在条件允许时发送离线通知。 */
     virtual void stop() = 0;
+
     /**
      * @brief 更新后续广播中携带的本地身份。
      * @param identity 新的本地身份。
      */
     virtual void updateIdentity(const Network::LocalIdentity &identity) = 0;
+
     /** @brief 立即发送一次在线广播。 */
     virtual void announce() = 0;
+
     /** @brief 广播一次发现请求，并请求在线节点立即单播回应。*/
     virtual void probe() = 0;
+
     /**
      * @brief 刷新指定节点的最近活动时间。
      * @param peerId 待刷新的节点标识。
      */
     virtual void recordPeerActivity(const QString &peerId) = 0;
+
     /**
      * @brief 返回节点发现服务是否正在运行。
      * @return 节点发现服务正在运行时返回 @c true。
      */
     [[nodiscard]] virtual bool isRunning() const = 0;
+
     /**
      * @brief 返回最近一次节点发现错误。
      * @return 最近错误文本；没有错误时返回空字符串。
@@ -69,11 +76,13 @@ signals:
      * @param peer 已发现或刷新的节点信息。
      */
     void peerFound(const Network::PeerEndpoint &peer);
+
     /**
      * @brief 节点离线或超时时发出。
      * @param peerId 离线节点的标识。
      */
     void peerLost(const QString &peerId);
+
     /**
      * @brief 节点发现过程中发生运行错误时发出。
      * @param message 错误说明。
