@@ -18,21 +18,11 @@ HusWindow {
     property int selectedConversationOnlineCount: 0
     property string activePanel: ""
     property string currentPage: "messages"
-    readonly property color glassPanelColor: HusThemeFunctions.alpha(
-                                                  HusTheme.Primary.colorBgContainer,
-                                                  HusTheme.isDark ? 0.68 : 0.76)
-    readonly property color glassPanelStrongColor: HusThemeFunctions.alpha(
-                                                        HusTheme.Primary.colorBgContainer,
-                                                        HusTheme.isDark ? 0.78 : 0.84)
-    readonly property color navigationActiveBackgroundColor: HusTheme.Primary.colorPrimary
-    readonly property color navigationHoverBackgroundColor: HusThemeFunctions.alpha(
-                                                                 HusTheme.Primary.colorPrimary,
-                                                                 HusTheme.isDark ? 0.12 : 0.08)
-    readonly property color navigationActiveTextColor: {
-        const primary = Qt.color(AppSettings.primaryColor);
-        const luminance = primary.r * 0.299 + primary.g * 0.587 + primary.b * 0.114;
-        return luminance > 0.55 ? "#1F1F1F" : "#FFFFFF";
-    }
+    readonly property color navigationActiveBackgroundColor: AppTheme.accentSoftStrong
+    readonly property color navigationHoverBackgroundColor: AppTheme.hover
+    readonly property color navigationActiveTextColor: AppTheme.dark
+                                                        ? AppTheme.accent
+                                                        : AppTheme.textPrimary
     readonly property var navigationMenuTheme: Object.assign({}, HusTheme.HusMenu, {
                                                                   colorTextActive: navigationActiveTextColor,
                                                                   colorBgActive: navigationActiveBackgroundColor,
@@ -68,8 +58,8 @@ HusWindow {
                                                                Math.max(280,
                                                                         width * 0.26)))
 
-    captionBar.height: 52
-    captionBar.color: "transparent"
+    captionBar.height: 56
+    captionBar.color: AppTheme.canvas
     captionBar.showWinIcon: false
     captionBar.winTitle: qsTr("YueLink")
     captionBar.winTitleDelegate: Item {
@@ -95,10 +85,12 @@ HusWindow {
 
                 Rectangle {
                     anchors.fill: parent
-                    radius: 6
+                    radius: AppTheme.radiusSmall
                     color: appBrandMouseArea.containsMouse
-                           ? HusTheme.Primary.colorFillTertiary
+                           ? AppTheme.hover
                            : "transparent"
+                    border.width: appBrandMouseArea.activeFocus ? 1 : 0
+                    border.color: AppTheme.accent
                     Accessible.ignored: true
                 }
 
@@ -122,7 +114,7 @@ HusWindow {
                     HusText {
                         anchors.verticalCenter: parent.verticalCenter
                         text: qsTr("YueLink")
-                        color: HusTheme.Primary.colorTextBase
+                        color: AppTheme.textPrimary
                         font.pixelSize: HusTheme.Primary.fontPrimarySizeHeading5
                         font.weight: Font.Medium
                     }
@@ -147,7 +139,7 @@ HusWindow {
                 width: 1
                 height: 22
                 anchors.verticalCenter: parent.verticalCenter
-                color: HusTheme.Primary.colorBorderSecondary
+                color: AppTheme.divider
                 Accessible.ignored: true
             }
 
@@ -334,7 +326,7 @@ HusWindow {
     title: LanChat.totalUnreadCount > 0
            ? qsTr("YueLink（%1 条未读）").arg(LanChat.totalUnreadCount)
            : qsTr("YueLink")
-    color: HusTheme.Primary.colorBgBase
+    color: AppTheme.canvas
 
     onActiveChanged: {
         if (active && selectedConversationId.length > 0)
@@ -345,26 +337,18 @@ HusWindow {
         id: applicationBackground
 
         anchors.fill: parent
-        color: HusTheme.Primary.colorBgBase
+        color: AppTheme.canvas
         Accessible.ignored: true
-        gradient: Gradient {
-            GradientStop {
-                position: 0
-                color: HusThemeFunctions.alpha(HusTheme.Primary.colorPrimary,
-                                               HusTheme.isDark ? 0.26 : 0.12)
-            }
+    }
 
-            GradientStop {
-                position: 0.52
-                color: HusTheme.Primary.colorBgBase
-            }
-
-            GradientStop {
-                position: 1
-                color: HusThemeFunctions.alpha(HusTheme.Primary.colorInfo,
-                                               HusTheme.isDark ? 0.2 : 0.08)
-            }
-        }
+    Rectangle {
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.topMargin: root.captionBar.height - 1
+        height: 1
+        color: AppTheme.divider
+        Accessible.ignored: true
     }
 
     Item {
@@ -381,10 +365,10 @@ HusWindow {
             anchors.topMargin: 12
             anchors.bottomMargin: 12
             width: root.navigationWidth
-            radius: 16
-            color: root.glassPanelStrongColor
+            radius: AppTheme.radiusLarge
+            color: AppTheme.navigationSurface
             border.width: 1
-            border.color: HusTheme.Primary.colorBorderSecondary
+            border.color: AppTheme.border
 
             HusMenu {
                 id: primaryNavigation
@@ -477,10 +461,10 @@ HusWindow {
             anchors.topMargin: 12
             anchors.bottomMargin: 12
             width: root.conversationListWidth
-            radius: 16
-            color: root.glassPanelColor
+            radius: AppTheme.radiusLarge
+            color: AppTheme.surface
             border.width: 1
-            border.color: HusTheme.Primary.colorBorderSecondary
+            border.color: AppTheme.border
 
             FriendListPanel {
                 id: friendList
@@ -508,10 +492,10 @@ HusWindow {
             anchors.rightMargin: 12
             anchors.topMargin: 12
             anchors.bottomMargin: 12
-            radius: 16
-            color: root.glassPanelColor
+            radius: AppTheme.radiusLarge
+            color: AppTheme.surfaceSubtle
             border.width: 1
-            border.color: HusTheme.Primary.colorBorderSecondary
+            border.color: AppTheme.border
 
             ChatContent {
                 id: chatContent
@@ -654,7 +638,7 @@ HusWindow {
                         anchors.leftMargin: 24
                         anchors.topMargin: 18
                         text: qsTr("编辑个人资料")
-                        color: HusTheme.Primary.colorTextBase
+                        color: AppTheme.textPrimary
                         font.pixelSize: HusTheme.Primary.fontPrimarySizeHeading4
                         font.weight: Font.Medium
                     }

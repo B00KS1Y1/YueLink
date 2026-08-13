@@ -14,7 +14,7 @@ Column {
     HusText {
         width: parent.width
         text: qsTr("文件：%1\n%2").arg(root.fileName).arg(root.fileSizeText)
-        color: HusTheme.Primary.colorTextBase
+        color: AppTheme.textPrimary
         wrapMode: Text.Wrap
         font.pixelSize: HusTheme.Primary.fontPrimarySize
     }
@@ -23,7 +23,7 @@ Column {
         width: parent.width
         height: 4
         radius: 2
-        color: HusTheme.Primary.colorFillSecondary
+        color: AppTheme.borderStrong
 
         Rectangle {
             anchors.left: parent.left
@@ -32,10 +32,10 @@ Column {
             width: parent.width * Math.max(0, Math.min(1, root.progress))
             radius: parent.radius
             color: root.deliveryStatus === "failed"
-                   ? "#D84A4A"
+                   ? AppTheme.error
                    : root.deliveryStatus === "cancelled"
-                     ? HusTheme.Primary.colorTextTertiary
-                     : HusTheme.Primary.colorPrimary
+                     ? AppTheme.textTertiary
+                     : AppTheme.accent
         }
     }
 }

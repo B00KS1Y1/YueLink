@@ -54,21 +54,20 @@ Item {
                     width: 64
                     height: 64
                     radius: 20
-                    color: HusThemeFunctions.alpha(HusTheme.Primary.colorPrimary,
-                                                   HusTheme.isDark ? 0.2 : 0.12)
+                    color: AppTheme.accentSoft
 
                     HusIconText {
                         anchors.centerIn: parent
                         iconSource: HusIcon.TeamOutlined
                         iconSize: 28
-                        colorIcon: HusTheme.Primary.colorPrimary
+                        colorIcon: AppTheme.accent
                     }
                 }
 
                 HusText {
                     width: parent.width
                     text: root.groupTitle
-                    color: HusTheme.Primary.colorTextBase
+                    color: AppTheme.textPrimary
                     horizontalAlignment: Text.AlignHCenter
                     elide: Text.ElideRight
                     font.pixelSize: HusTheme.Primary.fontPrimarySizeHeading4
@@ -78,7 +77,7 @@ Item {
                 HusText {
                     width: parent.width
                     text: qsTr("%1 位成员").arg(root.members.length)
-                    color: HusTheme.Primary.colorTextTertiary
+                    color: AppTheme.textTertiary
                     horizontalAlignment: Text.AlignHCenter
                     font.pixelSize: HusTheme.Primary.fontPrimarySize
                 }
@@ -94,7 +93,7 @@ Item {
                 anchors.rightMargin: 22
                 anchors.topMargin: 24
                 text: qsTr("群成员")
-                color: HusTheme.Primary.colorTextSecondary
+                color: AppTheme.textSecondary
                 font.pixelSize: HusTheme.Primary.fontPrimarySize
                 font.weight: Font.Medium
             }
@@ -156,7 +155,7 @@ Item {
                                   ? qsTr("%1（我）")
                                         .arg(memberDelegate.modelData.displayName)
                                   : memberDelegate.modelData.displayName
-                            color: HusTheme.Primary.colorTextBase
+                            color: AppTheme.textPrimary
                             elide: Text.ElideRight
                             font.pixelSize: HusTheme.Primary.fontPrimarySize
                             font.weight: Font.Medium
@@ -170,8 +169,8 @@ Item {
                                     ? qsTr("在线")
                                     : qsTr("离线")
                             color: memberDelegate.modelData.owner
-                                   ? HusTheme.Primary.colorPrimary
-                                   : HusTheme.Primary.colorTextTertiary
+                                   ? AppTheme.accent
+                                   : AppTheme.textTertiary
                             font.pixelSize: Math.max(11,
                                                      HusTheme.Primary.fontPrimarySize - 1)
                         }
@@ -189,7 +188,7 @@ Item {
                 anchors.rightMargin: 22
                 anchors.bottomMargin: 22
                 text: qsTr("开发阶段暂仅支持查看成员，成员管理将在后续版本开放。")
-                color: HusTheme.Primary.colorTextTertiary
+                color: AppTheme.textTertiary
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.Wrap
                 font.pixelSize: HusTheme.Primary.fontPrimarySize

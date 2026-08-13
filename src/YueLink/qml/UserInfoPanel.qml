@@ -33,8 +33,8 @@ Item {
                     anchors.fill: parent
                     radius: width * 0.5
                     color: "transparent"
-                    border.width: 1
-                    border.color: HusTheme.Primary.colorPrimary
+                    border.width: localProfileMouse.activeFocus ? 2 : 1
+                    border.color: AppTheme.accent
                     Accessible.ignored: true
                 }
 
@@ -47,6 +47,8 @@ Item {
             }
 
             MouseArea {
+                id: localProfileMouse
+
                 anchors.fill: parent
                 activeFocusOnTab: true
                 hoverEnabled: true
@@ -67,7 +69,7 @@ Item {
             HusText {
                 width: parent.width
                 text: LanChat.localName
-                color: HusTheme.Primary.colorTextBase
+                color: AppTheme.textPrimary
                 elide: Text.ElideRight
                 font.pixelSize: HusTheme.Primary.fontPrimarySize
                 font.weight: Font.Medium
@@ -78,7 +80,7 @@ Item {
                 text: LanChat.running
                       ? qsTr("在线 · YueLink")
                       : qsTr("网络服务未启动")
-                color: HusTheme.Primary.colorTextTertiary
+                color: LanChat.running ? AppTheme.success : AppTheme.textTertiary
                 elide: Text.ElideRight
                 font.pixelSize: Math.max(11, HusTheme.Primary.fontPrimarySize - 2)
             }

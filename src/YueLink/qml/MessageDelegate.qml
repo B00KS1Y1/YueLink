@@ -72,16 +72,16 @@ Item {
     ListView.onPooled: contentLoader.active = false
     ListView.onReused: contentLoader.active = true
 
-    implicitHeight: Math.max(messageAvatar.height, messageBody.height) + 14
+    implicitHeight: Math.max(messageAvatar.height, messageBody.height) + 16
     height: implicitHeight
 
     HusAvatar {
         id: messageAvatar
 
         x: root.fromMe ? root.width - width : 0
-        width: 36
-        height: 36
-        size: 36
+        width: 34
+        height: 34
+        size: 34
         textSource: root.senderInitial
         colorBg: root.senderColor
         textSize: HusAvatar.Size_Auto
@@ -103,7 +103,7 @@ Item {
             width: parent.width
             visible: root.conversationKind === "group" && !root.fromMe
             text: root.senderName
-            color: HusTheme.Primary.colorTextSecondary
+            color: AppTheme.textSecondary
             elide: Text.ElideRight
             font.pixelSize: Math.max(11, HusTheme.Primary.fontPrimarySize - 1)
             font.weight: Font.Medium
@@ -112,10 +112,12 @@ Item {
         Rectangle {
             width: parent.width
             implicitHeight: contentLoader.implicitHeight + 20
-            radius: 14
-            color: root.fromMe ? HusTheme.Primary.colorPrimaryBg : root.bubbleColor
-            border.width: root.fromMe ? 0 : 1
-            border.color: HusTheme.Primary.colorBorderSecondary
+            radius: AppTheme.radiusLarge
+            color: root.fromMe ? AppTheme.accentSoftStrong : root.bubbleColor
+            border.width: 1
+            border.color: root.fromMe
+                          ? HusThemeFunctions.alpha(AppTheme.accent, 0.45)
+                          : AppTheme.border
 
             Loader {
                 id: contentLoader
@@ -136,10 +138,10 @@ Item {
             width: parent.width
             text: root.deliverySummary()
             color: root.deliveryStatus === "failed"
-                   ? "#D84A4A"
-                   : HusTheme.Primary.colorTextTertiary
+                   ? AppTheme.error
+                   : AppTheme.textTertiary
             horizontalAlignment: root.fromMe ? Text.AlignRight : Text.AlignLeft
-            font.pixelSize: HusTheme.Primary.fontPrimarySize
+            font.pixelSize: Math.max(12, HusTheme.Primary.fontPrimarySize - 2)
         }
 
         Row {

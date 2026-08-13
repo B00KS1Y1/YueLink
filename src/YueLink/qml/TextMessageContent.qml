@@ -7,7 +7,7 @@ HusCopyableText {
     required property string messageText
 
     text: root.messageText
-    color: HusTheme.Primary.colorTextBase
+    color: AppTheme.textPrimary
     wrapMode: Text.Wrap
     font.pixelSize: HusTheme.Primary.fontPrimarySize
 }

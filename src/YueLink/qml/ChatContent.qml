@@ -18,12 +18,8 @@ Item {
     property int onlineCount: 0
     property bool searchOpen: false
     readonly property string messageSearchKeyword: LanChat.messageSearchText.trim()
-    readonly property color headerSurfaceColor: HusThemeFunctions.alpha(
-                                                      HusTheme.Primary.colorBgContainer,
-                                                      HusTheme.isDark ? 0.7 : 0.78)
-    readonly property color messageBubbleColor: HusThemeFunctions.alpha(
-                                                     HusTheme.Primary.colorBgContainer,
-                                                     HusTheme.isDark ? 0.84 : 0.92)
+    readonly property color headerSurfaceColor: AppTheme.surface
+    readonly property color messageBubbleColor: AppTheme.surfaceElevated
 
     signal cancelFileRequested(string messageId)
     signal acceptFileRequested(string messageId)
@@ -68,10 +64,11 @@ Item {
         anchors.leftMargin: 10
         anchors.rightMargin: 10
         anchors.topMargin: 10
-        height: 76
-        radius: 14
+        height: 72
+        radius: AppTheme.radiusMedium
         color: root.headerSurfaceColor
-        border.width: 0
+        border.width: 1
+        border.color: AppTheme.border
 
         Row {
             id: friendSummary
@@ -106,7 +103,7 @@ Item {
                 HusText {
                     width: parent.width
                     text: root.conversationTitle
-                    color: HusTheme.Primary.colorTextBase
+                    color: AppTheme.textPrimary
                     elide: Text.ElideRight
                     font.pixelSize: HusTheme.Primary.fontPrimarySizeHeading5
                     font.weight: Font.Medium
@@ -115,7 +112,7 @@ Item {
                 HusText {
                     width: parent.width
                     text: root.conversationStatus
-                    color: HusTheme.Primary.colorTextSecondary
+                    color: AppTheme.textSecondary
                     elide: Text.ElideRight
                     font.pixelSize: HusTheme.Primary.fontPrimarySize
                 }
@@ -180,10 +177,10 @@ Item {
         Rectangle {
             id: searchPanel
 
-            radius: 12
+            radius: AppTheme.radiusMedium
             color: root.headerSurfaceColor
             border.width: 1
-            border.color: HusTheme.Primary.colorBorderSecondary
+            border.color: AppTheme.border
 
             function focusInput(): void {
                 messageSearchInput.forceActiveFocus();
@@ -228,7 +225,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 width: 74
                 text: qsTr("%1 条结果").arg(messageList.count)
-                color: HusTheme.Primary.colorTextTertiary
+                color: AppTheme.textTertiary
                 horizontalAlignment: Text.AlignRight
                 font.pixelSize: HusTheme.Primary.fontPrimarySize
             }
@@ -247,7 +244,7 @@ Item {
         anchors.topMargin: 12
         anchors.bottomMargin: 10
         model: LanChat.messages
-        spacing: 8
+        spacing: 10
         boundsBehavior: Flickable.StopAtBounds
         reuseItems: true
         clip: true
@@ -281,10 +278,9 @@ Item {
             width: 64
             height: 64
             radius: 20
-            color: HusThemeFunctions.alpha(HusTheme.Primary.colorPrimary,
-                                           HusTheme.isDark ? 0.2 : 0.12)
+            color: AppTheme.accentSoft
             border.width: 1
-            border.color: HusTheme.Primary.colorBorderSecondary
+            border.color: AppTheme.border
             Accessible.ignored: true
 
             HusIconText {
@@ -293,7 +289,7 @@ Item {
                             ? HusIcon.MessageOutlined
                             : HusIcon.ContactsOutlined
                 iconSize: 28
-                colorIcon: HusTheme.Primary.colorPrimary
+                colorIcon: AppTheme.accent
             }
         }
 
@@ -304,7 +300,7 @@ Item {
                     ? qsTr("没有找到消息")
                     : qsTr("开始聊天")
                   : qsTr("发现身边的好友")
-            color: HusTheme.Primary.colorTextBase
+            color: AppTheme.textPrimary
             horizontalAlignment: Text.AlignHCenter
             font.pixelSize: HusTheme.Primary.fontPrimarySizeHeading5
             font.weight: Font.Medium
@@ -317,7 +313,7 @@ Item {
                     ? qsTr("没有找到与“%1”匹配的消息").arg(root.messageSearchKeyword)
                     : qsTr("还没有消息，发一句问候吧")
                   : qsTr("从左侧选择联系人或群聊，即可开始聊天")
-            color: HusTheme.Primary.colorTextTertiary
+            color: AppTheme.textSecondary
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.Wrap
             font.pixelSize: HusTheme.Primary.fontPrimarySize

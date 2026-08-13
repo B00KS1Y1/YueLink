@@ -138,10 +138,10 @@ Item {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: appearanceLayout.implicitHeight + 40
-                radius: 12
-                color: HusTheme.Primary.colorBgContainer
+                radius: AppTheme.radiusMedium
+                color: AppTheme.surfaceElevated
                 border.width: 1
-                border.color: HusTheme.Primary.colorBorderSecondary
+                border.color: AppTheme.border
 
                 ColumnLayout {
                     id: appearanceLayout
@@ -153,7 +153,7 @@ Item {
                     HusText {
                         Layout.fillWidth: true
                         text: qsTr("外观与体验")
-                        color: HusTheme.Primary.colorTextBase
+                        color: AppTheme.textPrimary
                         font.pixelSize: HusTheme.Primary.fontPrimarySizeHeading4
                         font.weight: Font.Medium
                     }
@@ -165,7 +165,7 @@ Item {
                         HusText {
                             Layout.fillWidth: true
                             text: qsTr("导航布局")
-                            color: HusTheme.Primary.colorTextBase
+                            color: AppTheme.textPrimary
                             font.pixelSize: HusTheme.Primary.fontPrimarySize
                             font.weight: Font.Medium
                         }
@@ -192,7 +192,7 @@ Item {
                         HusText {
                             Layout.fillWidth: true
                             text: qsTr("主题模式")
-                            color: HusTheme.Primary.colorTextBase
+                            color: AppTheme.textPrimary
                             font.pixelSize: HusTheme.Primary.fontPrimarySize
                             font.weight: Font.Medium
                         }
@@ -219,7 +219,7 @@ Item {
                         HusText {
                             Layout.fillWidth: true
                             text: qsTr("主题色")
-                            color: HusTheme.Primary.colorTextBase
+                            color: AppTheme.textPrimary
                             font.pixelSize: HusTheme.Primary.fontPrimarySize
                             font.weight: Font.Medium
                         }
@@ -245,7 +245,7 @@ Item {
                         HusText {
                             Layout.fillWidth: true
                             text: qsTr("界面动画")
-                            color: HusTheme.Primary.colorTextBase
+                            color: AppTheme.textPrimary
                             font.pixelSize: HusTheme.Primary.fontPrimarySize
                             font.weight: Font.Medium
                         }
@@ -264,10 +264,10 @@ Item {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: notificationLayout.implicitHeight + 40
-                radius: 12
-                color: HusTheme.Primary.colorBgContainer
+                radius: AppTheme.radiusMedium
+                color: AppTheme.surfaceElevated
                 border.width: 1
-                border.color: HusTheme.Primary.colorBorderSecondary
+                border.color: AppTheme.border
 
                 ColumnLayout {
                     id: notificationLayout
@@ -279,7 +279,7 @@ Item {
                     HusText {
                         Layout.fillWidth: true
                         text: qsTr("消息通知")
-                        color: HusTheme.Primary.colorTextBase
+                        color: AppTheme.textPrimary
                         font.pixelSize: HusTheme.Primary.fontPrimarySizeHeading4
                         font.weight: Font.Medium
                     }
@@ -291,7 +291,7 @@ Item {
                         HusText {
                             Layout.fillWidth: true
                             text: qsTr("系统通知")
-                            color: HusTheme.Primary.colorTextBase
+                            color: AppTheme.textPrimary
                             font.pixelSize: HusTheme.Primary.fontPrimarySize
                             font.weight: Font.Medium
                         }
@@ -310,10 +310,10 @@ Item {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: diagnosticsLayout.implicitHeight + 40
-                radius: 12
-                color: HusTheme.Primary.colorBgContainer
+                radius: AppTheme.radiusMedium
+                color: AppTheme.surfaceElevated
                 border.width: 1
-                border.color: HusTheme.Primary.colorBorderSecondary
+                border.color: AppTheme.border
 
                 ColumnLayout {
                     id: diagnosticsLayout
@@ -325,7 +325,7 @@ Item {
                     HusText {
                         Layout.fillWidth: true
                         text: qsTr("诊断日志")
-                        color: HusTheme.Primary.colorTextBase
+                        color: AppTheme.textPrimary
                         font.pixelSize: HusTheme.Primary.fontPrimarySizeHeading4
                         font.weight: Font.Medium
                     }
@@ -337,7 +337,7 @@ Item {
                         HusText {
                             Layout.fillWidth: true
                             text: qsTr("日志级别")
-                            color: HusTheme.Primary.colorTextBase
+                            color: AppTheme.textPrimary
                             font.pixelSize: HusTheme.Primary.fontPrimarySize
                             font.weight: Font.Medium
                         }
@@ -368,7 +368,7 @@ Item {
                         HusText {
                             Layout.preferredWidth: 112
                             text: qsTr("日志文件路径")
-                            color: HusTheme.Primary.colorTextBase
+                            color: AppTheme.textPrimary
                             font.pixelSize: HusTheme.Primary.fontPrimarySize
                             font.weight: Font.Medium
                         }
@@ -405,7 +405,7 @@ Item {
                             HusText {
                                 Layout.fillWidth: true
                                 text: qsTr("记录源码位置")
-                                color: HusTheme.Primary.colorTextBase
+                                color: AppTheme.textPrimary
                                 font.pixelSize: HusTheme.Primary.fontPrimarySize
                                 font.weight: Font.Medium
                             }
@@ -431,7 +431,7 @@ Item {
                             HusText {
                                 Layout.fillWidth: true
                                 text: qsTr("独立线程写入")
-                                color: HusTheme.Primary.colorTextBase
+                                color: AppTheme.textPrimary
                                 font.pixelSize: HusTheme.Primary.fontPrimarySize
                                 font.weight: Font.Medium
                             }
@@ -452,10 +452,10 @@ Item {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: downloadLayout.implicitHeight + 40
-                radius: 12
-                color: HusTheme.Primary.colorBgContainer
+                radius: AppTheme.radiusMedium
+                color: AppTheme.surfaceElevated
                 border.width: 1
-                border.color: HusTheme.Primary.colorBorderSecondary
+                border.color: AppTheme.border
 
                 ColumnLayout {
                     id: downloadLayout
@@ -467,7 +467,7 @@ Item {
                     HusText {
                         Layout.fillWidth: true
                         text: qsTr("文件接收")
-                        color: HusTheme.Primary.colorTextBase
+                        color: AppTheme.textPrimary
                         font.pixelSize: HusTheme.Primary.fontPrimarySizeHeading4
                         font.weight: Font.Medium
                     }
@@ -479,7 +479,7 @@ Item {
                         HusText {
                             Layout.preferredWidth: 112
                             text: qsTr("下载目录")
-                            color: HusTheme.Primary.colorTextBase
+                            color: AppTheme.textPrimary
                             font.pixelSize: HusTheme.Primary.fontPrimarySize
                             font.weight: Font.Medium
                         }
@@ -516,9 +516,9 @@ Item {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         height: 72
-        color: HusTheme.Primary.colorBgContainer
+        color: AppTheme.surface
         border.width: 1
-        border.color: HusTheme.Primary.colorBorderSecondary
+        border.color: AppTheme.border
 
         RowLayout {
             anchors.fill: parent

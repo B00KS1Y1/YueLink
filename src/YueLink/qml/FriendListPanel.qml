@@ -23,21 +23,21 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        height: 62
+        height: 68
 
         RowLayout {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            anchors.leftMargin: 16
-            anchors.rightMargin: 16
+            anchors.leftMargin: 14
+            anchors.rightMargin: 14
             spacing: 8
 
             HusInput {
                 id: searchInput
 
                 Layout.fillWidth: true
-                Layout.preferredHeight: 40
+                Layout.preferredHeight: 42
                 iconSource: HusIcon.SearchOutlined
                 iconSize: 16
                 iconPosition: HusInput.Position_Left
@@ -62,8 +62,8 @@ Item {
             HusIconButton {
                 id: quickActionsButton
 
-                Layout.preferredWidth: 40
-                Layout.preferredHeight: 40
+                Layout.preferredWidth: 42
+                Layout.preferredHeight: 42
                 visible: !root.contactsMode
                 padding: 0
                 type: HusButton.Type_Filled
@@ -105,14 +105,14 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: searchSection.bottom
-        height: 40
+        height: 38
 
         HusText {
             anchors.left: parent.left
             anchors.leftMargin: 16
             anchors.verticalCenter: parent.verticalCenter
             text: root.contactsMode ? qsTr("联系人") : qsTr("消息")
-            color: HusTheme.Primary.colorTextBase
+            color: AppTheme.textPrimary
             font.pixelSize: HusTheme.Primary.fontPrimarySize
             font.weight: Font.Medium
         }
@@ -126,7 +126,7 @@ Item {
                         .arg(LanChat.totalUnreadCount)
                         .arg(LanChat.onlineCount)
                   : qsTr("%1 在线").arg(LanChat.onlineCount)
-            color: HusTheme.Primary.colorTextTertiary
+            color: AppTheme.textTertiary
             font.pixelSize: Math.max(11, HusTheme.Primary.fontPrimarySize - 1)
         }
 
@@ -137,7 +137,7 @@ Item {
             anchors.leftMargin: 16
             anchors.rightMargin: 16
             height: 1
-            color: HusTheme.Primary.colorBorderSecondary
+            color: AppTheme.divider
             Accessible.ignored: true
         }
     }
@@ -180,20 +180,19 @@ Item {
                                              === conversationDelegate.itemId
 
             width: conversationList.width
-            height: 76
+            height: 74
 
             Rectangle {
                 anchors.fill: parent
                 anchors.margins: 4
-                radius: 12
+                radius: AppTheme.radiusMedium
                 color: conversationDelegate.selected
-                       ? HusThemeFunctions.alpha(HusTheme.Primary.colorPrimary,
-                                                 HusTheme.isDark ? 0.2 : 0.12)
+                       ? AppTheme.accentSoftStrong
                        : conversationMouse.containsMouse
-                         ? HusTheme.Primary.colorFillTertiary
+                         ? AppTheme.hover
                          : "transparent"
                 border.width: conversationMouse.activeFocus ? 1 : 0
-                border.color: HusTheme.Primary.colorPrimary
+                border.color: AppTheme.accent
 
                 Behavior on color {
                     enabled: HusTheme.animationEnabled
@@ -211,7 +210,7 @@ Item {
                 height: 28
                 radius: width * 0.5
                 visible: conversationDelegate.selected
-                color: HusTheme.Primary.colorPrimary
+                color: AppTheme.accent
                 Accessible.ignored: true
             }
 
@@ -221,7 +220,7 @@ Item {
                 anchors.left: parent.left
                 anchors.leftMargin: 14
                 anchors.verticalCenter: parent.verticalCenter
-                size: 44
+                size: 42
                 textSource: conversationDelegate.initial
                 colorBg: conversationDelegate.avatarColor
                 textSize: HusAvatar.Size_Auto
@@ -241,14 +240,12 @@ Item {
                 anchors.leftMargin: 12
                 anchors.rightMargin: 10
                 anchors.verticalCenter: parent.verticalCenter
-                spacing: 6
+                spacing: 4
 
                 HusText {
                     width: parent.width
                     text: conversationDelegate.title
-                    color: conversationDelegate.selected
-                           ? HusTheme.Primary.colorPrimary
-                           : HusTheme.Primary.colorTextBase
+                    color: AppTheme.textPrimary
                     elide: Text.ElideRight
                     font.pixelSize: HusTheme.Primary.fontPrimarySize
                     font.weight: Font.Medium
@@ -259,7 +256,7 @@ Item {
                     text: root.contactsMode
                           ? conversationDelegate.statusText
                           : conversationDelegate.lastMessage
-                    color: HusTheme.Primary.colorTextTertiary
+                    color: AppTheme.textSecondary
                     elide: Text.ElideRight
                     font.pixelSize: HusTheme.Primary.fontPrimarySize
                     font.weight: conversationDelegate.unread > 0
@@ -280,7 +277,7 @@ Item {
                 HusText {
                     width: parent.width
                     text: conversationDelegate.lastTime
-                    color: HusTheme.Primary.colorTextTertiary
+                    color: AppTheme.textTertiary
                     horizontalAlignment: Text.AlignRight
                     font.pixelSize: Math.max(11, HusTheme.Primary.fontPrimarySize - 1)
                     font.weight: conversationDelegate.unread > 0
@@ -331,11 +328,10 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             width: 52
             height: 52
-            radius: 16
-            color: HusThemeFunctions.alpha(HusTheme.Primary.colorPrimary,
-                                           HusTheme.isDark ? 0.18 : 0.1)
+            radius: AppTheme.radiusLarge
+            color: AppTheme.accentSoft
             border.width: 1
-            border.color: HusTheme.Primary.colorBorderSecondary
+            border.color: AppTheme.border
             Accessible.ignored: true
 
             HusIconText {
@@ -344,7 +340,7 @@ Item {
                             ? HusIcon.ContactsOutlined
                             : HusIcon.MessageOutlined
                 iconSize: 23
-                colorIcon: HusTheme.Primary.colorPrimary
+                colorIcon: AppTheme.accent
             }
         }
 
@@ -357,7 +353,7 @@ Item {
                       ? qsTr("正在发现联系人")
                       : qsTr("开始发现联系人")
                     : qsTr("还没有会话")
-            color: HusTheme.Primary.colorTextBase
+            color: AppTheme.textPrimary
             horizontalAlignment: Text.AlignHCenter
             font.pixelSize: HusTheme.Primary.fontPrimarySizeHeading5
             font.weight: Font.Medium
@@ -374,7 +370,7 @@ Item {
                         ? LanChat.lastError
                         : qsTr("点击左侧刷新好友按钮启动局域网发现")
                     : qsTr("从联系人页开始单聊，或点击上方按钮创建群聊")
-            color: HusTheme.Primary.colorTextTertiary
+            color: AppTheme.textSecondary
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.Wrap
             font.pixelSize: HusTheme.Primary.fontPrimarySize

@@ -15,12 +15,8 @@ Item {
     property bool draggingFiles: false
     property var drafts: ({})
     property string draftConversationId: ""
-    readonly property color surfaceColor: HusThemeFunctions.alpha(
-                                              HusTheme.Primary.colorBgContainer,
-                                              HusTheme.isDark ? 0.8 : 0.88)
-    readonly property color inputSurfaceColor: HusThemeFunctions.alpha(
-                                                   HusTheme.Primary.colorBgBase,
-                                                   HusTheme.isDark ? 0.54 : 0.62)
+    readonly property color surfaceColor: AppTheme.surface
+    readonly property color inputSurfaceColor: AppTheme.inputSurface
 
     signal imagesSelected(var imageUrls)
     signal filesSelected(var fileUrls)
@@ -82,14 +78,14 @@ Item {
             draggingFiles = false;
     }
 
-    implicitHeight: 164
+    implicitHeight: 154
 
     Rectangle {
         anchors.fill: parent
-        radius: 16
+        radius: AppTheme.radiusLarge
         color: root.surfaceColor
         border.width: 1
-        border.color: HusTheme.Primary.colorBorderSecondary
+        border.color: AppTheme.border
         Accessible.ignored: true
     }
 
@@ -99,7 +95,7 @@ Item {
         anchors.left: parent.left
         anchors.leftMargin: 12
         anchors.top: parent.top
-        anchors.topMargin: 8
+        anchors.topMargin: 6
         spacing: 2
 
         HusIconButton {
@@ -152,7 +148,7 @@ Item {
         anchors.topMargin: 18
         visible: composer.text.length >= 1600
         text: qsTr("%1/2000 个字符").arg(composer.text.length)
-        color: HusTheme.Primary.colorTextTertiary
+        color: AppTheme.textTertiary
         elide: Text.ElideRight
         horizontalAlignment: Text.AlignRight
         font.pixelSize: HusTheme.Primary.fontPrimarySize
@@ -171,8 +167,8 @@ Item {
         maxLength: 2000
         enabled: root.sendEnabled
         colorBg: root.inputSurfaceColor
-        colorBorder: HusTheme.Primary.colorBorderSecondary
-        radiusBg.all: 12
+        colorBorder: composer.activeFocus ? AppTheme.accent : AppTheme.border
+        radiusBg.all: AppTheme.radiusMedium
         placeholderText: root.sendEnabled
                          ? qsTr("输入消息，按 Ctrl+Enter 发送")
                          : root.conversationId.length === 0
@@ -195,7 +191,7 @@ Item {
         anchors.rightMargin: 12
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 12
-        width: 92
+        width: 88
         height: 42
         type: HusButton.Type_Primary
         text: qsTr("发送")
@@ -222,15 +218,15 @@ Item {
         anchors.fill: parent
         visible: root.draggingFiles
         z: 10
-        radius: 16
-        color: HusTheme.Primary.colorPrimaryBg
+        radius: AppTheme.radiusLarge
+        color: AppTheme.accentSoftStrong
         border.width: 2
-        border.color: HusTheme.Primary.colorPrimary
+        border.color: AppTheme.accent
 
         HusText {
             anchors.centerIn: parent
             text: qsTr("释放鼠标发送文件")
-            color: HusTheme.Primary.colorPrimary
+            color: AppTheme.accent
             font.pixelSize: HusTheme.Primary.fontPrimarySizeHeading5
             font.weight: Font.Medium
         }

@@ -34,7 +34,7 @@ Item {
         anchors.centerIn: parent
         visible: emojiImage.status !== Image.Ready
         text: root.fallbackText
-        color: HusTheme.Primary.colorTextBase
+        color: AppTheme.textPrimary
         font.pixelSize: 32
         horizontalAlignment: Text.AlignHCenter
         Accessible.ignored: true
