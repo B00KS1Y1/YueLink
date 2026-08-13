@@ -16,7 +16,6 @@ HusWindow {
     property string selectedConversationPeerId: ""
     property int selectedConversationMemberCount: 0
     property int selectedConversationOnlineCount: 0
-    property string operationError: ""
     property string activePanel: ""
     property string currentPage: "messages"
     readonly property color glassPanelColor: HusThemeFunctions.alpha(
@@ -197,12 +196,11 @@ HusWindow {
     }
 
     function showOperationError(reason: string): void {
-        operationError = reason;
-        operationErrorTimer.restart();
+        operationMessage.error(reason, 5000);
     }
 
     function showModifiedSuccess(): void {
-        successMessage.success(qsTr("修改成功"));
+        operationMessage.success(qsTr("修改成功"));
     }
 
     function refreshSelectedConversation(): void {
@@ -242,13 +240,11 @@ HusWindow {
         if (!LanChat.selectConversation(conversationId))
             return;
 
-        operationError = "";
         selectedConversationId = conversationId;
         refreshSelectedConversation();
     }
 
     function startNetworkService(): void {
-        operationError = "";
         if (!LanChat.start())
             showOperationError(LanChat.lastError.length > 0
                                ? LanChat.lastError
@@ -256,7 +252,6 @@ HusWindow {
     }
 
     function refreshNetworkDiscovery(): void {
-        operationError = "";
         if (!LanChat.refreshPeers())
             showOperationError(LanChat.lastError.length > 0
                                ? LanChat.lastError
@@ -329,13 +324,6 @@ HusWindow {
         function onModelReset(): void {
             root.refreshSelectedConversation();
         }
-    }
-
-    Timer {
-        id: operationErrorTimer
-
-        interval: 5000
-        onTriggered: root.operationError = ""
     }
 
     width: 1180
@@ -573,7 +561,6 @@ HusWindow {
                                  || root.selectedConversationOnline)
                 filesEnabled: root.selectedConversationKind === "direct"
                               && root.selectedConversationOnline
-                errorText: root.operationError
                 onImagesSelected: imageUrls => {
                     if (root.selectedConversationId.length > 0)
                         LanChat.sendImages(root.selectedConversationId, imageUrls);
@@ -593,7 +580,7 @@ HusWindow {
     }
 
     HusMessage {
-        id: successMessage
+        id: operationMessage
 
         anchors.fill: parent
         z: 1000

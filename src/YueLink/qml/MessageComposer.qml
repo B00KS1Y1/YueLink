@@ -8,7 +8,6 @@ Item {
     property string conversationId: ""
     property bool sendEnabled: false
     property bool filesEnabled: false
-    property string errorText: ""
     property bool draggingFiles: false
     property var drafts: ({})
     property string draftConversationId: ""
@@ -147,13 +146,9 @@ Item {
         anchors.leftMargin: 12
         anchors.rightMargin: 20
         anchors.topMargin: 18
-        visible: root.errorText.length > 0 || composer.text.length >= 1600
-        text: root.errorText.length > 0
-              ? root.errorText
-              : qsTr("%1/2000 个字符").arg(composer.text.length)
-        color: root.errorText.length > 0
-               ? HusTheme.Primary.colorError
-               : HusTheme.Primary.colorTextTertiary
+        visible: composer.text.length >= 1600
+        text: qsTr("%1/2000 个字符").arg(composer.text.length)
+        color: HusTheme.Primary.colorTextTertiary
         elide: Text.ElideRight
         horizontalAlignment: Text.AlignRight
         font.pixelSize: HusTheme.Primary.fontPrimarySize
