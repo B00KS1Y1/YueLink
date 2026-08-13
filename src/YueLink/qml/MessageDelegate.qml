@@ -78,8 +78,9 @@ Item {
     HusAvatar {
         id: messageAvatar
 
-        anchors.left: root.fromMe ? undefined : parent.left
-        anchors.right: root.fromMe ? parent.right : undefined
+        x: root.fromMe ? root.width - width : 0
+        width: 36
+        height: 36
         size: 36
         textSource: root.senderInitial
         colorBg: root.senderColor
@@ -89,10 +90,8 @@ Item {
     Column {
         id: messageBody
 
-        anchors.left: root.fromMe ? undefined : messageAvatar.right
-        anchors.right: root.fromMe ? messageAvatar.left : undefined
-        anchors.leftMargin: root.fromMe ? 0 : 10
-        anchors.rightMargin: root.fromMe ? 10 : 0
+        x: root.fromMe ? messageAvatar.x - width - 10
+                       : messageAvatar.x + messageAvatar.width + 10
         width: Math.min(root.messageKind === "image" ? 360
                         : root.messageKind === "file" ? 288 : 420,
                         Math.max(220, root.width * 0.58))
