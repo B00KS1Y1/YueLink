@@ -26,6 +26,7 @@ Item {
                                                      HusTheme.isDark ? 0.84 : 0.92)
 
     signal cancelFileRequested(string messageId)
+    signal acceptFileRequested(string messageId)
     signal openFileRequested(string filePath)
     signal revealFileRequested(string filePath)
     signal groupInfoRequested()
@@ -260,6 +261,8 @@ Item {
             bubbleColor: root.messageBubbleColor
             onCancelFileRequested: messageId =>
                 root.cancelFileRequested(messageId)
+            onAcceptFileRequested: messageId =>
+                root.acceptFileRequested(messageId)
             onOpenFileRequested: filePath =>
                 root.openFileRequested(filePath)
             onRevealFileRequested: filePath =>

@@ -296,6 +296,14 @@ public:
     Q_INVOKABLE bool cancelFileTransfer(const QString &conversationId,
                                         const QString &transferId);
     /**
+     * @brief 接受直接会话中等待确认的文件传输请求。
+     * @param conversationId 目标直接会话标识。
+     * @param transferId 文件传输标识。
+     * @return 已开始接收匹配文件时返回 @c true。
+     */
+    Q_INVOKABLE bool acceptFileTransfer(const QString &conversationId,
+                                        const QString &transferId);
+    /**
      * @brief 使用系统默认应用打开文件。
      * @param filePath 待打开的本地文件路径。
      * @return 已成功请求系统打开文件时返回 @c true。

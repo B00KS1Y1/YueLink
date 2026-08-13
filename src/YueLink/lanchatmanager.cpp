@@ -322,6 +322,13 @@ bool LanChatManager::cancelFileTransfer(const QString &conversationId,
                                                                transferId));
 }
 
+bool LanChatManager::acceptFileTransfer(const QString &conversationId,
+                                        const QString &transferId)
+{
+    return static_cast<bool>(m_coordinator->acceptFileTransfer(conversationId,
+                                                               transferId));
+}
+
 bool LanChatManager::openFile(const QString &filePath)
 {
     QString error;

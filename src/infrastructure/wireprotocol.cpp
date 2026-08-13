@@ -102,6 +102,21 @@ QByteArray Network::WireProtocol::attachmentHeaderFrame(const LocalIdentity &ide
     return frame(object);
 }
 
+QByteArray Network::WireProtocol::attachmentAcceptanceFrame(
+    const LocalIdentity &identity,
+    quint16 senderPort,
+    const PeerEndpoint &recipient,
+    const QString &transferId)
+{
+    QJsonObject object = envelope(identity,
+                                  senderPort,
+                                  recipient,
+                                  QStringLiteral("attachment.accept"),
+                                  QDateTime::currentDateTimeUtc());
+    object.insert(QStringLiteral("messageId"), transferId);
+    return frame(object);
+}
+
 bool Network::WireProtocol::isEnvelopeFor(const QJsonObject &object,
                                           const LocalIdentity &identity)
 {

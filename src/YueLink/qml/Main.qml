@@ -548,6 +548,11 @@ HusWindow {
                         LanChat.cancelFileTransfer(root.selectedConversationId,
                                                    messageId);
                 }
+                onAcceptFileRequested: messageId => {
+                    if (root.selectedConversationId.length > 0)
+                        LanChat.acceptFileTransfer(root.selectedConversationId,
+                                                   messageId);
+                }
                 onOpenFileRequested: filePath => LanChat.openFile(filePath)
                 onRevealFileRequested: filePath => LanChat.revealFile(filePath)
             }

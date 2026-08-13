@@ -1,6 +1,6 @@
 /**
  * @file wireprotocol.h
- * @brief 声明版本 3 消息、群组快照与附件帧编码辅助函数。
+ * @brief 声明版本 4 消息、群组快照与附件帧编码辅助函数。
  * @author xili <1424858143@qq.com>
  * @date 2026-07-21
  */
@@ -16,7 +16,7 @@
 namespace Network::WireProtocol
 {
 
-inline constexpr int ProtocolVersion = 3;
+inline constexpr int ProtocolVersion = 4;
 inline constexpr quint32 MaximumFrameSize = 64 * 1024;
 inline constexpr qint64 MaximumFileSize = 2LL * 1024 * 1024 * 1024;
 
@@ -59,6 +59,20 @@ inline constexpr qint64 MaximumFileSize = 2LL * 1024 * 1024 * 1024;
                                                quint16 senderPort,
                                                const PeerEndpoint &recipient,
                                                const Domain::Message &message);
+
+/**
+ * @brief 构造附件接收确认帧。
+ * @param identity 接收方身份。
+ * @param senderPort 接收方监听端口。
+ * @param recipient 文件发送方节点。
+ * @param transferId 文件传输标识。
+ * @return 已编码的长度前缀确认帧。
+ */
+[[nodiscard]] QByteArray attachmentAcceptanceFrame(
+    const LocalIdentity &identity,
+    quint16 senderPort,
+    const PeerEndpoint &recipient,
+    const QString &transferId);
 
 /**
  * @brief 判断信封是否为当前版本且发送给指定本地身份。

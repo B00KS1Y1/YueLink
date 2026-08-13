@@ -545,6 +545,20 @@ Domain::OperationResult ChatCoordinator::cancelFileTransfer(const QString &conve
     return m_transfers->cancel(peerId, transferId);
 }
 
+Domain::OperationResult ChatCoordinator::acceptFileTransfer(
+    const QString &conversationId,
+    const QString &transferId)
+{
+    const QString peerId = Domain::peerIdFromDirectConversation(conversationId);
+    if (peerId.isEmpty())
+    {
+        return Domain::OperationResult::failure(
+            QStringLiteral("file.group_unsupported"),
+            tr("群聊暂不支持文件传输。"));
+    }
+    return m_transfers->accept(peerId, transferId);
+}
+
 void ChatCoordinator::connectServices()
 {
     connect(m_discovery.get(), &IPeerDiscovery::peerFound, this, [this](const Network::PeerEndpoint &endpoint) {

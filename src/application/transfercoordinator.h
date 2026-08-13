@@ -47,6 +47,14 @@ public:
      * @return 包含成功或失败信息的结构化结果。
      */
     [[nodiscard]] Domain::OperationResult cancel(const QString &peerId, const QString &transferId);
+    /**
+     * @brief 接受等待确认的文件传输请求。
+     * @param peerId 发送方节点标识。
+     * @param transferId 文件传输标识。
+     * @return 包含成功或失败信息的结构化结果。
+     */
+    [[nodiscard]] Domain::OperationResult accept(const QString &peerId,
+                                                 const QString &transferId);
 
 signals:
     /**

@@ -88,6 +88,17 @@ public:
      */
     [[nodiscard]] virtual bool cancelFileTransfer(const QString &peerId, const QString &transferId) = 0;
 
+    /**
+     * @brief 接受等待确认的文件传输请求。
+     * @param peerId 发送方节点标识。
+     * @param transferId 文件传输标识。
+     * @param[out] errorMessage 接受失败时接收错误说明；允许为空。
+     * @return 已开始接收匹配文件时返回 @c true。
+     */
+    [[nodiscard]] virtual bool acceptFileTransfer(const QString &peerId,
+                                                  const QString &transferId,
+                                                  QString *errorMessage = nullptr) = 0;
+
 signals:
     /**
      * @brief 发现或刷新节点信息时发出。

@@ -42,6 +42,8 @@ QString deliveryStateName(DeliveryState state)
         return QStringLiteral("partial");
     case DeliveryState::Received:
         return QStringLiteral("received");
+    case DeliveryState::AwaitingAcceptance:
+        return QStringLiteral("awaiting_acceptance");
     case DeliveryState::Transferring:
         return QStringLiteral("transferring");
     case DeliveryState::Receiving:
@@ -75,6 +77,10 @@ DeliveryState deliveryStateFromName(const QString &name)
     if (name == QLatin1String("received"))
     {
         return DeliveryState::Received;
+    }
+    if (name == QLatin1String("awaiting_acceptance"))
+    {
+        return DeliveryState::AwaitingAcceptance;
     }
     if (name == QLatin1String("transferring"))
     {

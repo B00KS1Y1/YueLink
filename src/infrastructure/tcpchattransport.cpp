@@ -257,6 +257,11 @@ void TcpChatTransport::acceptConnections()
 
 void TcpChatTransport::readIncomingData(QTcpSocket *socket)
 {
+    if (m_incomingFiles.contains(socket)
+        && !socket->property("attachmentAccepted").toBool())
+    {
+        return;
+    }
     QByteArray &buffer = m_incomingBuffers[socket];
     buffer.append(socket->readAll());
     while (true)

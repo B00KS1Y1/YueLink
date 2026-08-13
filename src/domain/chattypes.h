@@ -53,11 +53,12 @@ enum class DeliveryState
     Sending,      ///< 发送中。
     Sent,         ///< 已发送。
     Partial,      ///< 部分送达。
-    Received,     ///< 已接收。
-    Transferring, ///< 文件发送中。
-    Receiving,    ///< 文件接收中。
-    Cancelled,    ///< 已取消。
-    Failed        ///< 已失败。
+    Received,           ///< 已接收。
+    AwaitingAcceptance, ///< 等待接收方确认文件传输。
+    Transferring,       ///< 文件发送中。
+    Receiving,          ///< 文件接收中。
+    Cancelled,          ///< 已取消。
+    Failed              ///< 已失败。
 };
 
 /**

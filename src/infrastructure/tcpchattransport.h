@@ -86,6 +86,16 @@ public:
      */
     [[nodiscard]] bool cancelFileTransfer(const QString &peerId,
                                           const QString &transferId) override;
+    /**
+     * @brief 接受等待确认的文件传输请求并通知发送方开始发送。
+     * @param peerId 发送方节点标识。
+     * @param transferId 文件传输标识。
+     * @param[out] errorMessage 接受失败时接收错误说明；允许为空。
+     * @return 已开始接收匹配文件时返回 @c true。
+     */
+    [[nodiscard]] bool acceptFileTransfer(const QString &peerId,
+                                          const QString &transferId,
+                                          QString *errorMessage = nullptr) override;
 
 private:
     static constexpr qint64 FileTransferTimeoutMs = 30000;
@@ -127,6 +137,14 @@ private:
      * @return 当前文件传输仍可继续时返回 @c true。
      */
     bool consumeIncomingFile(QTcpSocket *socket, QByteArray &buffer);
+    /**
+     * @brief 为已确认的接收任务创建并打开本地目标文件。
+     * @param transfer 待准备的接收任务。
+     * @param[out] errorMessage 准备失败时接收错误说明；允许为空。
+     * @return 目标文件已准备好时返回 @c true。
+     */
+    bool prepareIncomingFile(IncomingFileTransfer *transfer,
+                             QString *errorMessage = nullptr);
     /**
      * @brief 结束失败或取消的文件接收任务。
      * @param socket 文件来源套接字。
@@ -174,6 +192,11 @@ private:
      * @param socket 文件发送使用的套接字。
      */
     void pumpOutgoingFile(QTcpSocket *socket);
+    /**
+     * @brief 读取接收方通过当前发送连接返回的文件接收确认。
+     * @param socket 文件发送使用的套接字。
+     */
+    void readOutgoingFileResponse(QTcpSocket *socket);
     /**
      * @brief 完成文件发送任务。
      * @param socket 文件发送使用的套接字。

@@ -220,6 +220,15 @@ public:
      * @return 结构化操作结果。
      */
     [[nodiscard]] Domain::OperationResult cancelFileTransfer(const QString &conversationId, const QString &transferId);
+    /**
+     * @brief 接受直接会话中等待确认的文件传输请求。
+     * @param conversationId 直接会话标识。
+     * @param transferId 文件传输标识。
+     * @return 结构化操作结果。
+     */
+    [[nodiscard]] Domain::OperationResult acceptFileTransfer(
+        const QString &conversationId,
+        const QString &transferId);
 
 signals:
     /** @brief 本地资料发生变化时发出。 */

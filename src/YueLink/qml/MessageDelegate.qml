@@ -31,6 +31,8 @@ Item {
     property color bubbleColor: "transparent"
     readonly property bool transferActive: deliveryStatus === "transferring"
                                            || deliveryStatus === "receiving"
+    readonly property bool awaitingAcceptance:
+        deliveryStatus === "awaiting_acceptance"
     readonly property bool transferComplete: deliveryStatus === "sent"
                                              || deliveryStatus === "received"
     readonly property bool attachmentMessage: messageKind === "image"
@@ -40,6 +42,7 @@ Item {
         && (fromMe || transferComplete)
 
     signal cancelFileRequested(string messageId)
+    signal acceptFileRequested(string messageId)
     signal openFileRequested(string filePath)
     signal revealFileRequested(string filePath)
 
@@ -49,6 +52,9 @@ Item {
                           : qsTr("%1 · 接收失败").arg(messageTime);
         if (deliveryStatus === "cancelled")
             return qsTr("%1 · 已取消").arg(messageTime);
+        if (deliveryStatus === "awaiting_acceptance")
+            return fromMe ? qsTr("%1 · 等待对方接收").arg(messageTime)
+                          : qsTr("%1 · 等待接收").arg(messageTime);
         if (deliveryStatus === "transferring")
             return qsTr("%1 · 正在传输 %2%").arg(messageTime)
                     .arg(Math.round(fileProgress * 100));
@@ -140,12 +146,22 @@ Item {
             height: visible ? implicitHeight : 0
             spacing: 4
             visible: root.attachmentMessage
-                     && (root.transferActive
+                     && (root.awaitingAcceptance
+                         || root.transferActive
                          || (root.transferComplete && root.filePath.length > 0))
 
             HusButton {
                 height: 30
+                visible: root.awaitingAcceptance && !root.fromMe
+                type: HusButton.Type_Primary
+                text: qsTr("接收")
+                onClicked: root.acceptFileRequested(root.messageId)
+            }
+
+            HusButton {
+                height: 30
                 visible: root.transferActive
+                         || (root.awaitingAcceptance && root.fromMe)
                 type: HusButton.Type_Text
                 text: qsTr("取消")
                 onClicked: root.cancelFileRequested(root.messageId)
