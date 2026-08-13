@@ -1,7 +1,7 @@
 import QtQuick
 import HuskarUI.Basic
 
-HusText {
+HusCopyableText {
     id: root
 
     required property string messageText
