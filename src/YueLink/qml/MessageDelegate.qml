@@ -93,8 +93,10 @@ Item {
         x: root.fromMe ? messageAvatar.x - width - 10
                        : messageAvatar.x + messageAvatar.width + 10
         width: Math.min(root.messageKind === "image" ? 360
-                        : root.messageKind === "file" ? 288 : 420,
-                        Math.max(220, root.width * 0.58))
+                        : root.messageKind === "file" ? 288
+                        : root.messageKind === "emoji" ? 84 : 420,
+                        Math.max(root.messageKind === "emoji" ? 84 : 220,
+                                 root.width * 0.58))
         spacing: 5
 
         HusText {
@@ -217,6 +219,10 @@ Item {
     Component {
         id: emojiComponent
 
-        EmojiMessageContent { fallbackText: root.messageText }
+        EmojiMessageContent {
+            emojiPackageId: root.emojiPackageId
+            emojiId: root.emojiId
+            fallbackText: root.messageText
+        }
     }
 }

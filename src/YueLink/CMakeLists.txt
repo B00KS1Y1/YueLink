@@ -64,6 +64,8 @@ endif()
 
 qt_add_qml_module(YueLink
     URI YueLink
+    DEPENDENCIES
+        QtQml.Models
     QML_FILES
         ${YUELINK_QML_FILES}
     SOURCES

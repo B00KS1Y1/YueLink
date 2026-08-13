@@ -1,6 +1,10 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
+import QtQuick.Controls.Basic
 import QtQuick.Dialogs
 import HuskarUI.Basic
+import "EmojiCatalog.mjs" as EmojiCatalog
 
 Item {
     id: root
@@ -286,25 +290,54 @@ Item {
         id: emojiPopup
 
         x: 92
-        y: 48
-        width: 240
-        height: 64
-        contentItem: Row {
-            spacing: 6
+        y: -height - 8
+        width: 368
+        height: 316
+        contentItem: GridView {
+            id: emojiGrid
 
-            Repeater {
-                model: ["😀", "😂", "😍", "👍", "🎉"]
+            cellWidth: 48
+            cellHeight: 48
+            model: EmojiCatalog.emojis
+            boundsBehavior: Flickable.StopAtBounds
+            clip: true
+            ScrollBar.vertical: HusScrollBar { }
 
-                HusButton {
-                    required property string modelData
+            delegate: HusButton {
+                id: emojiButton
 
-                    width: 40
-                    height: 40
-                    type: HusButton.Type_Text
-                    text: modelData
-                    onClicked: {
-                        LanChat.sendEmoji(root.conversationId, "builtin",
-                                          modelData, modelData);
+                required property var modelData
+
+                width: emojiGrid.cellWidth
+                height: emojiGrid.cellHeight
+                padding: 5
+                type: HusButton.Type_Text
+                enabled: root.sendEnabled
+                contentDescription: qsTr("发送表情：%1").arg(modelData.name)
+
+                Image {
+                    anchors.centerIn: parent
+                    width: 34
+                    height: 34
+                    source: EmojiCatalog.resourcePrefix + emojiButton.modelData.file
+                    sourceSize.width: 34
+                    sourceSize.height: 34
+                    fillMode: Image.PreserveAspectFit
+                    asynchronous: true
+                    Accessible.ignored: true
+                }
+
+                HusToolTip {
+                    visible: emojiButton.hovered
+                    text: emojiButton.modelData.name
+                    position: HusToolTip.Position_Top
+                }
+
+                onClicked: {
+                    if (LanChat.sendEmoji(root.conversationId,
+                                          EmojiCatalog.packageId,
+                                          modelData.emojiId,
+                                          modelData.name)) {
                         emojiPopup.close();
                     }
                 }
