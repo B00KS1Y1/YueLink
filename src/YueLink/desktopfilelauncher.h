@@ -19,16 +19,14 @@ public:
      * @param[out] errorMessage 操作失败时接收错误说明。
      * @return 已成功请求系统打开文件时返回 @c true。
      */
-    [[nodiscard]] bool openFile(const QString &filePath,
-                                QString *errorMessage) override;
+    [[nodiscard]] bool openFile(const QString &filePath, QString *errorMessage) override;
     /**
      * @brief 在系统文件管理器中定位文件。
      * @param filePath 待定位的本地文件路径。
      * @param[out] errorMessage 操作失败时接收错误说明。
      * @return 已成功请求系统定位文件时返回 @c true。
      */
-    [[nodiscard]] bool revealInFolder(const QString &filePath,
-                                      QString *errorMessage) override;
+    [[nodiscard]] bool revealInFolder(const QString &filePath, QString *errorMessage) override;
 };
 
 #endif // DESKTOPFILELAUNCHER_H

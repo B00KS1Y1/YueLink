@@ -17,15 +17,12 @@ DesktopNotificationService::DesktopNotificationService(QObject *parent)
     }
     m_trayIcon.setIcon(icon);
     m_trayIcon.setToolTip(tr("YueLink"));
-    connect(&m_trayIcon,
-            &QSystemTrayIcon::messageClicked,
-            this,
-            [this]() {
-                if (!m_contextId.isEmpty())
-                {
-                    emit notificationActivated(m_contextId);
-                }
-            });
+    connect(&m_trayIcon, &QSystemTrayIcon::messageClicked, this, [this]() {
+        if (!m_contextId.isEmpty())
+        {
+            emit notificationActivated(m_contextId);
+        }
+    });
 }
 
 void DesktopNotificationService::setEnabled(bool enabled)
@@ -43,9 +40,7 @@ void DesktopNotificationService::setEnabled(bool enabled)
     }
 }
 
-void DesktopNotificationService::showNotification(const QString &title,
-                                                   const QString &message,
-                                                   const QString &contextId)
+void DesktopNotificationService::showNotification(const QString &title, const QString &message, const QString &contextId)
 {
     if (!m_enabled || !m_trayIcon.isVisible())
     {
@@ -53,10 +48,6 @@ void DesktopNotificationService::showNotification(const QString &title,
     }
 
     m_contextId = contextId;
-    m_trayIcon.showMessage(title,
-                           message,
-                           QSystemTrayIcon::Information,
-                           6000);
-    QLOG_DEBUG() << QStringLiteral("[平台.通知] 通知已显示 上下文标识=") << contextId
-                           << QStringLiteral("标题=") << title;
+    m_trayIcon.showMessage(title, message, QSystemTrayIcon::Information, 6000);
+    QLOG_DEBUG() << QStringLiteral("[平台.通知] 通知已显示 上下文标识=") << contextId << QStringLiteral("标题=") << title;
 }

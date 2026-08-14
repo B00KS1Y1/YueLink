@@ -26,8 +26,7 @@ public:
      * @param coordinator 非拥有的聊天协调器。
      * @param parent 可选的 QObject 父对象。
      */
-    explicit ConversationListViewModel(ChatCoordinator *coordinator,
-                                       QObject *parent = nullptr);
+    explicit ConversationListViewModel(ChatCoordinator *coordinator, QObject *parent = nullptr);
     /** @brief 销毁会话列表视图模型。 */
     ~ConversationListViewModel() override;
     /**
@@ -50,8 +49,7 @@ public:
      * @param conversationId 会话标识。
      * @return 会话属性；不存在时为空。
      */
-    [[nodiscard]] QVariantMap conversationInfo(
-        const QString &conversationId) const;
+    [[nodiscard]] QVariantMap conversationInfo(const QString &conversationId) const;
     /**
      * @brief 返回全部会话未读数。
      * @return 未读消息总数。

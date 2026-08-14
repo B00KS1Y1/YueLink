@@ -38,8 +38,7 @@ public:
      * @param message 已构造的附件消息。
      * @return 包含成功或失败信息的结构化结果。
      */
-    [[nodiscard]] Domain::OperationResult sendAttachment(
-        const Domain::Peer &peer, const Domain::Message &message);
+    [[nodiscard]] Domain::OperationResult sendAttachment(const Domain::Peer &peer, const Domain::Message &message);
     /**
      * @brief 取消正在进行的文件传输。
      * @param peerId 远端节点标识。
@@ -53,8 +52,7 @@ public:
      * @param transferId 文件传输标识。
      * @return 包含成功或失败信息的结构化结果。
      */
-    [[nodiscard]] Domain::OperationResult accept(const QString &peerId,
-                                                 const QString &transferId);
+    [[nodiscard]] Domain::OperationResult accept(const QString &peerId, const QString &transferId);
 
 signals:
     /**

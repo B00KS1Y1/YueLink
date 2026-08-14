@@ -38,7 +38,7 @@ enum class ConversationKind
  */
 enum class MessageKind
 {
-    Text, ///< 文本消息。
+    Text,  ///< 文本消息。
     Image, ///< 图片消息。
     File,  ///< 文件消息。
     Emoji  ///< 表情消息。
@@ -49,10 +49,10 @@ enum class MessageKind
  */
 enum class DeliveryState
 {
-    Pending,      ///< 等待发送或重试。
-    Sending,      ///< 发送中。
-    Sent,         ///< 已发送。
-    Partial,      ///< 部分送达。
+    Pending,            ///< 等待发送或重试。
+    Sending,            ///< 发送中。
+    Sent,               ///< 已发送。
+    Partial,            ///< 部分送达。
     Received,           ///< 已接收。
     AwaitingAcceptance, ///< 等待接收方确认文件传输。
     Transferring,       ///< 文件发送中。
@@ -164,28 +164,28 @@ struct Message
 
 struct AttachmentTransferInfo
 {
-    Message message;                ///< 传输对应的消息。
-    Network::PeerEndpoint peer;     ///< 远端节点。
+    Message message;                                                             ///< 传输对应的消息。
+    Network::PeerEndpoint peer;                                                  ///< 远端节点。
     Network::TransferDirection direction = Network::TransferDirection::Outgoing; ///< 传输方向。
 };
 
 struct AttachmentTransferProgress
 {
-    QString peerId;                                                        ///< 远端设备标识。
-    QString messageId;                                                     ///< 消息标识。
+    QString peerId;                                                              ///< 远端设备标识。
+    QString messageId;                                                           ///< 消息标识。
     Network::TransferDirection direction = Network::TransferDirection::Outgoing; ///< 传输方向。
-    qreal progress = 0.0;                                                  ///< 传输进度，范围为 0.0～1.0。
+    qreal progress = 0.0;                                                        ///< 传输进度，范围为 0.0～1.0。
 };
 
 struct AttachmentTransferResult
 {
-    QString peerId;                                                           ///< 远端设备标识。
-    QString messageId;                                                        ///< 消息标识。
-    QString filePath;                                                         ///< 本地文件路径。
-    QString errorMessage;                                                     ///< 错误或取消原因。
+    QString peerId;                                                              ///< 远端设备标识。
+    QString messageId;                                                           ///< 消息标识。
+    QString filePath;                                                            ///< 本地文件路径。
+    QString errorMessage;                                                        ///< 错误或取消原因。
     Network::TransferDirection direction = Network::TransferDirection::Outgoing; ///< 传输方向。
-    bool success = false;                                                      ///< 是否成功。
-    bool cancelled = false;                                                    ///< 是否取消。
+    bool success = false;                                                        ///< 是否成功。
+    bool cancelled = false;                                                      ///< 是否取消。
 };
 
 struct MessageDelivery
@@ -339,8 +339,7 @@ struct OperationResult
  * @param object JSON 对象。
  * @return 有效载荷；格式无效时返回空值。
  */
-[[nodiscard]] std::optional<MessagePayload> messagePayloadFromJson(MessageKind kind,
-                                                                  const QJsonObject &object);
+[[nodiscard]] std::optional<MessagePayload> messagePayloadFromJson(MessageKind kind, const QJsonObject &object);
 
 /**
  * @brief 将群成员角色转换为用于持久化的名称。

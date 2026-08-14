@@ -28,10 +28,7 @@ inline constexpr qint64 MaximumFileSize = 2LL * 1024 * 1024 * 1024;
  * @param message 待发送消息。
  * @return 已编码的长度前缀帧。
  */
-[[nodiscard]] QByteArray messageFrame(const LocalIdentity &identity,
-                                      quint16 senderPort,
-                                      const PeerEndpoint &recipient,
-                                      const Domain::Message &message);
+[[nodiscard]] QByteArray messageFrame(const LocalIdentity &identity, quint16 senderPort, const PeerEndpoint &recipient, const Domain::Message &message);
 
 /**
  * @brief 构造完整群组快照帧。
@@ -41,11 +38,7 @@ inline constexpr qint64 MaximumFileSize = 2LL * 1024 * 1024 * 1024;
  * @param snapshot 群组快照。
  * @return 已编码的长度前缀帧。
  */
-[[nodiscard]] QByteArray groupSnapshotFrame(
-    const LocalIdentity &identity,
-    quint16 senderPort,
-    const PeerEndpoint &recipient,
-    const GroupSnapshot &snapshot);
+[[nodiscard]] QByteArray groupSnapshotFrame(const LocalIdentity &identity, quint16 senderPort, const PeerEndpoint &recipient, const GroupSnapshot &snapshot);
 
 /**
  * @brief 构造附件传输头帧。
@@ -55,10 +48,8 @@ inline constexpr qint64 MaximumFileSize = 2LL * 1024 * 1024 * 1024;
  * @param message 附件消息。
  * @return 已编码的长度前缀帧。
  */
-[[nodiscard]] QByteArray attachmentHeaderFrame(const LocalIdentity &identity,
-                                               quint16 senderPort,
-                                               const PeerEndpoint &recipient,
-                                               const Domain::Message &message);
+[[nodiscard]] QByteArray
+attachmentHeaderFrame(const LocalIdentity &identity, quint16 senderPort, const PeerEndpoint &recipient, const Domain::Message &message);
 
 /**
  * @brief 构造附件接收确认帧。
@@ -68,11 +59,7 @@ inline constexpr qint64 MaximumFileSize = 2LL * 1024 * 1024 * 1024;
  * @param transferId 文件传输标识。
  * @return 已编码的长度前缀确认帧。
  */
-[[nodiscard]] QByteArray attachmentAcceptanceFrame(
-    const LocalIdentity &identity,
-    quint16 senderPort,
-    const PeerEndpoint &recipient,
-    const QString &transferId);
+[[nodiscard]] QByteArray attachmentAcceptanceFrame(const LocalIdentity &identity, quint16 senderPort, const PeerEndpoint &recipient, const QString &transferId);
 
 /**
  * @brief 判断信封是否为当前版本且发送给指定本地身份。
@@ -80,8 +67,7 @@ inline constexpr qint64 MaximumFileSize = 2LL * 1024 * 1024 * 1024;
  * @param identity 本地身份。
  * @return 信封有效且目标匹配时返回 @c true。
  */
-[[nodiscard]] bool isEnvelopeFor(const QJsonObject &object,
-                                 const LocalIdentity &identity);
+[[nodiscard]] bool isEnvelopeFor(const QJsonObject &object, const LocalIdentity &identity);
 
 /**
  * @brief 从信封解析发送方节点信息。
@@ -89,8 +75,7 @@ inline constexpr qint64 MaximumFileSize = 2LL * 1024 * 1024 * 1024;
  * @param address 数据连接对应的网络地址。
  * @return 解析并补全后的发送方节点信息。
  */
-[[nodiscard]] PeerEndpoint senderFromEnvelope(const QJsonObject &object,
-                                              const QHostAddress &address);
+[[nodiscard]] PeerEndpoint senderFromEnvelope(const QJsonObject &object, const QHostAddress &address);
 
 } // namespace Network::WireProtocol
 

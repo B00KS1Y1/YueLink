@@ -88,31 +88,26 @@ private:
      * @param conversationId 消息所属统一会话标识。
      * @param text 收到的消息文本。
      */
-    void handleIncomingMessage(const QString &conversationId,
-                               const QString &text);
+    void handleIncomingMessage(const QString &conversationId, const QString &text);
     /**
      * @brief 处理已接收文件的通知。
      * @param conversationId 文件所属直接会话标识。
      * @param filePath 接收文件的本地路径。
      */
-    void handleFileReceived(const QString &conversationId,
-                            const QString &filePath);
+    void handleFileReceived(const QString &conversationId, const QString &filePath);
     /**
      * @brief 处理文件传输失败通知。
      * @param conversationId 文件所属直接会话标识。
      * @param reason 失败原因。
      * @param incoming 是否为接收方向。
      */
-    void handleFileTransferFailed(const QString &conversationId,
-                                  const QString &reason,
-                                  bool incoming);
+    void handleFileTransferFailed(const QString &conversationId, const QString &reason, bool incoming);
     /**
      * @brief 在应用处于后台时显示聊天通知。
      * @param conversationId 消息所属统一会话标识。
      * @param message 通知预览文本。
      */
-    void showIncomingNotification(const QString &conversationId,
-                                  const QString &message);
+    void showIncomingNotification(const QString &conversationId, const QString &message);
 
     ChatCoordinator *m_coordinator = nullptr;
     ConversationViewModel *m_conversation = nullptr;

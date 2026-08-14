@@ -24,8 +24,7 @@ TransferCoordinator::TransferCoordinator(IChatTransport *transport,
 
 TransferCoordinator::~TransferCoordinator() = default;
 
-Domain::OperationResult TransferCoordinator::sendAttachment(
-    const Domain::Peer &peer, const Domain::Message &message)
+Domain::OperationResult TransferCoordinator::sendAttachment(const Domain::Peer &peer, const Domain::Message &message)
 {
     QString error;
     if (!m_transport->sendMessage(peer.endpoint, message, &error))
@@ -47,15 +46,13 @@ Domain::OperationResult TransferCoordinator::cancel(const QString &peerId, const
     return Domain::OperationResult::success();
 }
 
-Domain::OperationResult TransferCoordinator::accept(const QString &peerId,
-                                                    const QString &transferId)
+Domain::OperationResult TransferCoordinator::accept(const QString &peerId, const QString &transferId)
 {
     QString error;
     if (!m_transport->acceptFileTransfer(peerId, transferId, &error))
     {
         emit fileTransferFailed(peerId, error, true);
-        return Domain::OperationResult::failure(QStringLiteral("transfer.not_found"),
-                                                error);
+        return Domain::OperationResult::failure(QStringLiteral("transfer.not_found"), error);
     }
     return Domain::OperationResult::success();
 }
@@ -71,15 +68,11 @@ void TransferCoordinator::handleStarted(const Domain::AttachmentTransferInfo &tr
     Domain::Message message = transfer.message;
     message.metadata.conversationId = Domain::directConversationId(transfer.peer.peerId);
     message.metadata.senderId = outgoing ? m_localIdentity->deviceId : transfer.peer.peerId;
-    const bool requiresAcceptance = Domain::messageKind(message)
-                                    == Domain::MessageKind::File;
-    message.deliveryState = requiresAcceptance
-                                ? Domain::DeliveryState::AwaitingAcceptance
-                                : outgoing ? Domain::DeliveryState::Transferring
-                                           : Domain::DeliveryState::Receiving;
-    static_cast<void>(m_conversations->appendMessage(message,
-                                                     Domain::messageSummary(message),
-                                                     !outgoing));
+    const bool requiresAcceptance = Domain::messageKind(message) == Domain::MessageKind::File;
+    message.deliveryState = requiresAcceptance ? Domain::DeliveryState::AwaitingAcceptance
+                            : outgoing         ? Domain::DeliveryState::Transferring
+                                               : Domain::DeliveryState::Receiving;
+    static_cast<void>(m_conversations->appendMessage(message, Domain::messageSummary(message), !outgoing));
 }
 
 void TransferCoordinator::handleProgress(const Domain::AttachmentTransferProgress &progress)

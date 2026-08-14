@@ -69,9 +69,7 @@ public:
      * @param[out] errorMessage 请求被拒绝时接收错误说明；允许为空。
      * @return 发送请求被接受时返回 @c true。
      */
-    [[nodiscard]] virtual bool sendMessage(const Network::PeerEndpoint &peer,
-                                           const Domain::Message &message,
-                                           QString *errorMessage = nullptr) = 0;
+    [[nodiscard]] virtual bool sendMessage(const Network::PeerEndpoint &peer, const Domain::Message &message, QString *errorMessage = nullptr) = 0;
 
     /**
      * @brief 向指定节点发送完整群组快照。
@@ -95,9 +93,7 @@ public:
      * @param[out] errorMessage 接受失败时接收错误说明；允许为空。
      * @return 已开始接收匹配文件时返回 @c true。
      */
-    [[nodiscard]] virtual bool acceptFileTransfer(const QString &peerId,
-                                                  const QString &transferId,
-                                                  QString *errorMessage = nullptr) = 0;
+    [[nodiscard]] virtual bool acceptFileTransfer(const QString &peerId, const QString &transferId, QString *errorMessage = nullptr) = 0;
 
 signals:
     /**
@@ -111,8 +107,7 @@ signals:
      * @param message 收到的领域消息。
      * @param sender 发送方端点。
      */
-    void messageReceived(const Domain::Message &message,
-                         const Network::PeerEndpoint &sender);
+    void messageReceived(const Domain::Message &message, const Network::PeerEndpoint &sender);
 
     /**
      * @brief 收到群组快照时发出。

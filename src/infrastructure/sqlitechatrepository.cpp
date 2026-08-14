@@ -65,9 +65,7 @@ Domain::Message messageFromQuery(const QSqlQuery &query)
     message.deliveryState = Domain::deliveryStateFromName(query.value(4).toString());
     const Domain::MessageKind kind = Domain::messageKindFromName(query.value(5).toString());
     const QJsonDocument payloadDocument = QJsonDocument::fromJson(query.value(6).toByteArray());
-    const auto payload = payloadDocument.isObject()
-                             ? Domain::messagePayloadFromJson(kind, payloadDocument.object())
-                             : std::nullopt;
+    const auto payload = payloadDocument.isObject() ? Domain::messagePayloadFromJson(kind, payloadDocument.object()) : std::nullopt;
     message.payload = payload.value_or(Domain::TextPayload{});
     message.localAttachment.progress = qBound(0.0, query.value(7).toDouble(), 1.0);
     message.localAttachment.filePath = query.value(8).toString();
@@ -130,8 +128,7 @@ bool SqliteChatRepository::initialize(QString *errorMessage)
     }
 
     m_initialized = true;
-    QLOG_INFO() << QStringLiteral("[存储.SQLite] 统一会话数据库初始化完成 路径=") << m_databasePath
-                          << QStringLiteral("架构版本=") << CurrentSchemaVersion;
+    QLOG_INFO() << QStringLiteral("[存储.SQLite] 统一会话数据库初始化完成 路径=") << m_databasePath << QStringLiteral("架构版本=") << CurrentSchemaVersion;
     return true;
 }
 
@@ -483,9 +480,7 @@ bool SqliteChatRepository::clearUnread(const QString &conversationId, QString *e
 
 bool SqliteChatRepository::saveMessage(const Domain::Message &message, QString *errorMessage)
 {
-    if (!m_initialized || message.metadata.messageId.isEmpty()
-        || message.metadata.conversationId.isEmpty()
-        || message.metadata.senderId.isEmpty())
+    if (!m_initialized || message.metadata.messageId.isEmpty() || message.metadata.conversationId.isEmpty() || message.metadata.senderId.isEmpty())
     {
         return false;
     }
@@ -500,15 +495,10 @@ bool SqliteChatRepository::saveMessage(const Domain::Message &message, QString *
     query.bindValue(QStringLiteral(":sender"), message.metadata.senderId);
     query.bindValue(QStringLiteral(":timestamp"), timestampText(message.metadata.timestamp));
     query.bindValue(QStringLiteral(":status"), Domain::deliveryStateName(message.deliveryState));
-    query.bindValue(QStringLiteral(":kind"),
-                    Domain::messageKindName(Domain::messageKind(message)));
-    query.bindValue(QStringLiteral(":payload"),
-                    QJsonDocument(Domain::messagePayloadToJson(message.payload))
-                        .toJson(QJsonDocument::Compact));
-    query.bindValue(QStringLiteral(":progress"),
-                    qBound(0.0, message.localAttachment.progress, 1.0));
-    query.bindValue(QStringLiteral(":path"),
-                    nonNullText(message.localAttachment.filePath));
+    query.bindValue(QStringLiteral(":kind"), Domain::messageKindName(Domain::messageKind(message)));
+    query.bindValue(QStringLiteral(":payload"), QJsonDocument(Domain::messagePayloadToJson(message.payload)).toJson(QJsonDocument::Compact));
+    query.bindValue(QStringLiteral(":progress"), qBound(0.0, message.localAttachment.progress, 1.0));
+    query.bindValue(QStringLiteral(":path"), nonNullText(message.localAttachment.filePath));
     if (!query.exec())
     {
         setError(errorMessage, query.lastError().text());

@@ -27,8 +27,7 @@ public:
      * @param coordinator 非拥有的聊天协调器。
      * @param parent 可选的 QObject 父对象。
      */
-    explicit ConversationViewModel(ChatCoordinator *coordinator,
-                                   QObject *parent = nullptr);
+    explicit ConversationViewModel(ChatCoordinator *coordinator, QObject *parent = nullptr);
     /** @brief 销毁当前会话视图模型。 */
     ~ConversationViewModel() override;
     /**
@@ -86,9 +85,7 @@ private:
      * @param messageId 消息标识。
      * @param state 新状态。
      */
-    void handleMessageStateChanged(const QString &conversationId,
-                                   const QString &messageId,
-                                   Domain::DeliveryState state);
+    void handleMessageStateChanged(const QString &conversationId, const QString &messageId, Domain::DeliveryState state);
     /**
      * @brief 处理逐成员投递统计变化。
      * @param conversationId 会话标识。
@@ -96,10 +93,7 @@ private:
      * @param deliveredCount 已发送数量。
      * @param totalCount 接收方总数。
      */
-    void handleDeliveryChanged(const QString &conversationId,
-                               const QString &messageId,
-                               int deliveredCount,
-                               int totalCount);
+    void handleDeliveryChanged(const QString &conversationId, const QString &messageId, int deliveredCount, int totalCount);
     /**
      * @brief 处理文件传输变化。
      * @param conversationId 会话标识。
@@ -108,18 +102,14 @@ private:
      * @param state 新状态。
      * @param filePath 本地路径。
      */
-    void handleFileTransferChanged(const QString &conversationId,
-                                   const QString &messageId,
-                                   qreal progress,
-                                   Domain::DeliveryState state,
-                                   const QString &filePath);
+    void
+    handleFileTransferChanged(const QString &conversationId, const QString &messageId, qreal progress, Domain::DeliveryState state, const QString &filePath);
     /**
      * @brief 将领域消息转换为 QML 消息。
      * @param message 领域消息。
      * @return 视图消息。
      */
-    [[nodiscard]] ChatMessageModel::Message toViewMessage(
-        const Domain::Message &message) const;
+    [[nodiscard]] ChatMessageModel::Message toViewMessage(const Domain::Message &message) const;
     /**
      * @brief 查找消息发送者显示名称。
      * @param message 领域消息。
@@ -132,8 +122,7 @@ private:
      * @param fallback 不可用时的回退文本。
      * @return 本地化文件大小文本。
      */
-    [[nodiscard]] static QString displayFileSize(qint64 bytes,
-                                                 const QString &fallback);
+    [[nodiscard]] static QString displayFileSize(qint64 bytes, const QString &fallback);
     /**
      * @brief 格式化消息时间。
      * @param timestamp 消息时间。

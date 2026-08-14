@@ -15,38 +15,59 @@ int ChatMessageModel::rowCount(const QModelIndex &parent) const
 QVariant ChatMessageModel::data(const QModelIndex &index, int role) const
 {
     const auto conversation = m_conversations.constFind(m_currentConversationId);
-    if (conversation == m_conversations.cend() || !index.isValid()
-        || index.row() < 0 || index.row() >= conversation->size())
+    if (conversation == m_conversations.cend() || !index.isValid() || index.row() < 0 || index.row() >= conversation->size())
+    {
         return {};
+    }
     const Message &message = conversation->at(index.row());
     switch (role)
     {
-    case MessageIdRole: return message.messageId;
-    case FromMeRole: return message.fromMe;
-    case SenderNameRole: return message.senderName;
-    case SenderInitialRole: return message.senderInitial;
-    case SenderColorRole: return message.senderColor;
-    case MessageTextRole: return message.messageText;
-    case MessageTimeRole: return message.messageTime;
-    case DeliveryStatusRole: return message.deliveryStatus;
-    case DeliveredCountRole: return message.deliveredCount;
-    case TotalRecipientCountRole: return message.totalRecipientCount;
-    case MessageKindRole: return message.messageKind;
-    case FileNameRole: return message.fileName;
-    case FileSizeTextRole: return message.fileSizeText;
-    case FileProgressRole: return message.fileProgress;
-    case FilePathRole: return message.filePath;
-    case FileUrlRole: return message.fileUrl;
-    case ImageWidthRole: return message.imageWidth;
-    case ImageHeightRole: return message.imageHeight;
-    case EmojiPackageIdRole: return message.emojiPackageId;
-    case EmojiIdRole: return message.emojiId;
+    case MessageIdRole:
+        return message.messageId;
+    case FromMeRole:
+        return message.fromMe;
+    case SenderNameRole:
+        return message.senderName;
+    case SenderInitialRole:
+        return message.senderInitial;
+    case SenderColorRole:
+        return message.senderColor;
+    case MessageTextRole:
+        return message.messageText;
+    case MessageTimeRole:
+        return message.messageTime;
+    case DeliveryStatusRole:
+        return message.deliveryStatus;
+    case DeliveredCountRole:
+        return message.deliveredCount;
+    case TotalRecipientCountRole:
+        return message.totalRecipientCount;
+    case MessageKindRole:
+        return message.messageKind;
+    case FileNameRole:
+        return message.fileName;
+    case FileSizeTextRole:
+        return message.fileSizeText;
+    case FileProgressRole:
+        return message.fileProgress;
+    case FilePathRole:
+        return message.filePath;
+    case FileUrlRole:
+        return message.fileUrl;
+    case ImageWidthRole:
+        return message.imageWidth;
+    case ImageHeightRole:
+        return message.imageHeight;
+    case EmojiPackageIdRole:
+        return message.emojiPackageId;
+    case EmojiIdRole:
+        return message.emojiId;
     case SearchTextRole:
-        return message.messageKind == QLatin1String("file")
-                       || message.messageKind == QLatin1String("image")
+        return message.messageKind == QLatin1String("file") || message.messageKind == QLatin1String("image")
                    ? QStringLiteral("%1 %2").arg(message.fileName, message.messageText)
                    : message.messageText;
-    default: return {};
+    default:
+        return {};
     }
 }
 
@@ -78,14 +99,15 @@ QHash<int, QByteArray> ChatMessageModel::roleNames() const
 void ChatMessageModel::selectConversation(const QString &conversationId)
 {
     if (m_currentConversationId == conversationId)
+    {
         return;
+    }
     beginResetModel();
     m_currentConversationId = conversationId;
     endResetModel();
 }
 
-void ChatMessageModel::setConversation(const QString &conversationId,
-                                       QList<Message> messages)
+void ChatMessageModel::setConversation(const QString &conversationId, QList<Message> messages)
 {
     if (conversationId == m_currentConversationId)
     {
@@ -111,44 +133,45 @@ void ChatMessageModel::append(const QString &conversationId, Message message)
     messages.append(std::move(message));
 }
 
-void ChatMessageModel::updateDelivery(const QString &conversationId,
-                                      const QString &messageId,
-                                      const QString &status,
-                                      int deliveredCount,
-                                      int totalRecipientCount)
+void ChatMessageModel::updateDelivery(
+    const QString &conversationId, const QString &messageId, const QString &status, int deliveredCount, int totalRecipientCount)
 {
     QList<Message> &messages = m_conversations[conversationId];
     for (int row = messages.size() - 1; row >= 0; --row)
     {
         Message &message = messages[row];
         if (message.messageId != messageId)
+        {
             continue;
+        }
         message.deliveryStatus = status;
         if (deliveredCount >= 0)
+        {
             message.deliveredCount = deliveredCount;
+        }
         if (totalRecipientCount >= 0)
+        {
             message.totalRecipientCount = totalRecipientCount;
+        }
         if (conversationId == m_currentConversationId)
-            emit dataChanged(index(row), index(row),
-                             {DeliveryStatusRole,
-                              DeliveredCountRole,
-                              TotalRecipientCountRole});
+        {
+            emit dataChanged(index(row), index(row), {DeliveryStatusRole, DeliveredCountRole, TotalRecipientCountRole});
+        }
         return;
     }
 }
 
-void ChatMessageModel::updateFileTransfer(const QString &conversationId,
-                                          const QString &messageId,
-                                          qreal progress,
-                                          const QString &status,
-                                          const QString &filePath)
+void ChatMessageModel::updateFileTransfer(
+    const QString &conversationId, const QString &messageId, qreal progress, const QString &status, const QString &filePath)
 {
     QList<Message> &messages = m_conversations[conversationId];
     for (int row = messages.size() - 1; row >= 0; --row)
     {
         Message &message = messages[row];
         if (message.messageId != messageId)
+        {
             continue;
+        }
         message.fileProgress = qBound(0.0, progress, 1.0);
         message.deliveryStatus = status;
         if (!filePath.isEmpty())
@@ -157,11 +180,9 @@ void ChatMessageModel::updateFileTransfer(const QString &conversationId,
             message.fileUrl = QUrl::fromLocalFile(filePath);
         }
         if (conversationId == m_currentConversationId)
-            emit dataChanged(index(row), index(row),
-                             {FileProgressRole,
-                              DeliveryStatusRole,
-                              FilePathRole,
-                              FileUrlRole});
+        {
+            emit dataChanged(index(row), index(row), {FileProgressRole, DeliveryStatusRole, FilePathRole, FileUrlRole});
+        }
         return;
     }
 }

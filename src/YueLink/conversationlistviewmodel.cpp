@@ -7,8 +7,7 @@
 
 #include <utility>
 
-ConversationListViewModel::ConversationListViewModel(ChatCoordinator *coordinator,
-                                                     QObject *parent)
+ConversationListViewModel::ConversationListViewModel(ChatCoordinator *coordinator, QObject *parent)
 : QObject(parent)
 , m_coordinator(coordinator)
 {
@@ -18,30 +17,34 @@ ConversationListViewModel::ConversationListViewModel(ChatCoordinator *coordinato
     m_filterModel.setFilterCaseSensitivity(Qt::CaseInsensitive);
     m_filterModel.setSortRole(SidebarItemModel::SortTimestampRole);
     m_filterModel.sort(0, Qt::DescendingOrder);
-    connect(m_coordinator, &ChatCoordinator::conversationsChanged,
-            this, &ConversationListViewModel::synchronize);
-    connect(m_coordinator, &ChatCoordinator::peersChanged,
-            this, &ConversationListViewModel::synchronize);
-    connect(&m_model, &SidebarItemModel::unreadCountChanged,
-            this, &ConversationListViewModel::totalUnreadCountChanged);
+    connect(m_coordinator, &ChatCoordinator::conversationsChanged, this, &ConversationListViewModel::synchronize);
+    connect(m_coordinator, &ChatCoordinator::peersChanged, this, &ConversationListViewModel::synchronize);
+    connect(&m_model, &SidebarItemModel::unreadCountChanged, this, &ConversationListViewModel::totalUnreadCountChanged);
     synchronize();
 }
 
 ConversationListViewModel::~ConversationListViewModel() = default;
-QAbstractItemModel *ConversationListViewModel::model() { return &m_filterModel; }
-QString ConversationListViewModel::searchText() const { return m_searchText; }
+QAbstractItemModel *ConversationListViewModel::model()
+{
+    return &m_filterModel;
+}
+QString ConversationListViewModel::searchText() const
+{
+    return m_searchText;
+}
 
 void ConversationListViewModel::setSearchText(const QString &text)
 {
     if (m_searchText == text)
+    {
         return;
+    }
     m_searchText = text;
     m_filterModel.setFilterFixedString(text.trimmed());
     emit searchTextChanged();
 }
 
-QVariantMap ConversationListViewModel::conversationInfo(
-    const QString &conversationId) const
+QVariantMap ConversationListViewModel::conversationInfo(const QString &conversationId) const
 {
     return m_model.itemInfo(conversationId);
 }
@@ -61,11 +64,8 @@ void ConversationListViewModel::synchronize()
         item.itemKind = Domain::conversationKindName(conversation.kind);
         item.title = conversation.title;
         item.initial = initialForName(item.title);
-        item.lastMessage = conversation.lastMessage.isEmpty()
-                               ? conversation.kind == Domain::ConversationKind::Group
-                                     ? tr("群聊已创建")
-                                     : tr("开始聊天")
-                               : conversation.lastMessage;
+        item.lastMessage = conversation.lastMessage.isEmpty() ? conversation.kind == Domain::ConversationKind::Group ? tr("群聊已创建") : tr("开始聊天")
+                                                              : conversation.lastMessage;
         item.lastTime = displayTime(conversation.lastActivity);
         item.avatarColor = colorForId(conversation.conversationId);
         item.peerId = conversation.peerId;
@@ -82,21 +82,20 @@ void ConversationListViewModel::synchronize()
         else
         {
             int onlineMembers = m_coordinator->running() ? 1 : 0;
-            const QList<Domain::GroupMember> members =
-                m_coordinator->groupMembers(conversation.conversationId);
+            const QList<Domain::GroupMember> members = m_coordinator->groupMembers(conversation.conversationId);
             for (const Domain::GroupMember &member : members)
             {
                 if (member.peerId == m_coordinator->localIdentity().deviceId)
+                {
                     continue;
+                }
                 Domain::Peer peer;
                 onlineMembers += m_coordinator->peer(member.peerId, &peer) && peer.online ? 1 : 0;
             }
             item.memberCount = members.size();
             item.onlineCount = onlineMembers;
             item.online = onlineMembers > 1;
-            item.statusText = tr("%1 位成员 · %2 人在线")
-                                  .arg(item.memberCount)
-                                  .arg(item.onlineCount);
+            item.statusText = tr("%1 位成员 · %2 人在线").arg(item.memberCount).arg(item.onlineCount);
         }
         items.append(std::move(item));
     }
@@ -107,12 +106,12 @@ void ConversationListViewModel::synchronize()
 QString ConversationListViewModel::displayTime(const QDateTime &timestamp)
 {
     if (!timestamp.isValid())
+    {
         return {};
+    }
     const QDateTime local = timestamp.toLocalTime();
     const QDate currentDate = QDate::currentDate();
-    return local.date() == currentDate
-               ? QLocale().toString(local.time(), QLocale::ShortFormat)
-               : QLocale().toString(local.date(), QLocale::ShortFormat);
+    return local.date() == currentDate ? QLocale().toString(local.time(), QLocale::ShortFormat) : QLocale().toString(local.date(), QLocale::ShortFormat);
 }
 
 QString ConversationListViewModel::initialForName(const QString &name)
@@ -129,7 +128,6 @@ QString ConversationListViewModel::colorForId(const QString &id)
                                     QStringLiteral("#D97757"),
                                     QStringLiteral("#C2548A"),
                                     QStringLiteral("#65758B")};
-    const QByteArray digest = QCryptographicHash::hash(id.toUtf8(),
-                                                       QCryptographicHash::Sha256);
+    const QByteArray digest = QCryptographicHash::hash(id.toUtf8(), QCryptographicHash::Sha256);
     return colors.at(static_cast<unsigned char>(digest.at(0)) % colors.size());
 }

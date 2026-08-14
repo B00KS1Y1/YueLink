@@ -132,179 +132,180 @@ MessageKind messageKindFromName(const QString &name)
 
 MessageKind messageKind(const Message &message)
 {
-    return std::visit([](const auto &payload) {
-        using Payload = std::decay_t<decltype(payload)>;
-        if constexpr (std::is_same_v<Payload, TextPayload>)
-        {
-            return MessageKind::Text;
-        }
-        else if constexpr (std::is_same_v<Payload, ImagePayload>)
-        {
-            return MessageKind::Image;
-        }
-        else if constexpr (std::is_same_v<Payload, FilePayload>)
-        {
-            return MessageKind::File;
-        }
-        else
-        {
-            return MessageKind::Emoji;
-        }
-    }, message.payload);
+    return std::visit(
+        [](const auto &payload) {
+            using Payload = std::decay_t<decltype(payload)>;
+            if constexpr (std::is_same_v<Payload, TextPayload>)
+            {
+                return MessageKind::Text;
+            }
+            else if constexpr (std::is_same_v<Payload, ImagePayload>)
+            {
+                return MessageKind::Image;
+            }
+            else if constexpr (std::is_same_v<Payload, FilePayload>)
+            {
+                return MessageKind::File;
+            }
+            else
+            {
+                return MessageKind::Emoji;
+            }
+        },
+        message.payload);
 }
 
 QString messageText(const Message &message)
 {
-    return std::visit([](const auto &payload) -> QString {
-        using Payload = std::decay_t<decltype(payload)>;
-        if constexpr (std::is_same_v<Payload, TextPayload>)
-        {
-            return payload.text;
-        }
-        else if constexpr (std::is_same_v<Payload, ImagePayload>)
-        {
-            return payload.caption;
-        }
-        else if constexpr (std::is_same_v<Payload, EmojiPayload>)
-        {
-            return payload.fallbackText;
-        }
-        else
-        {
-            return {};
-        }
-    }, message.payload);
+    return std::visit(
+        [](const auto &payload) -> QString {
+            using Payload = std::decay_t<decltype(payload)>;
+            if constexpr (std::is_same_v<Payload, TextPayload>)
+            {
+                return payload.text;
+            }
+            else if constexpr (std::is_same_v<Payload, ImagePayload>)
+            {
+                return payload.caption;
+            }
+            else if constexpr (std::is_same_v<Payload, EmojiPayload>)
+            {
+                return payload.fallbackText;
+            }
+            else
+            {
+                return {};
+            }
+        },
+        message.payload);
 }
 
 const AttachmentDescriptor *messageAttachment(const Message &message)
 {
-    return std::visit([](const auto &payload) -> const AttachmentDescriptor * {
-        using Payload = std::decay_t<decltype(payload)>;
-        if constexpr (std::is_same_v<Payload, ImagePayload> || std::is_same_v<Payload, FilePayload>)
-        {
-            return &payload.attachment;
-        }
-        else
-        {
-            return nullptr;
-        }
-    }, message.payload);
+    return std::visit(
+        [](const auto &payload) -> const AttachmentDescriptor * {
+            using Payload = std::decay_t<decltype(payload)>;
+            if constexpr (std::is_same_v<Payload, ImagePayload> || std::is_same_v<Payload, FilePayload>)
+            {
+                return &payload.attachment;
+            }
+            else
+            {
+                return nullptr;
+            }
+        },
+        message.payload);
 }
 
 QString messageSummary(const Message &message)
 {
-    return std::visit([](const auto &payload) -> QString {
-        using Payload = std::decay_t<decltype(payload)>;
-        if constexpr (std::is_same_v<Payload, TextPayload>)
-        {
-            return payload.text;
-        }
-        else if constexpr (std::is_same_v<Payload, ImagePayload>)
-        {
-            return payload.caption.isEmpty() ? QStringLiteral("[图片] %1").arg(payload.attachment.fileName)
-                                             : payload.caption;
-        }
-        else if constexpr (std::is_same_v<Payload, FilePayload>)
-        {
-            return QStringLiteral("[文件] %1").arg(payload.attachment.fileName);
-        }
-        else
-        {
-            return payload.fallbackText;
-        }
-    }, message.payload);
+    return std::visit(
+        [](const auto &payload) -> QString {
+            using Payload = std::decay_t<decltype(payload)>;
+            if constexpr (std::is_same_v<Payload, TextPayload>)
+            {
+                return payload.text;
+            }
+            else if constexpr (std::is_same_v<Payload, ImagePayload>)
+            {
+                return payload.caption.isEmpty() ? QStringLiteral("[图片] %1").arg(payload.attachment.fileName) : payload.caption;
+            }
+            else if constexpr (std::is_same_v<Payload, FilePayload>)
+            {
+                return QStringLiteral("[文件] %1").arg(payload.attachment.fileName);
+            }
+            else
+            {
+                return payload.fallbackText;
+            }
+        },
+        message.payload);
 }
 
 QJsonObject messagePayloadToJson(const MessagePayload &payload)
 {
-    return std::visit([](const auto &value) {
-        using Payload = std::decay_t<decltype(value)>;
-        QJsonObject object;
-        if constexpr (std::is_same_v<Payload, TextPayload>)
-        {
-            object.insert(QStringLiteral("text"), value.text);
-        }
-        else if constexpr (std::is_same_v<Payload, ImagePayload> || std::is_same_v<Payload, FilePayload>)
-        {
-            object.insert(QStringLiteral("attachmentId"), value.attachment.attachmentId);
-            object.insert(QStringLiteral("fileName"), value.attachment.fileName);
-            object.insert(QStringLiteral("mimeType"), value.attachment.mimeType);
-            object.insert(QStringLiteral("fileSize"), value.attachment.fileSize);
-            object.insert(QStringLiteral("sha256"), QString::fromLatin1(value.attachment.sha256.toHex()));
-            if constexpr (std::is_same_v<Payload, ImagePayload>)
+    return std::visit(
+        [](const auto &value) {
+            using Payload = std::decay_t<decltype(value)>;
+            QJsonObject object;
+            if constexpr (std::is_same_v<Payload, TextPayload>)
             {
-                object.insert(QStringLiteral("width"), value.dimensions.width());
-                object.insert(QStringLiteral("height"), value.dimensions.height());
-                object.insert(QStringLiteral("caption"), value.caption);
+                object.insert(QStringLiteral("text"), value.text);
             }
-        }
-        else
-        {
-            object.insert(QStringLiteral("packageId"), value.packageId);
-            object.insert(QStringLiteral("emojiId"), value.emojiId);
-            object.insert(QStringLiteral("fallbackText"), value.fallbackText);
-        }
-        return object;
-    }, payload);
+            else if constexpr (std::is_same_v<Payload, ImagePayload> || std::is_same_v<Payload, FilePayload>)
+            {
+                object.insert(QStringLiteral("attachmentId"), value.attachment.attachmentId);
+                object.insert(QStringLiteral("fileName"), value.attachment.fileName);
+                object.insert(QStringLiteral("mimeType"), value.attachment.mimeType);
+                object.insert(QStringLiteral("fileSize"), value.attachment.fileSize);
+                object.insert(QStringLiteral("sha256"), QString::fromLatin1(value.attachment.sha256.toHex()));
+                if constexpr (std::is_same_v<Payload, ImagePayload>)
+                {
+                    object.insert(QStringLiteral("width"), value.dimensions.width());
+                    object.insert(QStringLiteral("height"), value.dimensions.height());
+                    object.insert(QStringLiteral("caption"), value.caption);
+                }
+            }
+            else
+            {
+                object.insert(QStringLiteral("packageId"), value.packageId);
+                object.insert(QStringLiteral("emojiId"), value.emojiId);
+                object.insert(QStringLiteral("fallbackText"), value.fallbackText);
+            }
+            return object;
+        },
+        payload);
 }
 
-std::optional<MessagePayload> messagePayloadFromJson(MessageKind kind,
-                                                     const QJsonObject &object)
+std::optional<MessagePayload> messagePayloadFromJson(MessageKind kind, const QJsonObject &object)
 {
     switch (kind)
     {
     case MessageKind::Text:
-    {
-        const QString text = object.value(QStringLiteral("text")).toString();
-        return text.isEmpty() || text.size() > 2000 ? std::nullopt
-                              : std::optional<MessagePayload>{TextPayload{text}};
-    }
+        {
+            const QString text = object.value(QStringLiteral("text")).toString();
+            return text.isEmpty() || text.size() > 2000 ? std::nullopt : std::optional<MessagePayload>{TextPayload{text}};
+        }
     case MessageKind::Image:
     case MessageKind::File:
-    {
-        AttachmentDescriptor attachment;
-        attachment.attachmentId = object.value(QStringLiteral("attachmentId")).toString();
-        attachment.fileName = object.value(QStringLiteral("fileName")).toString();
-        attachment.mimeType = object.value(QStringLiteral("mimeType")).toString();
-        attachment.fileSize = object.value(QStringLiteral("fileSize")).toInteger(-1);
-        attachment.sha256 = QByteArray::fromHex(object.value(QStringLiteral("sha256")).toString().toLatin1());
-        if (attachment.attachmentId.isEmpty() || attachment.fileName.isEmpty()
-            || attachment.attachmentId.size() > 128
-            || attachment.fileName.size() > 255
-            || attachment.mimeType.isEmpty() || attachment.mimeType.size() > 128
-            || attachment.fileSize < 0
-            || attachment.sha256.size() != 32)
         {
-            return std::nullopt;
-        }
-        if (kind == MessageKind::Image)
-        {
-            const QSize dimensions(object.value(QStringLiteral("width")).toInt(),
-                                   object.value(QStringLiteral("height")).toInt());
-            const QString caption = object.value(QStringLiteral("caption")).toString();
-            if (!dimensions.isValid() || dimensions.width() > 100000
-                || dimensions.height() > 100000 || caption.size() > 2000)
+            AttachmentDescriptor attachment;
+            attachment.attachmentId = object.value(QStringLiteral("attachmentId")).toString();
+            attachment.fileName = object.value(QStringLiteral("fileName")).toString();
+            attachment.mimeType = object.value(QStringLiteral("mimeType")).toString();
+            attachment.fileSize = object.value(QStringLiteral("fileSize")).toInteger(-1);
+            attachment.sha256 = QByteArray::fromHex(object.value(QStringLiteral("sha256")).toString().toLatin1());
+            if (attachment.attachmentId.isEmpty() || attachment.fileName.isEmpty() || attachment.attachmentId.size() > 128 ||
+                attachment.fileName.size() > 255 || attachment.mimeType.isEmpty() || attachment.mimeType.size() > 128 || attachment.fileSize < 0 ||
+                attachment.sha256.size() != 32)
             {
                 return std::nullopt;
             }
-            return ImagePayload{std::move(attachment), dimensions, caption};
+            if (kind == MessageKind::Image)
+            {
+                const QSize dimensions(object.value(QStringLiteral("width")).toInt(), object.value(QStringLiteral("height")).toInt());
+                const QString caption = object.value(QStringLiteral("caption")).toString();
+                if (!dimensions.isValid() || dimensions.width() > 100000 || dimensions.height() > 100000 || caption.size() > 2000)
+                {
+                    return std::nullopt;
+                }
+                return ImagePayload{std::move(attachment), dimensions, caption};
+            }
+            return FilePayload{std::move(attachment)};
         }
-        return FilePayload{std::move(attachment)};
-    }
     case MessageKind::Emoji:
-    {
-        EmojiPayload emoji;
-        emoji.packageId = object.value(QStringLiteral("packageId")).toString();
-        emoji.emojiId = object.value(QStringLiteral("emojiId")).toString();
-        emoji.fallbackText = object.value(QStringLiteral("fallbackText")).toString();
-        if (emoji.packageId.isEmpty() || emoji.packageId.size() > 128
-            || emoji.emojiId.isEmpty() || emoji.emojiId.size() > 128
-            || emoji.fallbackText.isEmpty() || emoji.fallbackText.size() > 64)
         {
-            return std::nullopt;
+            EmojiPayload emoji;
+            emoji.packageId = object.value(QStringLiteral("packageId")).toString();
+            emoji.emojiId = object.value(QStringLiteral("emojiId")).toString();
+            emoji.fallbackText = object.value(QStringLiteral("fallbackText")).toString();
+            if (emoji.packageId.isEmpty() || emoji.packageId.size() > 128 || emoji.emojiId.isEmpty() || emoji.emojiId.size() > 128 ||
+                emoji.fallbackText.isEmpty() || emoji.fallbackText.size() > 64)
+            {
+                return std::nullopt;
+            }
+            return emoji;
         }
-        return emoji;
-    }
     }
     return std::nullopt;
 }

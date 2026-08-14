@@ -49,8 +49,7 @@ bool UdpPeerDiscovery::start(const Network::LocalIdentity &identity, quint16 tcp
     const auto bindMode = QAbstractSocket::ShareAddress | QAbstractSocket::ReuseAddressHint;
     if (!m_socket.bind(QHostAddress::AnyIPv4, DiscoveryPort, bindMode))
     {
-        QLOG_ERROR() << QStringLiteral("[网络.发现] 绑定 UDP 端口失败 端口=") << DiscoveryPort
-                               << QStringLiteral("原因=") << m_socket.errorString();
+        QLOG_ERROR() << QStringLiteral("[网络.发现] 绑定 UDP 端口失败 端口=") << DiscoveryPort << QStringLiteral("原因=") << m_socket.errorString();
         setLastError(tr("无法监听 UDP 发现端口 %1：%2").arg(DiscoveryPort).arg(m_socket.errorString()));
         return false;
     }
@@ -61,8 +60,7 @@ bool UdpPeerDiscovery::start(const Network::LocalIdentity &identity, quint16 tcp
     setLastError({});
     m_heartbeatTimer.start();
     announce();
-    QLOG_INFO() << QStringLiteral("[网络.发现] UDP 发现服务已启动 端口=") << DiscoveryPort
-                          << QStringLiteral("TCP端口=") << tcpPort;
+    QLOG_INFO() << QStringLiteral("[网络.发现] UDP 发现服务已启动 端口=") << DiscoveryPort << QStringLiteral("TCP端口=") << tcpPort;
     return true;
 }
 
@@ -136,8 +134,7 @@ void UdpPeerDiscovery::readPendingDatagrams()
         const QJsonDocument document = QJsonDocument::fromJson(datagram.data(), &parseError);
         if (parseError.error != QJsonParseError::NoError || !document.isObject())
         {
-            QLOG_TRACE() << QStringLiteral("[网络.发现] 已忽略格式错误的 UDP 数据报 地址=")
-                                   << datagram.senderAddress().toString();
+            QLOG_TRACE() << QStringLiteral("[网络.发现] 已忽略格式错误的 UDP 数据报 地址=") << datagram.senderAddress().toString();
             continue;
         }
 
@@ -158,8 +155,7 @@ void UdpPeerDiscovery::readPendingDatagrams()
         }
         if (!peer.isValid() || peer.peerId == m_identity.deviceId)
         {
-            QLOG_TRACE() << QStringLiteral("[网络.发现] 已忽略无效或来自本机的在线通告 地址=")
-                                   << datagram.senderAddress().toString();
+            QLOG_TRACE() << QStringLiteral("[网络.发现] 已忽略无效或来自本机的在线通告 地址=") << datagram.senderAddress().toString();
             continue;
         }
 
@@ -177,8 +173,7 @@ void UdpPeerDiscovery::readPendingDatagrams()
         {
             sendPresenceTo(datagram.senderAddress());
         }
-        if (type != QLatin1String("presence")
-            && type != QLatin1String("probe"))
+        if (type != QLatin1String("presence") && type != QLatin1String("probe"))
         {
             continue;
         }
@@ -187,9 +182,8 @@ void UdpPeerDiscovery::readPendingDatagrams()
         recordPeerActivity(peer.peerId);
         if (isNewPeer)
         {
-            QLOG_INFO() << QStringLiteral("[网络.发现] 已发现在线好友 好友标识=") << peer.peerId
-                                  << QStringLiteral("地址=") << peer.address.toString()
-                                  << QStringLiteral("端口=") << peer.tcpPort;
+            QLOG_INFO() << QStringLiteral("[网络.发现] 已发现在线好友 好友标识=") << peer.peerId << QStringLiteral("地址=") << peer.address.toString()
+                        << QStringLiteral("端口=") << peer.tcpPort;
         }
         else
         {
@@ -228,12 +222,10 @@ void UdpPeerDiscovery::sendPresence(const QString &type)
     {
         if (m_socket.writeDatagram(payload, destination, DiscoveryPort) < 0)
         {
-            QLOG_WARN() << QStringLiteral("[网络.发现] UDP 广播失败 目标地址=") << destination.toString()
-                                  << QStringLiteral("原因=") << m_socket.errorString();
+            QLOG_WARN() << QStringLiteral("[网络.发现] UDP 广播失败 目标地址=") << destination.toString() << QStringLiteral("原因=") << m_socket.errorString();
         }
     }
-    QLOG_TRACE() << QStringLiteral("[网络.发现] 在线状态已广播 类型=") << type
-                           << QStringLiteral("目标数=") << destinations.size();
+    QLOG_TRACE() << QStringLiteral("[网络.发现] 在线状态已广播 类型=") << type << QStringLiteral("目标数=") << destinations.size();
 }
 
 void UdpPeerDiscovery::sendPresenceTo(const QHostAddress &address)
@@ -245,8 +237,7 @@ void UdpPeerDiscovery::sendPresenceTo(const QHostAddress &address)
     }
     if (m_socket.writeDatagram(payload, address, DiscoveryPort) < 0)
     {
-        QLOG_WARN() << QStringLiteral("[网络.发现] UDP 发现回应失败 目标地址=") << address.toString()
-                              << QStringLiteral("原因=") << m_socket.errorString();
+        QLOG_WARN() << QStringLiteral("[网络.发现] UDP 发现回应失败 目标地址=") << address.toString() << QStringLiteral("原因=") << m_socket.errorString();
     }
 }
 

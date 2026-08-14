@@ -10,9 +10,7 @@
 
 namespace
 {
-bool validatePath(const QString &filePath,
-                  QFileInfo *fileInfo,
-                  QString *errorMessage)
+bool validatePath(const QString &filePath, QFileInfo *fileInfo, QString *errorMessage)
 {
     const QFileInfo info(QDir::cleanPath(filePath));
     if (filePath.trimmed().isEmpty() || !info.exists())
@@ -39,8 +37,7 @@ void clearError(QString *errorMessage)
 }
 } // namespace
 
-bool DesktopFileLauncher::openFile(const QString &filePath,
-                                   QString *errorMessage)
+bool DesktopFileLauncher::openFile(const QString &filePath, QString *errorMessage)
 {
     QFileInfo fileInfo;
     if (!validatePath(filePath, &fileInfo, errorMessage))
@@ -61,8 +58,7 @@ bool DesktopFileLauncher::openFile(const QString &filePath,
     return true;
 }
 
-bool DesktopFileLauncher::revealInFolder(const QString &filePath,
-                                         QString *errorMessage)
+bool DesktopFileLauncher::revealInFolder(const QString &filePath, QString *errorMessage)
 {
     QFileInfo fileInfo;
     if (!validatePath(filePath, &fileInfo, errorMessage))
@@ -72,17 +68,11 @@ bool DesktopFileLauncher::revealInFolder(const QString &filePath,
 
     bool started = false;
 #if defined(Q_OS_WIN)
-    started = QProcess::startDetached(
-        QStringLiteral("explorer.exe"),
-        {QStringLiteral("/select,"),
-         QDir::toNativeSeparators(fileInfo.absoluteFilePath())});
+    started = QProcess::startDetached(QStringLiteral("explorer.exe"), {QStringLiteral("/select,"), QDir::toNativeSeparators(fileInfo.absoluteFilePath())});
 #elif defined(Q_OS_MACOS)
-    started = QProcess::startDetached(QStringLiteral("open"),
-                                      {QStringLiteral("-R"),
-                                       fileInfo.absoluteFilePath()});
+    started = QProcess::startDetached(QStringLiteral("open"), {QStringLiteral("-R"), fileInfo.absoluteFilePath()});
 #else
-    started = QDesktopServices::openUrl(
-        QUrl::fromLocalFile(fileInfo.absolutePath()));
+    started = QDesktopServices::openUrl(QUrl::fromLocalFile(fileInfo.absolutePath()));
 #endif
 
     if (!started)

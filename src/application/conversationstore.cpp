@@ -421,10 +421,7 @@ bool ConversationStore::appendMessage(Domain::Message message, const QString &su
     }
     m_loadedConversations.insert(message.metadata.conversationId);
     m_messages[message.metadata.conversationId].append(message);
-    updateConversationSummary(message.metadata.conversationId,
-                              summary,
-                              message.metadata.timestamp,
-                              incrementUnread);
+    updateConversationSummary(message.metadata.conversationId, summary, message.metadata.timestamp, incrementUnread);
     emit messageAdded(message);
     return true;
 }
@@ -474,21 +471,11 @@ void ConversationStore::updateFileTransfer(
             message.localAttachment.filePath = filePath;
         }
         QString error;
-        if (m_repositoryReady
-            && !m_repository->updateFileTransfer(conversationId,
-                                                 messageId,
-                                                 message.localAttachment.progress,
-                                                 state,
-                                                 filePath,
-                                                 &error))
+        if (m_repositoryReady && !m_repository->updateFileTransfer(conversationId, messageId, message.localAttachment.progress, state, filePath, &error))
         {
             reportRepositoryError("updateFileTransfer", error);
         }
-        emit fileTransferChanged(conversationId,
-                                 messageId,
-                                 message.localAttachment.progress,
-                                 state,
-                                 message.localAttachment.filePath);
+        emit fileTransferChanged(conversationId, messageId, message.localAttachment.progress, state, message.localAttachment.filePath);
         return;
     }
 }

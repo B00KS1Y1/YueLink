@@ -28,12 +28,11 @@ void setError(QString *errorMessage, const QString &message)
 }
 } // namespace
 
-DesktopIntegration::DesktopIntegration(
-    ChatCoordinator *coordinator,
-    ConversationViewModel *conversation,
-    std::unique_ptr<IFileLauncher> fileLauncher,
-    std::unique_ptr<INotificationService> notificationService,
-    QObject *parent)
+DesktopIntegration::DesktopIntegration(ChatCoordinator *coordinator,
+                                       ConversationViewModel *conversation,
+                                       std::unique_ptr<IFileLauncher> fileLauncher,
+                                       std::unique_ptr<INotificationService> notificationService,
+                                       QObject *parent)
 : QObject(parent)
 , m_coordinator(coordinator)
 , m_conversation(conversation)
@@ -61,8 +60,7 @@ QList<QUrl> DesktopIntegration::clipboardImageUrls(QString *errorMessage)
     QList<QUrl> imageUrls;
     for (const QUrl &url : mimeData->urls())
     {
-        if (url.isLocalFile()
-            && !QImageReader::imageFormat(url.toLocalFile()).isEmpty())
+        if (url.isLocalFile() && !QImageReader::imageFormat(url.toLocalFile()).isEmpty())
         {
             imageUrls.append(url);
         }
@@ -86,9 +84,7 @@ QList<QUrl> DesktopIntegration::clipboardImageUrls(QString *errorMessage)
         return {};
     }
 
-    const QString imagePath = QDir(imageDirectoryPath).filePath(
-        QStringLiteral("clipboard-%1.png").arg(
-            QUuid::createUuid().toString(QUuid::WithoutBraces)));
+    const QString imagePath = QDir(imageDirectoryPath).filePath(QStringLiteral("clipboard-%1.png").arg(QUuid::createUuid().toString(QUuid::WithoutBraces)));
     if (!image.save(imagePath, "PNG"))
     {
         setError(errorMessage, tr("无法保存剪贴板图片。"));
@@ -97,8 +93,7 @@ QList<QUrl> DesktopIntegration::clipboardImageUrls(QString *errorMessage)
     return {QUrl::fromLocalFile(imagePath)};
 }
 
-bool DesktopIntegration::copyText(const QString &text,
-                                  QString *errorMessage)
+bool DesktopIntegration::copyText(const QString &text, QString *errorMessage)
 {
     if (text.isEmpty())
     {
@@ -111,14 +106,12 @@ bool DesktopIntegration::copyText(const QString &text,
     return true;
 }
 
-bool DesktopIntegration::openFile(const QString &filePath,
-                                  QString *errorMessage)
+bool DesktopIntegration::openFile(const QString &filePath, QString *errorMessage)
 {
     return m_fileLauncher->openFile(filePath, errorMessage);
 }
 
-bool DesktopIntegration::revealFile(const QString &filePath,
-                                    QString *errorMessage)
+bool DesktopIntegration::revealFile(const QString &filePath, QString *errorMessage)
 {
     return m_fileLauncher->revealInFolder(filePath, errorMessage);
 }
@@ -130,29 +123,15 @@ void DesktopIntegration::setNotificationsEnabled(bool enabled)
 
 void DesktopIntegration::connectServices()
 {
-    connect(m_notificationService.get(),
-            &INotificationService::notificationActivated,
-            this,
-            &DesktopIntegration::notificationActivated);
-    connect(m_coordinator,
-            &ChatCoordinator::messageReceived,
-            this,
-            &DesktopIntegration::handleIncomingMessage);
-    connect(m_coordinator,
-            &ChatCoordinator::fileReceived,
-            this,
-            &DesktopIntegration::handleFileReceived);
-    connect(m_coordinator,
-            &ChatCoordinator::fileTransferFailed,
-            this,
-            &DesktopIntegration::handleFileTransferFailed);
+    connect(m_notificationService.get(), &INotificationService::notificationActivated, this, &DesktopIntegration::notificationActivated);
+    connect(m_coordinator, &ChatCoordinator::messageReceived, this, &DesktopIntegration::handleIncomingMessage);
+    connect(m_coordinator, &ChatCoordinator::fileReceived, this, &DesktopIntegration::handleFileReceived);
+    connect(m_coordinator, &ChatCoordinator::fileTransferFailed, this, &DesktopIntegration::handleFileTransferFailed);
 }
 
-void DesktopIntegration::handleIncomingMessage(const QString &conversationId,
-                                               const QString &text)
+void DesktopIntegration::handleIncomingMessage(const QString &conversationId, const QString &text)
 {
-    if (conversationId == m_conversation->currentConversationId()
-        && QGuiApplication::applicationState() == Qt::ApplicationActive)
+    if (conversationId == m_conversation->currentConversationId() && QGuiApplication::applicationState() == Qt::ApplicationActive)
     {
         static_cast<void>(m_coordinator->markConversationRead(conversationId));
         return;
@@ -160,39 +139,30 @@ void DesktopIntegration::handleIncomingMessage(const QString &conversationId,
     showIncomingNotification(conversationId, text);
 }
 
-void DesktopIntegration::handleFileReceived(const QString &conversationId,
-                                            const QString &filePath)
+void DesktopIntegration::handleFileReceived(const QString &conversationId, const QString &filePath)
 {
     if (QGuiApplication::applicationState() != Qt::ApplicationActive)
     {
-        showIncomingNotification(conversationId,
-                                 tr("文件已接收：%1").arg(
-                                     QFileInfo(filePath).fileName()));
+        showIncomingNotification(conversationId, tr("文件已接收：%1").arg(QFileInfo(filePath).fileName()));
     }
 }
 
-void DesktopIntegration::handleFileTransferFailed(const QString &conversationId,
-                                                  const QString &reason,
-                                                  bool incoming)
+void DesktopIntegration::handleFileTransferFailed(const QString &conversationId, const QString &reason, bool incoming)
 {
-    if (incoming
-        && QGuiApplication::applicationState() != Qt::ApplicationActive)
+    if (incoming && QGuiApplication::applicationState() != Qt::ApplicationActive)
     {
         showIncomingNotification(conversationId, reason);
     }
 }
 
-void DesktopIntegration::showIncomingNotification(const QString &conversationId,
-                                                  const QString &message)
+void DesktopIntegration::showIncomingNotification(const QString &conversationId, const QString &message)
 {
     if (QGuiApplication::applicationState() == Qt::ApplicationActive)
     {
         return;
     }
     Domain::Conversation conversation;
-    QString title = m_coordinator->conversation(conversationId, &conversation)
-                        ? conversation.title.trimmed()
-                        : QString{};
+    QString title = m_coordinator->conversation(conversationId, &conversation) ? conversation.title.trimmed() : QString{};
     if (title.isEmpty())
     {
         title = tr("YueLink 新消息");

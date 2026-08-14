@@ -68,24 +68,20 @@ public:
      * @param[out] errorMessage 请求被拒绝时接收错误说明；允许为空。
      * @return 请求被接受时返回 @c true。
      */
-    [[nodiscard]] bool sendMessage(const Network::PeerEndpoint &peer,
-                                   const Domain::Message &message,
-                                   QString *errorMessage = nullptr) override;
+    [[nodiscard]] bool sendMessage(const Network::PeerEndpoint &peer, const Domain::Message &message, QString *errorMessage = nullptr) override;
     /**
      * @brief 向指定节点发送完整群组快照。
      * @param peer 目标节点。
      * @param snapshot 群组元数据与成员快照。
      */
-    void sendGroupSnapshot(const Network::PeerEndpoint &peer,
-                           const Network::GroupSnapshot &snapshot) override;
+    void sendGroupSnapshot(const Network::PeerEndpoint &peer, const Network::GroupSnapshot &snapshot) override;
     /**
      * @brief 取消正在进行的文件传输。
      * @param peerId 远端节点标识。
      * @param transferId 文件传输标识。
      * @return 成功取消匹配的传输时返回 @c true。
      */
-    [[nodiscard]] bool cancelFileTransfer(const QString &peerId,
-                                          const QString &transferId) override;
+    [[nodiscard]] bool cancelFileTransfer(const QString &peerId, const QString &transferId) override;
     /**
      * @brief 接受等待确认的文件传输请求并通知发送方开始发送。
      * @param peerId 发送方节点标识。
@@ -93,9 +89,7 @@ public:
      * @param[out] errorMessage 接受失败时接收错误说明；允许为空。
      * @return 已开始接收匹配文件时返回 @c true。
      */
-    [[nodiscard]] bool acceptFileTransfer(const QString &peerId,
-                                          const QString &transferId,
-                                          QString *errorMessage = nullptr) override;
+    [[nodiscard]] bool acceptFileTransfer(const QString &peerId, const QString &transferId, QString *errorMessage = nullptr) override;
 
 private:
     static constexpr qint64 FileTransferTimeoutMs = 30000;
@@ -121,8 +115,7 @@ private:
      * @param object 已解析的群组快照对象。
      * @param socket 消息来源套接字。
      */
-    void handleIncomingGroupSnapshot(const QJsonObject &object,
-                                     QTcpSocket *socket);
+    void handleIncomingGroupSnapshot(const QJsonObject &object, QTcpSocket *socket);
     /**
      * @brief 处理收到的附件头帧。
      * @param object 已解析的附件头对象。
@@ -143,17 +136,14 @@ private:
      * @param[out] errorMessage 准备失败时接收错误说明；允许为空。
      * @return 目标文件已准备好时返回 @c true。
      */
-    bool prepareIncomingFile(IncomingFileTransfer *transfer,
-                             QString *errorMessage = nullptr);
+    bool prepareIncomingFile(IncomingFileTransfer *transfer, QString *errorMessage = nullptr);
     /**
      * @brief 结束失败或取消的文件接收任务。
      * @param socket 文件来源套接字。
      * @param reason 失败或取消原因。
      * @param cancelled 是否由取消操作触发。
      */
-    void failIncomingFile(QTcpSocket *socket,
-                          const QString &reason,
-                          bool cancelled = false);
+    void failIncomingFile(QTcpSocket *socket, const QString &reason, bool cancelled = false);
 
     /**
      * @brief 完成短连接事件发送任务。
@@ -173,10 +163,7 @@ private:
      * @param frameType 事件类型。
      * @param frame 已编码帧。
      */
-    void sendFramedEvent(const Network::PeerEndpoint &peer,
-                         const QString &eventId,
-                         const QString &frameType,
-                         const QByteArray &frame);
+    void sendFramedEvent(const Network::PeerEndpoint &peer, const QString &eventId, const QString &frameType, const QByteArray &frame);
     /**
      * @brief 开始发送消息携带的本地附件。
      * @param peer 目标节点。
@@ -184,9 +171,7 @@ private:
      * @param[out] errorMessage 请求被拒绝时接收错误说明；允许为空。
      * @return 请求被接受时返回 @c true。
      */
-    [[nodiscard]] bool sendAttachment(const Network::PeerEndpoint &peer,
-                                      const Domain::Message &message,
-                                      QString *errorMessage);
+    [[nodiscard]] bool sendAttachment(const Network::PeerEndpoint &peer, const Domain::Message &message, QString *errorMessage);
     /**
      * @brief 向套接字持续写入待发送的文件数据。
      * @param socket 文件发送使用的套接字。
@@ -208,9 +193,7 @@ private:
      * @param reason 失败或取消原因。
      * @param cancelled 是否由取消操作触发。
      */
-    void failOutgoingFile(QTcpSocket *socket,
-                          const QString &reason,
-                          bool cancelled = false);
+    void failOutgoingFile(QTcpSocket *socket, const QString &reason, bool cancelled = false);
     /** @brief 终止超过允许空闲时间的文件传输。 */
     void expireFileTransfers();
 
@@ -220,8 +203,7 @@ private:
      * @param socket 消息来源套接字。
      * @return 解析并补全后的发送方节点信息。
      */
-    [[nodiscard]] Network::PeerEndpoint incomingPeer(const QJsonObject &object,
-                                                     QTcpSocket *socket) const;
+    [[nodiscard]] Network::PeerEndpoint incomingPeer(const QJsonObject &object, QTcpSocket *socket) const;
     /**
      * @brief 记录事件标识并过滤重复事件。
      * @param eventId 待记录的事件标识。

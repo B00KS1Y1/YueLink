@@ -116,11 +116,7 @@ public:
      * @param deliveredCount 已发送数量；负值表示保持原值。
      * @param totalRecipientCount 接收方总数；负值表示保持原值。
      */
-    void updateDelivery(const QString &conversationId,
-                        const QString &messageId,
-                        const QString &status,
-                        int deliveredCount = -1,
-                        int totalRecipientCount = -1);
+    void updateDelivery(const QString &conversationId, const QString &messageId, const QString &status, int deliveredCount = -1, int totalRecipientCount = -1);
     /**
      * @brief 更新文件消息传输信息。
      * @param conversationId 会话标识。
@@ -129,11 +125,7 @@ public:
      * @param status 新状态。
      * @param filePath 可用时提供本地路径。
      */
-    void updateFileTransfer(const QString &conversationId,
-                            const QString &messageId,
-                            qreal progress,
-                            const QString &status,
-                            const QString &filePath = {});
+    void updateFileTransfer(const QString &conversationId, const QString &messageId, qreal progress, const QString &status, const QString &filePath = {});
 
 private:
     QHash<QString, QList<Message>> m_conversations;

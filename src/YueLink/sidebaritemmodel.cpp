@@ -15,25 +15,42 @@ int SidebarItemModel::rowCount(const QModelIndex &parent) const
 QVariant SidebarItemModel::data(const QModelIndex &index, int role) const
 {
     if (!index.isValid() || index.row() < 0 || index.row() >= m_items.size())
+    {
         return {};
+    }
     const Item &item = m_items.at(index.row());
     switch (role)
     {
-    case ItemIdRole: return item.itemId;
-    case ItemKindRole: return item.itemKind;
-    case TitleRole: return item.title;
-    case InitialRole: return item.initial;
-    case StatusTextRole: return item.statusText;
-    case LastMessageRole: return item.lastMessage;
-    case LastTimeRole: return item.lastTime;
-    case AvatarColorRole: return item.avatarColor;
-    case OnlineRole: return item.online;
-    case UnreadRole: return item.unread;
-    case PeerIdRole: return item.peerId;
-    case MemberCountRole: return item.memberCount;
-    case OnlineCountRole: return item.onlineCount;
-    case SortTimestampRole: return item.sortTimestamp;
-    default: return {};
+    case ItemIdRole:
+        return item.itemId;
+    case ItemKindRole:
+        return item.itemKind;
+    case TitleRole:
+        return item.title;
+    case InitialRole:
+        return item.initial;
+    case StatusTextRole:
+        return item.statusText;
+    case LastMessageRole:
+        return item.lastMessage;
+    case LastTimeRole:
+        return item.lastTime;
+    case AvatarColorRole:
+        return item.avatarColor;
+    case OnlineRole:
+        return item.online;
+    case UnreadRole:
+        return item.unread;
+    case PeerIdRole:
+        return item.peerId;
+    case MemberCountRole:
+        return item.memberCount;
+    case OnlineCountRole:
+        return item.onlineCount;
+    case SortTimestampRole:
+        return item.sortTimestamp;
+    default:
+        return {};
     }
 }
 
@@ -83,7 +100,9 @@ int SidebarItemModel::onlineCount() const
 {
     int count = 0;
     for (const Item &item : m_items)
+    {
         count += item.online ? 1 : 0;
+    }
     return count;
 }
 
@@ -91,7 +110,9 @@ int SidebarItemModel::totalUnreadCount() const
 {
     int count = 0;
     for (const Item &item : m_items)
+    {
         count += item.unread;
+    }
     return count;
 }
 
@@ -102,5 +123,7 @@ void SidebarItemModel::setItems(QList<Item> items)
     m_items = std::move(items);
     endResetModel();
     if (previousUnread != totalUnreadCount())
+    {
         emit unreadCountChanged();
+    }
 }

@@ -25,8 +25,7 @@ public:
      * @param coordinator 非拥有的聊天协调器。
      * @param parent 可选的 QObject 父对象。
      */
-    explicit PeerListViewModel(ChatCoordinator *coordinator,
-                               QObject *parent = nullptr);
+    explicit PeerListViewModel(ChatCoordinator *coordinator, QObject *parent = nullptr);
     /** @brief 销毁联系人视图模型。 */
     ~PeerListViewModel() override;
     /**

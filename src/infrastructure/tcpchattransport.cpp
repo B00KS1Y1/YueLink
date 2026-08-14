@@ -17,16 +17,10 @@ TcpChatTransport::TcpChatTransport(QObject *parent)
 : IChatTransport(parent)
 {
     m_server.setProxy(QNetworkProxy(QNetworkProxy::NoProxy));
-    connect(&m_server,
-            &QTcpServer::newConnection,
-            this,
-            &TcpChatTransport::acceptConnections);
+    connect(&m_server, &QTcpServer::newConnection, this, &TcpChatTransport::acceptConnections);
     m_transferTimer.setInterval(2000);
     m_transferTimer.setTimerType(Qt::CoarseTimer);
-    connect(&m_transferTimer,
-            &QTimer::timeout,
-            this,
-            &TcpChatTransport::expireFileTransfers);
+    connect(&m_transferTimer, &QTimer::timeout, this, &TcpChatTransport::expireFileTransfers);
 }
 
 TcpChatTransport::~TcpChatTransport()
@@ -69,9 +63,8 @@ void TcpChatTransport::stop()
         return;
     }
 
-    QLOG_INFO() << QStringLiteral("[网络.传输] 正在停止 TCP 传输服务 文本传输数=") << m_outgoingTextSockets.size()
-                          << QStringLiteral("发送文件数=") << m_outgoingFiles.size()
-                          << QStringLiteral("接收文件数=") << m_incomingFiles.size();
+    QLOG_INFO() << QStringLiteral("[网络.传输] 正在停止 TCP 传输服务 文本传输数=") << m_outgoingTextSockets.size() << QStringLiteral("发送文件数=")
+                << m_outgoingFiles.size() << QStringLiteral("接收文件数=") << m_incomingFiles.size();
     m_transferTimer.stop();
     m_server.close();
     for (QTcpSocket *socket : m_outgoingTextSockets.values())
@@ -117,9 +110,7 @@ QString TcpChatTransport::lastError() const
     return m_lastError;
 }
 
-bool TcpChatTransport::sendMessage(const Network::PeerEndpoint &peer,
-                                   const Domain::Message &message,
-                                   QString *errorMessage)
+bool TcpChatTransport::sendMessage(const Network::PeerEndpoint &peer, const Domain::Message &message, QString *errorMessage)
 {
     if (Domain::messageAttachment(message))
     {
@@ -134,16 +125,10 @@ bool TcpChatTransport::sendMessage(const Network::PeerEndpoint &peer,
         return false;
     }
 
-    QLOG_DEBUG() << QStringLiteral("[网络.传输] 正在连接以发送消息 好友标识=") << peer.peerId
-                 << QStringLiteral("消息标识=") << message.metadata.messageId
+    QLOG_DEBUG() << QStringLiteral("[网络.传输] 正在连接以发送消息 好友标识=") << peer.peerId << QStringLiteral("消息标识=") << message.metadata.messageId
                  << QStringLiteral("类型=") << Domain::messageKindName(Domain::messageKind(message));
-    sendFramedEvent(peer,
-                    message.metadata.messageId,
-                    QStringLiteral("message"),
-                    Network::WireProtocol::messageFrame(m_identity,
-                                                        listeningPort(),
-                                                        peer,
-                                                        message));
+    sendFramedEvent(
+        peer, message.metadata.messageId, QStringLiteral("message"), Network::WireProtocol::messageFrame(m_identity, listeningPort(), peer, message));
     if (errorMessage)
     {
         errorMessage->clear();
@@ -151,23 +136,13 @@ bool TcpChatTransport::sendMessage(const Network::PeerEndpoint &peer,
     return true;
 }
 
-void TcpChatTransport::sendGroupSnapshot(
-    const Network::PeerEndpoint &peer,
-    const Network::GroupSnapshot &snapshot)
+void TcpChatTransport::sendGroupSnapshot(const Network::PeerEndpoint &peer, const Network::GroupSnapshot &snapshot)
 {
-    sendFramedEvent(peer,
-                    snapshot.groupId,
-                    QStringLiteral("group.snapshot"),
-                    Network::WireProtocol::groupSnapshotFrame(m_identity,
-                                                              listeningPort(),
-                                                              peer,
-                                                              snapshot));
+    sendFramedEvent(
+        peer, snapshot.groupId, QStringLiteral("group.snapshot"), Network::WireProtocol::groupSnapshotFrame(m_identity, listeningPort(), peer, snapshot));
 }
 
-void TcpChatTransport::sendFramedEvent(const Network::PeerEndpoint &peer,
-                                       const QString &eventId,
-                                       const QString &frameType,
-                                       const QByteArray &frame)
+void TcpChatTransport::sendFramedEvent(const Network::PeerEndpoint &peer, const QString &eventId, const QString &frameType, const QByteArray &frame)
 {
     auto *socket = new QTcpSocket(this);
     socket->setProxy(QNetworkProxy(QNetworkProxy::NoProxy));
@@ -178,9 +153,8 @@ void TcpChatTransport::sendFramedEvent(const Network::PeerEndpoint &peer,
     m_outgoingTextSockets.insert(socket);
 
     connect(socket, &QTcpSocket::connected, this, [this, socket]() {
-        QLOG_TRACE() << QStringLiteral("[网络.传输] 事件套接字已连接 好友标识=")
-                               << socket->property("peerId").toString()
-                               << QStringLiteral("消息标识=") << socket->property("messageId").toString();
+        QLOG_TRACE() << QStringLiteral("[网络.传输] 事件套接字已连接 好友标识=") << socket->property("peerId").toString() << QStringLiteral("消息标识=")
+                     << socket->property("messageId").toString();
         const QByteArray frame = socket->property("frame").toByteArray();
         if (socket->write(frame) != frame.size())
         {
@@ -197,12 +171,9 @@ void TcpChatTransport::sendFramedEvent(const Network::PeerEndpoint &peer,
             finishOutgoingText(socket);
         }
     });
-    connect(socket,
-            &QTcpSocket::errorOccurred,
-            this,
-            [this, socket](QAbstractSocket::SocketError) {
-                failOutgoingText(socket, socket->errorString());
-            });
+    connect(socket, &QTcpSocket::errorOccurred, this, [this, socket](QAbstractSocket::SocketError) {
+        failOutgoingText(socket, socket->errorString());
+    });
     connect(socket, &QTcpSocket::disconnected, this, [this, socket]() {
         if (m_outgoingTextSockets.contains(socket))
         {
@@ -228,8 +199,8 @@ void TcpChatTransport::acceptConnections()
         {
             continue;
         }
-        QLOG_DEBUG() << QStringLiteral("[网络.传输] 已接受 TCP 连接 地址=") << socket->peerAddress().toString()
-                               << QStringLiteral("端口=") << socket->peerPort();
+        QLOG_DEBUG() << QStringLiteral("[网络.传输] 已接受 TCP 连接 地址=") << socket->peerAddress().toString() << QStringLiteral("端口=")
+                     << socket->peerPort();
         socket->setReadBufferSize(Network::WireProtocol::MaximumFrameSize + 4);
         socket->setProperty("receivedData", false);
         m_incomingBuffers.insert(socket, QByteArray());
@@ -246,8 +217,7 @@ void TcpChatTransport::acceptConnections()
             socket->deleteLater();
         });
         QTimer::singleShot(10000, socket, [socket]() {
-            if (!socket->property("receivedData").toBool()
-                && socket->state() != QAbstractSocket::UnconnectedState)
+            if (!socket->property("receivedData").toBool() && socket->state() != QAbstractSocket::UnconnectedState)
             {
                 socket->disconnectFromHost();
             }
@@ -257,8 +227,7 @@ void TcpChatTransport::acceptConnections()
 
 void TcpChatTransport::readIncomingData(QTcpSocket *socket)
 {
-    if (m_incomingFiles.contains(socket)
-        && !socket->property("attachmentAccepted").toBool())
+    if (m_incomingFiles.contains(socket) && !socket->property("attachmentAccepted").toBool())
     {
         return;
     }
@@ -283,12 +252,11 @@ void TcpChatTransport::readIncomingData(QTcpSocket *socket)
             return;
         }
 
-        const quint32 frameSize = qFromBigEndian<quint32>(
-            reinterpret_cast<const uchar *>(buffer.constData()));
+        const quint32 frameSize = qFromBigEndian<quint32>(reinterpret_cast<const uchar *>(buffer.constData()));
         if (frameSize == 0 || frameSize > Network::WireProtocol::MaximumFrameSize)
         {
-            QLOG_WARN() << QStringLiteral("[网络.传输] 已拒绝无效长度的数据帧 长度=") << frameSize
-                                  << QStringLiteral("地址=") << socket->peerAddress().toString();
+            QLOG_WARN() << QStringLiteral("[网络.传输] 已拒绝无效长度的数据帧 长度=") << frameSize << QStringLiteral("地址=")
+                        << socket->peerAddress().toString();
             socket->disconnectFromHost();
             return;
         }
@@ -303,8 +271,7 @@ void TcpChatTransport::readIncomingData(QTcpSocket *socket)
         const QJsonDocument document = QJsonDocument::fromJson(payload, &parseError);
         if (parseError.error != QJsonParseError::NoError || !document.isObject())
         {
-            QLOG_DEBUG() << QStringLiteral("[网络.传输] 已忽略格式错误的 JSON 数据帧 地址=")
-                                   << socket->peerAddress().toString();
+            QLOG_DEBUG() << QStringLiteral("[网络.传输] 已忽略格式错误的 JSON 数据帧 地址=") << socket->peerAddress().toString();
             continue;
         }
 
@@ -318,8 +285,7 @@ void TcpChatTransport::readIncomingData(QTcpSocket *socket)
         {
             handleIncomingGroupSnapshot(object, socket);
         }
-        else if (type == QLatin1String("attachment")
-                 && !handleIncomingAttachmentHeader(object, socket))
+        else if (type == QLatin1String("attachment") && !handleIncomingAttachmentHeader(object, socket))
         {
             QLOG_WARN() << QStringLiteral("[网络.传输] 已拒绝接收文件头 地址=") << socket->peerAddress().toString();
             socket->disconnectFromHost();
@@ -327,8 +293,7 @@ void TcpChatTransport::readIncomingData(QTcpSocket *socket)
         }
         else if (type != QLatin1String("attachment"))
         {
-            QLOG_DEBUG() << QStringLiteral("[网络.传输] 已忽略未知类型的数据帧 类型=") << type
-                                   << QStringLiteral("地址=") << socket->peerAddress().toString();
+            QLOG_DEBUG() << QStringLiteral("[网络.传输] 已忽略未知类型的数据帧 类型=") << type << QStringLiteral("地址=") << socket->peerAddress().toString();
         }
     }
 }
@@ -337,49 +302,39 @@ void TcpChatTransport::handleIncomingMessage(const QJsonObject &object, QTcpSock
 {
     if (!Network::WireProtocol::isEnvelopeFor(object, m_identity))
     {
-        QLOG_DEBUG() << QStringLiteral("[网络.传输] 已忽略发给其他接收方的消息信封 地址=")
-                               << socket->peerAddress().toString();
+        QLOG_DEBUG() << QStringLiteral("[网络.传输] 已忽略发给其他接收方的消息信封 地址=") << socket->peerAddress().toString();
         return;
     }
     const Network::PeerEndpoint peer = incomingPeer(object, socket);
     const QString messageId = object.value(QStringLiteral("messageId")).toString();
     const QString conversationId = object.value(QStringLiteral("conversationId")).toString();
-    const Domain::MessageKind kind = Domain::messageKindFromName(
-        object.value(QStringLiteral("kind")).toString());
-    const auto payload = Domain::messagePayloadFromJson(
-        kind, object.value(QStringLiteral("payload")).toObject());
+    const Domain::MessageKind kind = Domain::messageKindFromName(object.value(QStringLiteral("kind")).toString());
+    const auto payload = Domain::messagePayloadFromJson(kind, object.value(QStringLiteral("payload")).toObject());
     Domain::Message payloadMessage;
     if (payload)
     {
         payloadMessage.payload = *payload;
     }
     const QString messageText = payload ? Domain::messageText(payloadMessage) : QString{};
-    if (!peer.isValid() || peer.peerId == m_identity.deviceId || messageId.isEmpty()
-        || conversationId.size() > 128
-        || (!conversationId.isEmpty() && !conversationId.startsWith(QLatin1String("group:")))
-        || !payload || kind == Domain::MessageKind::Image || kind == Domain::MessageKind::File
-        || messageText.size() > 2000
-        || !rememberEventId(messageId))
+    if (!peer.isValid() || peer.peerId == m_identity.deviceId || messageId.isEmpty() || conversationId.size() > 128 ||
+        (!conversationId.isEmpty() && !conversationId.startsWith(QLatin1String("group:"))) || !payload || kind == Domain::MessageKind::Image ||
+        kind == Domain::MessageKind::File || messageText.size() > 2000 || !rememberEventId(messageId))
     {
-        QLOG_DEBUG() << QStringLiteral("[网络.传输] 已拒绝无效或重复的消息 地址=")
-                               << socket->peerAddress().toString();
+        QLOG_DEBUG() << QStringLiteral("[网络.传输] 已拒绝无效或重复的消息 地址=") << socket->peerAddress().toString();
         return;
     }
 
     Domain::Message message;
-    message.metadata = {messageId, conversationId, peer.peerId,
-                        timestampFrom(object)};
+    message.metadata = {messageId, conversationId, peer.peerId, timestampFrom(object)};
     message.payload = *payload;
     message.deliveryState = Domain::DeliveryState::Received;
-    QLOG_DEBUG() << QStringLiteral("[网络.传输] 已接收消息 好友标识=") << peer.peerId
-                 << QStringLiteral("消息标识=") << messageId
-                 << QStringLiteral("类型=") << Domain::messageKindName(kind);
+    QLOG_DEBUG() << QStringLiteral("[网络.传输] 已接收消息 好友标识=") << peer.peerId << QStringLiteral("消息标识=") << messageId << QStringLiteral("类型=")
+                 << Domain::messageKindName(kind);
     emit peerObserved(peer);
     emit messageReceived(message, peer);
 }
 
-void TcpChatTransport::handleIncomingGroupSnapshot(const QJsonObject &object,
-                                                   QTcpSocket *socket)
+void TcpChatTransport::handleIncomingGroupSnapshot(const QJsonObject &object, QTcpSocket *socket)
 {
     if (!Network::WireProtocol::isEnvelopeFor(object, m_identity))
     {
@@ -392,16 +347,11 @@ void TcpChatTransport::handleIncomingGroupSnapshot(const QJsonObject &object,
     snapshot.name = object.value(QStringLiteral("name")).toString().trimmed().left(64);
     snapshot.ownerId = object.value(QStringLiteral("ownerId")).toString();
     snapshot.revision = object.value(QStringLiteral("revision")).toVariant().toULongLong();
-    snapshot.createdAt = QDateTime::fromString(
-        object.value(QStringLiteral("createdAt")).toString(),
-        Qt::ISODateWithMs);
+    snapshot.createdAt = QDateTime::fromString(object.value(QStringLiteral("createdAt")).toString(), Qt::ISODateWithMs);
 
     const QJsonArray members = object.value(QStringLiteral("members")).toArray();
-    if (!snapshot.sender.isValid()
-        || !snapshot.groupId.startsWith(QLatin1String("group:"))
-        || snapshot.groupId.size() > 128 || snapshot.name.isEmpty()
-        || snapshot.ownerId != snapshot.sender.peerId || snapshot.revision == 0
-        || members.size() < 2 || members.size() > 32)
+    if (!snapshot.sender.isValid() || !snapshot.groupId.startsWith(QLatin1String("group:")) || snapshot.groupId.size() > 128 || snapshot.name.isEmpty() ||
+        snapshot.ownerId != snapshot.sender.peerId || snapshot.revision == 0 || members.size() < 2 || members.size() > 32)
     {
         return;
     }
@@ -414,27 +364,18 @@ void TcpChatTransport::handleIncomingGroupSnapshot(const QJsonObject &object,
         const QJsonObject memberObject = value.toObject();
         Network::GroupMemberInfo member;
         member.peerId = memberObject.value(QStringLiteral("peerId")).toString();
-        member.displayName = memberObject.value(QStringLiteral("displayName"))
-                                 .toString()
-                                 .trimmed()
-                                 .left(64);
+        member.displayName = memberObject.value(QStringLiteral("displayName")).toString().trimmed().left(64);
         member.owner = memberObject.value(QStringLiteral("owner")).toBool();
-        if (member.peerId.isEmpty() || member.displayName.isEmpty()
-            || memberIds.contains(member.peerId)
-            || (member.owner && member.peerId != snapshot.ownerId))
+        if (member.peerId.isEmpty() || member.displayName.isEmpty() || memberIds.contains(member.peerId) || (member.owner && member.peerId != snapshot.ownerId))
         {
             return;
         }
         memberIds.insert(member.peerId);
         includesLocalUser = includesLocalUser || member.peerId == m_identity.deviceId;
-        includesOwner = includesOwner
-                        || (member.peerId == snapshot.ownerId && member.owner);
+        includesOwner = includesOwner || (member.peerId == snapshot.ownerId && member.owner);
         snapshot.members.append(std::move(member));
     }
-    if (!includesLocalUser || !includesOwner
-        || !rememberEventId(QStringLiteral("%1:%2")
-                                .arg(snapshot.groupId)
-                                .arg(snapshot.revision)))
+    if (!includesLocalUser || !includesOwner || !rememberEventId(QStringLiteral("%1:%2").arg(snapshot.groupId).arg(snapshot.revision)))
     {
         return;
     }
@@ -453,13 +394,11 @@ void TcpChatTransport::finishOutgoingText(QTcpSocket *socket)
     {
         return;
     }
-    QLOG_DEBUG() << QStringLiteral("[网络.传输] 事件已发送 好友标识=")
-                           << socket->property("peerId").toString()
-                           << QStringLiteral("消息标识=") << socket->property("messageId").toString();
+    QLOG_DEBUG() << QStringLiteral("[网络.传输] 事件已发送 好友标识=") << socket->property("peerId").toString() << QStringLiteral("消息标识=")
+                 << socket->property("messageId").toString();
     if (socket->property("frameType").toString() == QLatin1String("message"))
     {
-        emit messageSent(socket->property("peerId").toString(),
-                         socket->property("messageId").toString());
+        emit messageSent(socket->property("peerId").toString(), socket->property("messageId").toString());
     }
     socket->disconnectFromHost();
 }
@@ -470,28 +409,21 @@ void TcpChatTransport::failOutgoingText(QTcpSocket *socket, const QString &reaso
     {
         return;
     }
-    QLOG_WARN() << QStringLiteral("[网络.传输] 事件发送失败 好友标识=")
-                          << socket->property("peerId").toString()
-                          << QStringLiteral("消息标识=") << socket->property("messageId").toString()
-                          << QStringLiteral("原因=") << reason;
+    QLOG_WARN() << QStringLiteral("[网络.传输] 事件发送失败 好友标识=") << socket->property("peerId").toString() << QStringLiteral("消息标识=")
+                << socket->property("messageId").toString() << QStringLiteral("原因=") << reason;
     if (socket->property("frameType").toString() == QLatin1String("group.snapshot"))
     {
-        emit groupSnapshotSendFailed(socket->property("peerId").toString(),
-                                     socket->property("messageId").toString(),
-                                     reason);
+        emit groupSnapshotSendFailed(socket->property("peerId").toString(), socket->property("messageId").toString(), reason);
     }
     else
     {
-        emit messageSendFailed(socket->property("peerId").toString(),
-                               socket->property("messageId").toString(),
-                               reason);
+        emit messageSendFailed(socket->property("peerId").toString(), socket->property("messageId").toString(), reason);
     }
     socket->abort();
     socket->deleteLater();
 }
 
-Network::PeerEndpoint TcpChatTransport::incomingPeer(const QJsonObject &object,
-                                                     QTcpSocket *socket) const
+Network::PeerEndpoint TcpChatTransport::incomingPeer(const QJsonObject &object, QTcpSocket *socket) const
 {
     return Network::WireProtocol::senderFromEnvelope(object, socket->peerAddress());
 }
@@ -514,9 +446,7 @@ bool TcpChatTransport::rememberEventId(const QString &eventId)
 
 QDateTime TcpChatTransport::timestampFrom(const QJsonObject &object)
 {
-    QDateTime timestamp = QDateTime::fromString(
-        object.value(QStringLiteral("timestamp")).toString(),
-        Qt::ISODateWithMs);
+    QDateTime timestamp = QDateTime::fromString(object.value(QStringLiteral("timestamp")).toString(), Qt::ISODateWithMs);
     return timestamp.isValid() ? timestamp : QDateTime::currentDateTimeUtc();
 }
 

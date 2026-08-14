@@ -69,8 +69,7 @@ public:
      * @param coordinator 共享聊天协调器。
      * @param parent 可选的 QObject 父对象。
      */
-    explicit LanChatManager(ChatCoordinator *coordinator,
-                            QObject *parent = nullptr);
+    explicit LanChatManager(ChatCoordinator *coordinator, QObject *parent = nullptr);
     /**
      * @brief 使用指定桌面适配器构造 QML 聊天管理器。
      * @param coordinator 共享聊天协调器。
@@ -218,8 +217,7 @@ public:
      * @param memberIds 联系人标识列表，数量为 2 到 31。
      * @return 创建成功时返回新群会话标识，失败时返回空字符串并发出失败信号。
      */
-    Q_INVOKABLE QString createGroup(const QString &name,
-                                    const QStringList &memberIds);
+    Q_INVOKABLE QString createGroup(const QString &name, const QStringList &memberIds);
     /**
      * @brief 更新并保存本地资料。
      * @param displayName 新显示名称。
@@ -227,41 +225,35 @@ public:
      * @param avatarColor 头像背景色。
      * @return 更新成功时返回 @c true。
      */
-    Q_INVOKABLE bool updateLocalProfile(const QString &displayName,
-                                        const QUrl &avatarUrl,
-                                        const QString &avatarColor);
+    Q_INVOKABLE bool updateLocalProfile(const QString &displayName, const QUrl &avatarUrl, const QString &avatarColor);
     /**
      * @brief 向指定直接会话或群聊发送文本消息。
      * @param conversationId 目标会话标识。
      * @param text 消息内容。
      * @return 消息被接受发送时返回 @c true。
      */
-    Q_INVOKABLE bool sendMessage(const QString &conversationId,
-                                 const QString &text);
+    Q_INVOKABLE bool sendMessage(const QString &conversationId, const QString &text);
     /**
      * @brief 向指定直接会话发送本地文件。
      * @param conversationId 目标直接会话标识。
      * @param fileUrl 本地文件 URL。
      * @return 文件传输请求被接受时返回 @c true；群聊始终返回 @c false。
      */
-    Q_INVOKABLE bool sendFile(const QString &conversationId,
-                              const QUrl &fileUrl);
+    Q_INVOKABLE bool sendFile(const QString &conversationId, const QUrl &fileUrl);
     /**
      * @brief 向指定直接会话发送本地图片。
      * @param conversationId 目标直接会话标识。
      * @param imageUrl 本地图片 URL。
      * @return 图片传输请求被接受时返回 @c true。
      */
-    Q_INVOKABLE bool sendImage(const QString &conversationId,
-                               const QUrl &imageUrl);
+    Q_INVOKABLE bool sendImage(const QString &conversationId, const QUrl &imageUrl);
     /**
      * @brief 向指定直接会话发送多个本地图片。
      * @param conversationId 目标直接会话标识。
      * @param imageUrls 本地图片 URL 列表。
      * @return 已接受发送的图片数量。
      */
-    Q_INVOKABLE int sendImages(const QString &conversationId,
-                               const QList<QUrl> &imageUrls);
+    Q_INVOKABLE int sendImages(const QString &conversationId, const QList<QUrl> &imageUrls);
     /**
      * @brief 向指定会话发送表情。
      * @param conversationId 目标会话标识。
@@ -270,18 +262,14 @@ public:
      * @param fallbackText 回退文本。
      * @return 消息被接受发送时返回 @c true。
      */
-    Q_INVOKABLE bool sendEmoji(const QString &conversationId,
-                               const QString &packageId,
-                               const QString &emojiId,
-                               const QString &fallbackText);
+    Q_INVOKABLE bool sendEmoji(const QString &conversationId, const QString &packageId, const QString &emojiId, const QString &fallbackText);
     /**
      * @brief 向指定直接会话发送多个本地文件。
      * @param conversationId 目标直接会话标识。
      * @param fileUrls 本地文件 URL 列表。
      * @return 已接受发送的文件数量；群聊返回零。
      */
-    Q_INVOKABLE int sendFiles(const QString &conversationId,
-                              const QList<QUrl> &fileUrls);
+    Q_INVOKABLE int sendFiles(const QString &conversationId, const QList<QUrl> &fileUrls);
     /**
      * @brief 返回剪贴板中可发送的本地图片 URL。
      * @return 本地图片 URL 列表；没有图片或保存失败时为空。
@@ -293,16 +281,14 @@ public:
      * @param transferId 文件传输标识。
      * @return 成功取消匹配传输时返回 @c true。
      */
-    Q_INVOKABLE bool cancelFileTransfer(const QString &conversationId,
-                                        const QString &transferId);
+    Q_INVOKABLE bool cancelFileTransfer(const QString &conversationId, const QString &transferId);
     /**
      * @brief 接受直接会话中等待确认的文件传输请求。
      * @param conversationId 目标直接会话标识。
      * @param transferId 文件传输标识。
      * @return 已开始接收匹配文件时返回 @c true。
      */
-    Q_INVOKABLE bool acceptFileTransfer(const QString &conversationId,
-                                        const QString &transferId);
+    Q_INVOKABLE bool acceptFileTransfer(const QString &conversationId, const QString &transferId);
     /**
      * @brief 使用系统默认应用打开文件。
      * @param filePath 待打开的本地文件路径。
@@ -378,8 +364,7 @@ signals:
      * @param conversationId 文件所属直接会话标识。
      * @param reason 失败原因。
      */
-    void fileTransferFailed(const QString &conversationId,
-                            const QString &reason);
+    void fileTransferFailed(const QString &conversationId, const QString &reason);
     /**
      * @brief 一般性服务操作失败时发出。
      * @param reason 失败原因。
