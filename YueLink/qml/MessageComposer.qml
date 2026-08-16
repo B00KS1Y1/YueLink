@@ -98,6 +98,8 @@ Item {
         spacing: 2
 
         HusIconButton {
+            id: emojiPickerButton
+
             width: 38
             height: 38
             padding: 0
@@ -116,13 +118,15 @@ Item {
             onClicked: emojiPopup.open()
 
             HusToolTip {
-                visible: parent.hovered || parent.visualFocus
+                visible: emojiPickerButton.hovered || emojiPickerButton.visualFocus
                 position: HusToolTip.Position_Bottom
-                text: parent.contentDescription
+                text: emojiPickerButton.contentDescription
             }
         }
 
         HusIconButton {
+            id: filePickerButton
+
             width: 38
             height: 38
             padding: 0
@@ -143,13 +147,15 @@ Item {
             onClicked: fileDialog.open()
 
             HusToolTip {
-                visible: parent.hovered || parent.visualFocus
+                visible: filePickerButton.hovered || filePickerButton.visualFocus
                 position: HusToolTip.Position_Bottom
-                text: parent.contentDescription
+                text: filePickerButton.contentDescription
             }
         }
 
         HusIconButton {
+            id: imagePickerButton
+
             width: 38
             height: 38
             padding: 0
@@ -170,9 +176,9 @@ Item {
             onClicked: imageFileDialog.open()
 
             HusToolTip {
-                visible: parent.hovered || parent.visualFocus
+                visible: imagePickerButton.hovered || imagePickerButton.visualFocus
                 position: HusToolTip.Position_Bottom
-                text: parent.contentDescription
+                text: imagePickerButton.contentDescription
             }
         }
     }
@@ -339,6 +345,9 @@ Item {
                 id: emojiButton
 
                 required property var modelData
+                readonly property url imageSource: Qt.resolvedUrl(
+                                                       EmojiCatalog.resourcePrefix
+                                                       + String(modelData.file))
 
                 width: emojiGrid.cellWidth
                 height: emojiGrid.cellHeight
@@ -351,7 +360,7 @@ Item {
                     anchors.centerIn: parent
                     width: 34
                     height: 34
-                    source: EmojiCatalog.resourcePrefix + emojiButton.modelData.file
+                    source: emojiButton.imageSource
                     sourceSize.width: 34
                     sourceSize.height: 34
                     fillMode: Image.PreserveAspectFit

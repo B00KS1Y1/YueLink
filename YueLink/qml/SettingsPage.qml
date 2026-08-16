@@ -1,7 +1,6 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import HuskarUI.Basic
 import "settings" as SettingsUi
@@ -49,6 +48,11 @@ Item {
             "key": "advanced",
             "label": qsTr("高级"),
             "iconSource": HusIcon.BugOutlined
+        },
+        {
+            "key": "adbout",
+            "label": qsTr("关于"),
+            "iconSource": HusIcon.InfoCircleOutlined
         }
     ]
 
