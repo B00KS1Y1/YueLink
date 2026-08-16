@@ -361,6 +361,8 @@ HusWindow {
                 spacing: 6
 
                 HusIconButton {
+                    id: messagesNavigationButton
+
                     width: primaryNavigationButtons.width
                     height: 44
                     text: ""
@@ -393,14 +395,16 @@ HusWindow {
                     }
 
                     HusToolTip {
-                        visible: parent.hovered || parent.visualFocus
+                        visible: messagesNavigationButton.hovered || messagesNavigationButton.visualFocus
                         showArrow: true
                         position: HusToolTip.Position_Right
-                        text: parent.contentDescription
+                        text: messagesNavigationButton.contentDescription
                     }
                 }
 
                 HusIconButton {
+                    id: contactsNavigationButton
+
                     width: primaryNavigationButtons.width
                     height: 44
                     text: ""
@@ -433,15 +437,17 @@ HusWindow {
                     }
 
                     HusToolTip {
-                        visible: parent.hovered || parent.visualFocus
+                        visible: contactsNavigationButton.hovered || contactsNavigationButton.visualFocus
                         showArrow: true
                         position: HusToolTip.Position_Right
-                        text: parent.contentDescription
+                        text: contactsNavigationButton.contentDescription
                     }
                 }
             }
 
             HusIconButton {
+                id: refreshPeersButton
+
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
@@ -466,10 +472,10 @@ HusWindow {
                 }
 
                 HusToolTip {
-                    visible: parent.hovered || parent.visualFocus
+                    visible: refreshPeersButton.hovered || refreshPeersButton.visualFocus
                     showArrow: true
                     position: HusToolTip.Position_Right
-                    text: parent.contentDescription
+                    text: refreshPeersButton.contentDescription
                 }
             }
 

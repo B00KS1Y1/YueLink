@@ -321,7 +321,7 @@ Item {
     }
 
     Shortcut {
-        sequence: StandardKey.Find
+        sequences: [StandardKey.Find]
         enabled: root.conversationSelected
         onActivated: root.focusSearch()
     }

@@ -34,7 +34,7 @@ HusWindow {
     captionBar.closeCallback: () => root.close()
 
     Shortcut {
-        sequence: StandardKey.Cancel
+        sequences: [StandardKey.Cancel]
         onActivated: root.close()
     }
 
