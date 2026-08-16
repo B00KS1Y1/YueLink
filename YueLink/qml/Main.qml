@@ -18,9 +18,9 @@ HusWindow {
     property int selectedConversationOnlineCount: 0
     property string activePanel: ""
     property string currentPage: "messages"
-    readonly property color navigationSelectedIconColor: AppTheme.dark
-                                                          ? AppTheme.accent
-                                                          : AppTheme.textPrimary
+    readonly property color navigationSelectedIconColor: HusTheme.isDark
+                                                          ? HusTheme.Primary.colorPrimary
+                                                          : HusTheme.Primary.colorTextBase
     readonly property int navigationWidth: 60
     readonly property int conversationListWidth: Math.round(
                                                       Math.min(320,
@@ -28,7 +28,7 @@ HusWindow {
                                                                         width * 0.26)))
 
     captionBar.height: 42
-    captionBar.color: AppTheme.canvas
+    captionBar.color: HusTheme.Primary.colorBgBase
     captionBar.showWinIcon: false
     captionBar.winTitle: qsTr("YueLink")
     captionBar.winTitleDelegate: Item {
@@ -72,7 +72,7 @@ HusWindow {
                     HusText {
                         anchors.verticalCenter: parent.verticalCenter
                         text: qsTr("YueLink")
-                        color: AppTheme.textPrimary
+                        color: HusTheme.Primary.colorTextBase
                         font.family: HusTheme.Primary.fontPrimaryFamily
                         font.pixelSize: Math.max(15, HusTheme.Primary.fontPrimarySize)
                         font.weight: Font.DemiBold
@@ -85,7 +85,7 @@ HusWindow {
                 anchors.verticalCenter: parent.verticalCenter
                 width: 1
                 height: 18
-                color: AppTheme.divider
+                color: HusTheme.Primary.colorSplit
                 Accessible.ignored: true
             }
 
@@ -290,7 +290,7 @@ HusWindow {
     title: LanChat.totalUnreadCount > 0
            ? qsTr("YueLink（%1 条未读）").arg(LanChat.totalUnreadCount)
            : qsTr("YueLink")
-    color: AppTheme.canvas
+    color: HusTheme.Primary.colorBgBase
 
     onActiveChanged: {
         if (active && selectedConversationId.length > 0)
@@ -301,7 +301,7 @@ HusWindow {
         id: applicationBackground
 
         anchors.fill: parent
-        color: AppTheme.canvas
+        color: HusTheme.Primary.colorBgBase
         Accessible.ignored: true
     }
 
@@ -311,7 +311,7 @@ HusWindow {
         anchors.top: parent.top
         anchors.topMargin: root.captionBar.height - 1
         height: 1
-        color: AppTheme.divider
+        color: HusTheme.Primary.colorSplit
         Accessible.ignored: true
     }
 
@@ -325,14 +325,10 @@ HusWindow {
             anchors.left: parent.left
             anchors.top: parent.top
             anchors.bottom: parent.bottom
-            anchors.leftMargin: 12
-            anchors.topMargin: 8
-            anchors.bottomMargin: 12
             width: root.navigationWidth
-            radius: AppTheme.radiusLarge
-            color: AppTheme.navigationSurface
-            border.width: 1
-            border.color: AppTheme.border
+            radius: 0
+            color: HusTheme.Primary.colorFillTertiary
+            border.width: 0
 
             Column {
                 id: primaryNavigationButtons
@@ -352,12 +348,12 @@ HusWindow {
                     type: HusButton.Type_Default
                     padding: 0
                     colorBg: root.currentPage === "messages"
-                             ? AppTheme.accentSoftStrong
-                             : hovered ? AppTheme.hover : "transparent"
+                             ? HusThemeFunctions.alpha(HusTheme.Primary.colorPrimary, HusTheme.isDark ? 0.28 : 0.16)
+                             : hovered ? HusTheme.Primary.colorFillSecondary : "transparent"
                     colorIcon: root.currentPage === "messages"
                                ? root.navigationSelectedIconColor
-                               : AppTheme.textSecondary
-                    colorBorder: visualFocus ? AppTheme.accent : "transparent"
+                               : HusTheme.Primary.colorTextTertiary
+                    colorBorder: visualFocus ? HusTheme.Primary.colorPrimary : "transparent"
                     borderWidth: visualFocus ? 1 : 0
                     radiusBg.all: 10
                     contentDescription: qsTr("消息")
@@ -371,7 +367,7 @@ HusWindow {
                         height: 16
                         radius: 2
                         visible: root.currentPage === "messages"
-                        color: AppTheme.accent
+                        color: HusTheme.Primary.colorPrimary
                         Accessible.ignored: true
                     }
 
@@ -392,12 +388,12 @@ HusWindow {
                     type: HusButton.Type_Default
                     padding: 0
                     colorBg: root.currentPage === "contacts"
-                             ? AppTheme.accentSoftStrong
-                             : hovered ? AppTheme.hover : "transparent"
+                             ? HusThemeFunctions.alpha(HusTheme.Primary.colorPrimary, HusTheme.isDark ? 0.28 : 0.16)
+                             : hovered ? HusTheme.Primary.colorFillSecondary : "transparent"
                     colorIcon: root.currentPage === "contacts"
                                ? root.navigationSelectedIconColor
-                               : AppTheme.textSecondary
-                    colorBorder: visualFocus ? AppTheme.accent : "transparent"
+                               : HusTheme.Primary.colorTextTertiary
+                    colorBorder: visualFocus ? HusTheme.Primary.colorPrimary : "transparent"
                     borderWidth: visualFocus ? 1 : 0
                     radiusBg.all: 10
                     contentDescription: qsTr("联系人")
@@ -411,7 +407,7 @@ HusWindow {
                         height: 16
                         radius: 2
                         visible: root.currentPage === "contacts"
-                        color: AppTheme.accent
+                        color: HusTheme.Primary.colorPrimary
                         Accessible.ignored: true
                     }
 
@@ -435,9 +431,9 @@ HusWindow {
                 iconSize: 20
                 type: HusButton.Type_Default
                 padding: 0
-                colorBg: hovered ? AppTheme.hover : "transparent"
-                colorIcon: AppTheme.textSecondary
-                colorBorder: visualFocus ? AppTheme.accent : "transparent"
+                colorBg: hovered ? HusTheme.Primary.colorFillSecondary : "transparent"
+                colorIcon: HusTheme.Primary.colorTextTertiary
+                colorBorder: visualFocus ? HusTheme.Primary.colorPrimary : "transparent"
                 borderWidth: visualFocus ? 1 : 0
                 radiusBg.all: 10
                 contentDescription: qsTr("刷新好友")
@@ -455,6 +451,15 @@ HusWindow {
                     text: parent.contentDescription
                 }
             }
+
+            Rectangle {
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                width: 1
+                color: HusTheme.Primary.colorSplit
+                Accessible.ignored: true
+            }
         }
 
         Rectangle {
@@ -463,14 +468,10 @@ HusWindow {
             anchors.left: navigationRail.right
             anchors.top: parent.top
             anchors.bottom: parent.bottom
-            anchors.leftMargin: 12
-            anchors.topMargin: 8
-            anchors.bottomMargin: 12
             width: root.conversationListWidth
-            radius: AppTheme.radiusLarge
-            color: AppTheme.surface
-            border.width: 1
-            border.color: AppTheme.border
+            radius: 0
+            color: HusTheme.Primary.colorBgBase
+            border.width: 0
 
             FriendListPanel {
                 id: friendList
@@ -485,6 +486,15 @@ HusWindow {
                     root.openPanel("createGroup");
                 }
             }
+
+            Rectangle {
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                width: 1
+                color: HusTheme.Primary.colorSplit
+                Accessible.ignored: true
+            }
         }
 
         Rectangle {
@@ -494,14 +504,9 @@ HusWindow {
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.bottom: parent.bottom
-            anchors.leftMargin: 12
-            anchors.rightMargin: 12
-            anchors.topMargin: 8
-            anchors.bottomMargin: 12
-            radius: AppTheme.radiusLarge
-            color: AppTheme.surfaceSubtle
-            border.width: 1
-            border.color: AppTheme.border
+            radius: 0
+            color: HusTheme.Primary.colorFillTertiary
+            border.width: 0
 
             ChatContent {
                 id: chatContent
@@ -640,7 +645,7 @@ HusWindow {
                         anchors.leftMargin: 24
                         anchors.topMargin: 18
                         text: qsTr("编辑个人资料")
-                        color: AppTheme.textPrimary
+                        color: HusTheme.Primary.colorTextBase
                         font.pixelSize: HusTheme.Primary.fontPrimarySizeHeading4
                         font.weight: Font.Medium
                     }
