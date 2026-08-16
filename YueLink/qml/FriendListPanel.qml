@@ -166,10 +166,8 @@ Item {
                     ? qsTr("%1 个群聊").arg(conversationList.count)
                     : qsTr("%1 在线").arg(LanChat.onlineCount)
                   : LanChat.totalUnreadCount > 0
-                    ? qsTr("%1 未读 · %2 在线")
-                          .arg(LanChat.totalUnreadCount)
-                          .arg(LanChat.onlineCount)
-                    : qsTr("%1 在线").arg(LanChat.onlineCount)
+                    ? qsTr("%1 未读").arg(LanChat.totalUnreadCount)
+                    : ""
             color: HusTheme.Primary.colorTextQuaternary
             font.pixelSize: Math.max(11, HusTheme.Primary.fontPrimarySize - 1)
         }
