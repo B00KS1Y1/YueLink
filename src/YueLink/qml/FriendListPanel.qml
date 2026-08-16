@@ -44,9 +44,7 @@ Item {
                 clearEnabled: "active"
                 type: HusInput.Type_Filled
                 verticalAlignment: TextInput.AlignVCenter
-                placeholderText: root.contactsMode
-                                 ? qsTr("搜索联系人")
-                                 : qsTr("搜索会话")
+                placeholderText: qsTr("搜索")
                 contentDescription: placeholderText
                 text: root.contactsMode
                       ? LanChat.peerSearchText
@@ -64,7 +62,6 @@ Item {
 
                 Layout.preferredWidth: 42
                 Layout.preferredHeight: 42
-                visible: !root.contactsMode
                 padding: 0
                 type: HusButton.Type_Filled
                 iconSource: HusIcon.PlusOutlined
