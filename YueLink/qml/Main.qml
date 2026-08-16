@@ -138,13 +138,13 @@ HusWindow {
     }
 
     function applyAppearanceSettings(): void {
-        HusTheme.darkMode = AppSettings.themeMode === "light"
+        HusTheme.darkMode = AppSettings.theme.mode === "light"
                 ? HusTheme.Light
-                : AppSettings.themeMode === "system"
+                : AppSettings.theme.mode === "system"
                   ? HusTheme.System
                   : HusTheme.Dark;
-        HusTheme.installThemePrimaryColorBase(AppSettings.primaryColor);
-        HusTheme.animationEnabled = AppSettings.animationsEnabled;
+        HusTheme.installThemePrimaryColorBase(AppSettings.theme.primaryColor);
+        HusTheme.animationEnabled = AppSettings.theme.animationsEnabled;
     }
 
     function openPanel(panel: string): void {
@@ -217,15 +217,33 @@ HusWindow {
     Component.onCompleted: {
         applyAppearanceSettings();
         HusTheme.installThemePrimaryFontSizeBase(16);
-        LanChat.setNotificationsEnabled(AppSettings.notificationsEnabled);
+        LanChat.setNotificationsEnabled(AppSettings.application.notificationsEnabled);
     }
 
     Connections {
-        target: AppSettings
+        target: AppSettings.theme
 
         function onSettingsChanged(): void {
             root.applyAppearanceSettings();
-            LanChat.setNotificationsEnabled(AppSettings.notificationsEnabled);
+        }
+    }
+
+    Connections {
+        target: AppSettings.application
+
+        function onNotificationsEnabledChanged(): void {
+            LanChat.setNotificationsEnabled(AppSettings.application.notificationsEnabled);
+        }
+    }
+
+    Connections {
+        target: AppSettings.log
+
+        function onRestartRequiredChanged(): void {
+            if (AppSettings.log.restartRequired)
+                settingsNotification.warning(qsTr("需要重新启动"),
+                                             qsTr("设置已保存，将在重新启动应用后生效"),
+                                             5000);
         }
     }
 
@@ -575,6 +593,15 @@ HusWindow {
         z: 1000
     }
 
+    HusNotification {
+        id: settingsNotification
+
+        anchors.fill: parent
+        position: HusNotification.Position_TopRight
+        topMargin: root.captionBar.height + 12
+        z: 1000
+    }
+
     Loader {
         active: root.activePanel === "profile"
         sourceComponent: profilePanelComponent
@@ -690,10 +717,6 @@ HusWindow {
         SettingsPage {
             anchors.fill: parent
             onCloseRequested: root.activePanel = ""
-            onSaved: {
-                root.activePanel = "";
-                root.showModifiedSuccess();
-            }
         }
     }
 }

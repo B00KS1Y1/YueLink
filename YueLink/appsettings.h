@@ -1,6 +1,6 @@
 /**
  * @file appsettings.h
- * @brief 声明面向 QML 的应用设置单例。
+ * @brief 声明面向 QML 的分类设置组合入口。
  * @author xili <1424858143@qq.com>
  * @date 2026-07-21
  */
@@ -8,143 +8,56 @@
 #ifndef APPSETTINGS_H
 #define APPSETTINGS_H
 
+#include "settings/applicationsettingsmodel.h"
+#include "settings/logsettingsmodel.h"
+#include "settings/themesettingsmodel.h"
+
 #include <QObject>
-#include <QString>
 #include <QtQml/qqmlregistration.h>
 
+/**
+ * @brief 作为 QML 单例统一暴露应用、主题和日志三个独立设置模型。
+ *
+ * 分类模型分别拥有自己的自动保存状态，并且只写入与其对应的 JSON 配置文件。
+ */
 class AppSettings : public QObject
 {
     Q_OBJECT
     QML_NAMED_ELEMENT(AppSettings)
     QML_SINGLETON
-    Q_PROPERTY(QString themeMode READ themeMode NOTIFY settingsChanged)
-    Q_PROPERTY(QString primaryColor READ primaryColor NOTIFY settingsChanged)
-    Q_PROPERTY(bool animationsEnabled READ animationsEnabled NOTIFY settingsChanged)
-    Q_PROPERTY(bool notificationsEnabled READ notificationsEnabled NOTIFY settingsChanged)
-    Q_PROPERTY(QString downloadDirectory READ downloadDirectory NOTIFY settingsChanged)
-    Q_PROPERTY(QString logLevel READ logLevel NOTIFY settingsChanged)
-    Q_PROPERTY(QString logFilePath READ logFilePath NOTIFY settingsChanged)
-    Q_PROPERTY(bool sourceLocationEnabled READ sourceLocationEnabled NOTIFY settingsChanged)
-    Q_PROPERTY(bool separateThreadEnabled READ separateThreadEnabled NOTIFY settingsChanged)
-    Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged)
+    Q_PROPERTY(ApplicationSettingsModel *application READ application CONSTANT)
+    Q_PROPERTY(ThemeSettingsModel *theme READ theme CONSTANT)
+    Q_PROPERTY(LogSettingsModel *log READ log CONSTANT)
 
 public:
     /**
-     * @brief 构造 QML 应用设置单例。
-     * @param parent 可选的 QObject 父对象。
+     * @brief 构造 QML 设置组合入口及其三个分类模型。
+     * @param[in] parent 可选的 QObject 父对象。
      */
     explicit AppSettings(QObject *parent = nullptr);
 
     /**
-     * @brief 返回当前主题模式。
-     * @return 规范化后的主题模式名称。
+     * @brief 返回通用设置模型。
+     * @return 由当前单例拥有、生命周期与当前单例一致的模型指针。
      */
-    [[nodiscard]] QString themeMode() const;
-    /**
-     * @brief 返回当前主色。
-     * @return 十六进制主色字符串。
-     */
-    [[nodiscard]] QString primaryColor() const;
-    /**
-     * @brief 返回是否启用界面动画。
-     * @return 启用界面动画时返回 @c true。
-     */
-    [[nodiscard]] bool animationsEnabled() const;
-    /**
-     * @brief 返回是否启用桌面通知。
-     * @return 启用桌面通知时返回 @c true。
-     */
-    [[nodiscard]] bool notificationsEnabled() const;
-    /**
-     * @brief 返回当前配置的文件下载目录。
-     * @return 用于保存接收文件的绝对目录路径。
-     */
-    [[nodiscard]] QString downloadDirectory() const;
+    [[nodiscard]] ApplicationSettingsModel *application() const;
 
     /**
-     * @brief 返回当前日志级别。
-     * @return 规范化后的日志级别名称。
+     * @brief 返回外观设置模型。
+     * @return 由当前单例拥有、生命周期与当前单例一致的模型指针。
      */
-    [[nodiscard]] QString logLevel() const;
-    /**
-     * @brief 返回当前配置的日志文件路径。
-     * @return 日志文件的绝对路径。
-     */
-    [[nodiscard]] QString logFilePath() const;
-    /**
-     * @brief 返回日志是否包含调用点的源码文件路径和行号。
-     * @return 已配置包含源码位置时返回 @c true。
-     */
-    [[nodiscard]] bool sourceLocationEnabled() const;
-    /**
-     * @brief 返回日志是否通过 QsLog 的专用单线程队列异步写入。
-     * @return 已配置独立线程写入时返回 @c true。
-     */
-    [[nodiscard]] bool separateThreadEnabled() const;
-    /**
-     * @brief 返回最近一次设置保存错误。
-     * @return 最近错误文本；没有错误时返回空字符串。
-     */
-    [[nodiscard]] QString lastError() const;
+    [[nodiscard]] ThemeSettingsModel *theme() const;
 
     /**
-     * @brief 保存经校验的应用设置。
-     * @param themeMode 主题模式。
-     * @param primaryColor 主题色。
-     * @param animationsEnabled 是否启用界面动画。
-     * @param notificationsEnabled 是否启用桌面通知。
-     * @param downloadDirectory 接收文件目录；空值或相对路径由配置层恢复为默认目录。
-     * @param logLevel 日志级别。
-     * @param logFilePath 日志文件路径；空值使用默认文件名，相对路径由配置层解析。
-     * @param sourceLocationEnabled 是否在日志中包含调用点的源码文件路径和行号。
-     * @param separateThreadEnabled 是否通过 QsLog 的专用单线程队列异步写入日志。
-     * @return 设置保存成功时返回 @c true。
+     * @brief 返回高级日志设置模型。
+     * @return 由当前单例拥有、生命周期与当前单例一致的模型指针。
      */
-    Q_INVOKABLE bool save(const QString &themeMode,
-                          const QString &primaryColor,
-                          bool animationsEnabled,
-                          bool notificationsEnabled,
-                          const QString &downloadDirectory,
-                          const QString &logLevel,
-                          const QString &logFilePath,
-                          bool sourceLocationEnabled,
-                          bool separateThreadEnabled);
-
-signals:
-    /** @brief 任一已保存设置发生变化时发出。 */
-    void settingsChanged();
-    /** @brief 最近错误发生变化时发出。 */
-    void lastErrorChanged();
+    [[nodiscard]] LogSettingsModel *log() const;
 
 private:
-    /**
-     * @brief 更新最近一次设置错误。
-     * @param error 新的错误文本；传入空字符串表示清除错误。
-     */
-    void setLastError(const QString &error);
-    /**
-     * @brief 规范化主题模式名称。
-     * @param mode 待规范化的主题模式。
-     * @return 支持的主题模式名称。
-     */
-    [[nodiscard]] static QString normalizedThemeMode(const QString &mode);
-    /**
-     * @brief 规范化日志级别名称。
-     * @param level 待规范化的日志级别。
-     * @return 支持的日志级别名称。
-     */
-    [[nodiscard]] static QString normalizedLogLevel(const QString &level);
-
-    QString m_themeMode;
-    QString m_primaryColor;
-    QString m_downloadDirectory;
-    QString m_logLevel;
-    QString m_logFilePath;
-    QString m_lastError;
-    bool m_animationsEnabled = true;
-    bool m_notificationsEnabled = true;
-    bool m_sourceLocationEnabled = false;
-    bool m_separateThreadEnabled = true;
+    ApplicationSettingsModel *m_application = nullptr; ///< 通用设置模型。
+    ThemeSettingsModel *m_theme = nullptr;             ///< 外观设置模型。
+    LogSettingsModel *m_log = nullptr;                 ///< 高级日志设置模型。
 };
 
 #endif // APPSETTINGS_H
