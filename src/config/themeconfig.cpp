@@ -18,7 +18,6 @@ namespace Config
 void ThemeConfig::normalize(ThemeConfig &config)
 {
     config.mode = Detail::normalizedName(config.mode).toStdString();
-    config.navigation_mode = Detail::normalizedName(config.navigation_mode).toStdString();
     Detail::normalizeColor(config.primary_color);
     Detail::normalizeColor(config.dark_background);
     Detail::normalizeColor(config.light_background);
@@ -28,14 +27,9 @@ QList<Issue> ThemeConfig::validate(const ThemeConfig &config)
 {
     QList<Issue> issues;
     static const QSet<QString> themeModes = {QStringLiteral("light"), QStringLiteral("dark"), QStringLiteral("system")};
-    static const QSet<QString> navigationModes = {QStringLiteral("relaxed"), QStringLiteral("standard"), QStringLiteral("compact")};
     if (!themeModes.contains(QString::fromStdString(config.mode)))
     {
         issues.append(Detail::makeIssue(QStringLiteral("mode"), QStringLiteral("仅支持 light、dark 或 system。")));
-    }
-    if (!navigationModes.contains(QString::fromStdString(config.navigation_mode)))
-    {
-        issues.append(Detail::makeIssue(QStringLiteral("navigation_mode"), QStringLiteral("仅支持 relaxed、standard 或 compact。")));
     }
     if (!Detail::isColor(config.primary_color))
     {

@@ -27,7 +27,6 @@ MinSizeRel 构建保存在可执行文件目录的 `system/configs`。
     "_schema_version": 1,
     "animations_enabled": true,
     "mode": "dark",
-    "navigation_mode": "compact",
     "primary_color": "#4F7CFF"
 }
 ```

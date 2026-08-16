@@ -14,7 +14,6 @@ namespace
 {
 constexpr auto DefaultThemeMode = "dark";
 constexpr auto DefaultPrimaryColor = "#4F7CFF";
-constexpr auto DefaultNavigationMode = "compact";
 constexpr auto DefaultLogLevel = "info";
 } // namespace
 
@@ -29,7 +28,6 @@ AppSettings::AppSettings(QObject *parent)
                          ? QColor(QString::fromStdString(theme.primary_color)).name(QColor::HexRgb).toUpper()
                          : QString::fromLatin1(DefaultPrimaryColor);
     m_animationsEnabled = theme.animations_enabled;
-    m_navigationMode = normalizedNavigationMode(QString::fromStdString(theme.navigation_mode));
     m_notificationsEnabled = application.notifications_enabled;
     m_downloadDirectory = QString::fromStdString(application.download_directory);
     m_logLevel = normalizedLogLevel(QString::fromStdString(log.level));
@@ -51,11 +49,6 @@ QString AppSettings::primaryColor() const
 bool AppSettings::animationsEnabled() const
 {
     return m_animationsEnabled;
-}
-
-QString AppSettings::navigationMode() const
-{
-    return m_navigationMode;
 }
 
 bool AppSettings::notificationsEnabled() const
@@ -96,7 +89,6 @@ QString AppSettings::lastError() const
 bool AppSettings::save(const QString &themeMode,
                        const QString &primaryColor,
                        bool animationsEnabled,
-                       const QString &navigationMode,
                        bool notificationsEnabled,
                        const QString &downloadDirectory,
                        const QString &logLevel,
@@ -125,13 +117,6 @@ bool AppSettings::save(const QString &themeMode,
         return false;
     }
 
-    const QString normalizedNavigation = normalizedNavigationMode(navigationMode);
-    if (normalizedNavigation != navigationMode.trimmed().toLower())
-    {
-        setLastError(tr("导航布局无效。"));
-        return false;
-    }
-
     const QString normalizedColor = color.name(QColor::HexRgb).toUpper();
     const Config::ThemeConfig previousTheme = Config::value<Config::ThemeConfig>();
     const Config::ApplicationConfig previousApplication = Config::value<Config::ApplicationConfig>();
@@ -141,7 +126,6 @@ bool AppSettings::save(const QString &themeMode,
     newTheme.mode = normalizedMode.toStdString();
     newTheme.primary_color = normalizedColor.toStdString();
     newTheme.animations_enabled = animationsEnabled;
-    newTheme.navigation_mode = normalizedNavigation.toStdString();
     const Config::Result themeResult = Config::set(std::move(newTheme));
     if (!themeResult)
     {
@@ -196,13 +180,12 @@ bool AppSettings::save(const QString &themeMode,
     const QString savedDownloadDirectory = QString::fromStdString(savedApplication.download_directory);
     const QString savedLogFilePath = QString::fromStdString(savedLog.file_path);
     const bool changed = m_themeMode != normalizedMode || m_primaryColor != normalizedColor || m_animationsEnabled != animationsEnabled ||
-                         m_navigationMode != normalizedNavigation || m_notificationsEnabled != notificationsEnabled ||
+                         m_notificationsEnabled != notificationsEnabled ||
                          m_downloadDirectory != savedDownloadDirectory || m_logLevel != normalizedLevel || m_logFilePath != savedLogFilePath ||
                          m_sourceLocationEnabled != savedLog.source_location_enabled || m_separateThreadEnabled != savedLog.separate_thread_enabled;
     m_themeMode = normalizedMode;
     m_primaryColor = normalizedColor;
     m_animationsEnabled = animationsEnabled;
-    m_navigationMode = normalizedNavigation;
     m_notificationsEnabled = notificationsEnabled;
     m_downloadDirectory = savedDownloadDirectory;
     m_logLevel = normalizedLevel;
@@ -215,8 +198,8 @@ bool AppSettings::save(const QString &themeMode,
     {
         emit settingsChanged();
     }
-    QLOG_INFO() << QStringLiteral("[设置] 应用设置已保存 主题=") << normalizedMode << QStringLiteral("导航布局=") << normalizedNavigation
-                << QStringLiteral("动画=") << animationsEnabled << QStringLiteral("通知=") << notificationsEnabled << QStringLiteral("下载目录=")
+    QLOG_INFO() << QStringLiteral("[设置] 应用设置已保存 主题=") << normalizedMode << QStringLiteral("动画=") << animationsEnabled
+                << QStringLiteral("通知=") << notificationsEnabled << QStringLiteral("下载目录=")
                 << savedDownloadDirectory << QStringLiteral("日志级别=") << normalizedLevel << QStringLiteral("日志路径=") << savedLogFilePath
                 << QStringLiteral("源码位置=") << savedLog.source_location_enabled << QStringLiteral("独立线程=") << savedLog.separate_thread_enabled;
     return true;
@@ -237,13 +220,6 @@ QString AppSettings::normalizedThemeMode(const QString &mode)
     const QString normalized = mode.trimmed().toLower();
     static const QSet<QString> supportedModes = {QStringLiteral("light"), QStringLiteral("dark"), QStringLiteral("system")};
     return supportedModes.contains(normalized) ? normalized : QString::fromLatin1(DefaultThemeMode);
-}
-
-QString AppSettings::normalizedNavigationMode(const QString &mode)
-{
-    const QString normalized = mode.trimmed().toLower();
-    static const QSet<QString> supportedModes = {QStringLiteral("relaxed"), QStringLiteral("standard"), QStringLiteral("compact")};
-    return supportedModes.contains(normalized) ? normalized : QString::fromLatin1(DefaultNavigationMode);
 }
 
 QString AppSettings::normalizedLogLevel(const QString &level)

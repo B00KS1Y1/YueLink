@@ -18,7 +18,7 @@ namespace Config
 {
 
 /**
- * @brief 保存界面主题、强调色与布局密度设置。
+ * @brief 保存界面主题、强调色与动画设置。
  */
 struct ThemeConfig final : ConfigBase<ThemeConfig>
 {
@@ -33,15 +33,13 @@ struct ThemeConfig final : ConfigBase<ThemeConfig>
     std::string primary_color = "#4F7CFF";
     /// 是否启用界面过渡动画。
     bool animations_enabled = true;
-    /// 导航布局密度，可取 @c relaxed、@c standard 或 @c compact。
-    std::string navigation_mode = "compact";
     /// 可选的深色背景色；空值表示不指定自定义颜色。
     std::string dark_background;
     /// 可选的浅色背景色；空值表示不指定自定义颜色。
     std::string light_background;
 
     /**
-     * @brief 规范化主题模式、导航模式和颜色值。
+     * @brief 规范化主题模式和颜色值。
      * @param[in,out] config 待规范化的主题配置。
      */
     static void normalize(ThemeConfig &config);
@@ -54,7 +52,7 @@ struct ThemeConfig final : ConfigBase<ThemeConfig>
     [[nodiscard]] static QList<Issue> validate(const ThemeConfig &config);
 };
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ThemeConfig, mode, primary_color, animations_enabled, navigation_mode, dark_background, light_background)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(ThemeConfig, mode, primary_color, animations_enabled, dark_background, light_background)
 
 } // namespace Config
 

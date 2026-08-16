@@ -20,7 +20,6 @@ class AppSettings : public QObject
     Q_PROPERTY(QString themeMode READ themeMode NOTIFY settingsChanged)
     Q_PROPERTY(QString primaryColor READ primaryColor NOTIFY settingsChanged)
     Q_PROPERTY(bool animationsEnabled READ animationsEnabled NOTIFY settingsChanged)
-    Q_PROPERTY(QString navigationMode READ navigationMode NOTIFY settingsChanged)
     Q_PROPERTY(bool notificationsEnabled READ notificationsEnabled NOTIFY settingsChanged)
     Q_PROPERTY(QString downloadDirectory READ downloadDirectory NOTIFY settingsChanged)
     Q_PROPERTY(QString logLevel READ logLevel NOTIFY settingsChanged)
@@ -51,11 +50,6 @@ public:
      * @return 启用界面动画时返回 @c true。
      */
     [[nodiscard]] bool animationsEnabled() const;
-    /**
-     * @brief 返回当前侧栏导航布局。
-     * @return 规范化后的导航布局名称。
-     */
-    [[nodiscard]] QString navigationMode() const;
     /**
      * @brief 返回是否启用桌面通知。
      * @return 启用桌面通知时返回 @c true。
@@ -98,7 +92,6 @@ public:
      * @param themeMode 主题模式。
      * @param primaryColor 主题色。
      * @param animationsEnabled 是否启用界面动画。
-     * @param navigationMode 侧栏导航布局。
      * @param notificationsEnabled 是否启用桌面通知。
      * @param downloadDirectory 接收文件目录；空值或相对路径由配置层恢复为默认目录。
      * @param logLevel 日志级别。
@@ -110,7 +103,6 @@ public:
     Q_INVOKABLE bool save(const QString &themeMode,
                           const QString &primaryColor,
                           bool animationsEnabled,
-                          const QString &navigationMode,
                           bool notificationsEnabled,
                           const QString &downloadDirectory,
                           const QString &logLevel,
@@ -137,12 +129,6 @@ private:
      */
     [[nodiscard]] static QString normalizedThemeMode(const QString &mode);
     /**
-     * @brief 规范化侧栏导航布局名称。
-     * @param mode 待规范化的导航布局名称。
-     * @return 支持的导航布局名称。
-     */
-    [[nodiscard]] static QString normalizedNavigationMode(const QString &mode);
-    /**
      * @brief 规范化日志级别名称。
      * @param level 待规范化的日志级别。
      * @return 支持的日志级别名称。
@@ -151,7 +137,6 @@ private:
 
     QString m_themeMode;
     QString m_primaryColor;
-    QString m_navigationMode;
     QString m_downloadDirectory;
     QString m_logLevel;
     QString m_logFilePath;

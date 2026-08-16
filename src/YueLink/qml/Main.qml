@@ -18,47 +18,16 @@ HusWindow {
     property int selectedConversationOnlineCount: 0
     property string activePanel: ""
     property string currentPage: "messages"
-    readonly property color navigationActiveBackgroundColor: AppTheme.accentSoftStrong
-    readonly property color navigationHoverBackgroundColor: AppTheme.hover
-    readonly property color navigationActiveTextColor: AppTheme.dark
-                                                        ? AppTheme.accent
-                                                        : AppTheme.textPrimary
-    readonly property var navigationMenuTheme: Object.assign({}, HusTheme.HusMenu, {
-                                                                  colorTextActive: navigationActiveTextColor,
-                                                                  colorBgActive: navigationActiveBackgroundColor,
-                                                                  colorBgHover: navigationHoverBackgroundColor,
-                                                                  radiusMenuBg: 10
-                                                              })
-    readonly property var settingsMenuTheme: Object.assign({}, navigationMenuTheme, {
-                                                                colorTextActive: HusTheme.Primary.colorPrimary,
-                                                                colorBgActive: "transparent"
-                                                            })
-    readonly property int navigationCompactMode: {
-        switch (AppSettings.navigationMode) {
-        case "relaxed":
-            return HusMenu.Mode_Relaxed;
-        case "standard":
-            return HusMenu.Mode_Standard;
-        default:
-            return HusMenu.Mode_Compact;
-        }
-    }
-    readonly property int navigationWidth: {
-        switch (navigationCompactMode) {
-        case HusMenu.Mode_Relaxed:
-            return 176;
-        case HusMenu.Mode_Standard:
-            return 80;
-        default:
-            return 52;
-        }
-    }
+    readonly property color navigationSelectedIconColor: AppTheme.dark
+                                                          ? AppTheme.accent
+                                                          : AppTheme.textPrimary
+    readonly property int navigationWidth: 60
     readonly property int conversationListWidth: Math.round(
                                                       Math.min(320,
                                                                Math.max(280,
                                                                         width * 0.26)))
 
-    captionBar.height: 56
+    captionBar.height: 42
     captionBar.color: AppTheme.canvas
     captionBar.showWinIcon: false
     captionBar.winTitle: qsTr("YueLink")
@@ -66,47 +35,36 @@ HusWindow {
         id: captionTitleContent
 
         implicitWidth: captionTitleRow.implicitWidth
-        implicitHeight: 46
+        implicitHeight: root.captionBar.height
         width: implicitWidth
-        height: 46
+        height: root.captionBar.height
 
         Row {
             id: captionTitleRow
 
             anchors.verticalCenter: parent.verticalCenter
             height: parent.height
-            spacing: 12
+            spacing: 10
 
             Item {
                 id: appBrand
 
-                width: appBrandRow.implicitWidth + 16
+                width: appBrandRow.implicitWidth + 12
                 height: parent.height
-
-                Rectangle {
-                    anchors.fill: parent
-                    radius: AppTheme.radiusSmall
-                    color: appBrandMouseArea.containsMouse
-                           ? AppTheme.hover
-                           : "transparent"
-                    border.width: appBrandMouseArea.activeFocus ? 1 : 0
-                    border.color: AppTheme.accent
-                    Accessible.ignored: true
-                }
 
                 Row {
                     id: appBrandRow
 
                     anchors.centerIn: parent
-                    spacing: 8
+                    spacing: 7
 
                     Image {
                         anchors.verticalCenter: parent.verticalCenter
-                        width: 24
-                        height: 24
+                        width: 22
+                        height: 22
                         source: "qrc:/yuelink/assets/yuelink-app-icon.png"
-                        sourceSize.width: 24
-                        sourceSize.height: 24
+                        sourceSize.width: 22
+                        sourceSize.height: 22
                         fillMode: Image.PreserveAspectFit
                         Accessible.ignored: true
                     }
@@ -115,55 +73,67 @@ HusWindow {
                         anchors.verticalCenter: parent.verticalCenter
                         text: qsTr("YueLink")
                         color: AppTheme.textPrimary
-                        font.pixelSize: HusTheme.Primary.fontPrimarySizeHeading5
-                        font.weight: Font.Medium
+                        font.family: HusTheme.Primary.fontPrimaryFamily
+                        font.pixelSize: Math.max(15, HusTheme.Primary.fontPrimarySize)
+                        font.weight: Font.DemiBold
+                        font.letterSpacing: 0.5
                     }
-                }
-
-                MouseArea {
-                    id: appBrandMouseArea
-
-                    anchors.fill: parent
-                    activeFocusOnTab: true
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    Accessible.role: Accessible.Button
-                    Accessible.name: qsTr("关于 YueLink")
-                    onClicked: root.openAboutWindow()
-                    Keys.onReturnPressed: root.openAboutWindow()
-                    Keys.onSpacePressed: root.openAboutWindow()
                 }
             }
 
             Rectangle {
-                width: 1
-                height: 22
                 anchors.verticalCenter: parent.verticalCenter
+                width: 1
+                height: 18
                 color: AppTheme.divider
                 Accessible.ignored: true
             }
 
             UserInfoPanel {
                 id: headerProfile
-
-                width: 180
-                height: 46
+                width: 176
+                height: root.captionBar.height
+                enabled: root.activePanel !== "settings"
                 onProfileEditRequested: root.openPanel("profile")
             }
         }
 
         Connections {
             target: root.captionBar
-
             function onWindowAgentChanged(): void {
-                root.captionBar.addInteractionItem(appBrand)
                 root.captionBar.addInteractionItem(headerProfile)
             }
         }
 
         Component.onDestruction: {
-            root.captionBar.removeInteractionItem(appBrand);
             root.captionBar.removeInteractionItem(headerProfile);
+        }
+    }
+    captionBar.winExtraButtonsDelegate: Row {
+        id: captionExtraButtons
+
+        height: parent.height
+
+        Component.onCompleted: root.captionBar.addInteractionItem(settingsCaptionButton)
+        Component.onDestruction: root.captionBar.removeInteractionItem(settingsCaptionButton)
+
+        Connections {
+            target: root.captionBar
+
+            function onWindowAgentChanged(): void {
+                root.captionBar.addInteractionItem(settingsCaptionButton)
+            }
+        }
+
+        HusCaptionButton {
+            id: settingsCaptionButton
+            height: parent.height
+            enabled: root.activePanel !== "settings"
+            noDisabledState: true
+            iconSource: HusIcon.SettingOutlined
+            iconSize: 16
+            contentDescription: qsTr("设置")
+            onClicked: root.openPanel("settings")
         }
     }
 
@@ -179,12 +149,6 @@ HusWindow {
 
     function openPanel(panel: string): void {
         activePanel = panel;
-    }
-
-    function openAboutWindow(): void {
-        aboutWindow.show();
-        aboutWindow.raise();
-        aboutWindow.requestActivate();
     }
 
     function showOperationError(reason: string): void {
@@ -362,7 +326,7 @@ HusWindow {
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             anchors.leftMargin: 12
-            anchors.topMargin: 12
+            anchors.topMargin: 8
             anchors.bottomMargin: 12
             width: root.navigationWidth
             radius: AppTheme.radiusLarge
@@ -370,83 +334,125 @@ HusWindow {
             border.width: 1
             border.color: AppTheme.border
 
-            HusMenu {
-                id: primaryNavigation
+            Column {
+                id: primaryNavigationButtons
 
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.top: parent.top
-                anchors.bottom: settingsNavigation.top
-                anchors.margins: 6
-                compactMode: root.navigationCompactMode
-                themeSource: root.navigationMenuTheme
-                showToolTip: root.navigationCompactMode !== HusMenu.Mode_Relaxed
-                defaultMenuWidth: 176
-                defaultMenuTopPadding: 10
-                defaultMenuBottomPadding: 10
-                defaultSelectedKeys: ["messages"]
-                initModel: [
-                    {
-                        key: "messages",
-                        label: qsTr("消息"),
-                        shortLabel: qsTr("消息"),
-                        iconSource: HusIcon.MessageOutlined
-                    },
-                    {
-                        key: "contacts",
-                        label: qsTr("联系人"),
-                        shortLabel: qsTr("联系人"),
-                        iconSource: HusIcon.ContactsOutlined
-                    },
-                ]
-                onClickMenu: (deep, key) => {
-                    if (deep !== 0)
-                        return;
+                anchors.margins: 8
+                spacing: 6
 
-                    root.currentPage = key;
+                HusIconButton {
+                    width: primaryNavigationButtons.width
+                    height: 44
+                    text: ""
+                    iconSource: HusIcon.MessageOutlined
+                    iconSize: 20
+                    type: HusButton.Type_Default
+                    padding: 0
+                    colorBg: root.currentPage === "messages"
+                             ? AppTheme.accentSoftStrong
+                             : hovered ? AppTheme.hover : "transparent"
+                    colorIcon: root.currentPage === "messages"
+                               ? root.navigationSelectedIconColor
+                               : AppTheme.textSecondary
+                    colorBorder: visualFocus ? AppTheme.accent : "transparent"
+                    borderWidth: visualFocus ? 1 : 0
+                    radiusBg.all: 10
+                    contentDescription: qsTr("消息")
+                    onClicked: root.currentPage = "messages"
+
+                    Rectangle {
+                        anchors.left: parent.left
+                        anchors.leftMargin: 4
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 3
+                        height: 16
+                        radius: 2
+                        visible: root.currentPage === "messages"
+                        color: AppTheme.accent
+                        Accessible.ignored: true
+                    }
+
+                    HusToolTip {
+                        visible: parent.hovered || parent.visualFocus
+                        showArrow: true
+                        position: HusToolTip.Position_Right
+                        text: parent.contentDescription
+                    }
+                }
+
+                HusIconButton {
+                    width: primaryNavigationButtons.width
+                    height: 44
+                    text: ""
+                    iconSource: HusIcon.ContactsOutlined
+                    iconSize: 20
+                    type: HusButton.Type_Default
+                    padding: 0
+                    colorBg: root.currentPage === "contacts"
+                             ? AppTheme.accentSoftStrong
+                             : hovered ? AppTheme.hover : "transparent"
+                    colorIcon: root.currentPage === "contacts"
+                               ? root.navigationSelectedIconColor
+                               : AppTheme.textSecondary
+                    colorBorder: visualFocus ? AppTheme.accent : "transparent"
+                    borderWidth: visualFocus ? 1 : 0
+                    radiusBg.all: 10
+                    contentDescription: qsTr("联系人")
+                    onClicked: root.currentPage = "contacts"
+
+                    Rectangle {
+                        anchors.left: parent.left
+                        anchors.leftMargin: 4
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 3
+                        height: 16
+                        radius: 2
+                        visible: root.currentPage === "contacts"
+                        color: AppTheme.accent
+                        Accessible.ignored: true
+                    }
+
+                    HusToolTip {
+                        visible: parent.hovered || parent.visualFocus
+                        showArrow: true
+                        position: HusToolTip.Position_Right
+                        text: parent.contentDescription
+                    }
                 }
             }
 
-            HusMenu {
-                id: settingsNavigation
-
+            HusIconButton {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                anchors.margins: 6
-                height: implicitHeight
-                compactMode: root.navigationCompactMode
-                themeSource: root.settingsMenuTheme
-                showToolTip: root.navigationCompactMode !== HusMenu.Mode_Relaxed
-                defaultMenuWidth: 176
-                defaultMenuTopPadding: 10
-                defaultMenuBottomPadding: 10
-                initModel: [
-                    {
-                        key: "refreshContacts",
-                        label: qsTr("刷新好友"),
-                        shortLabel: qsTr("刷新"),
-                        iconSource: HusIcon.ReloadOutlined
-                    },
-                    {
-                        key: "settings",
-                        label: qsTr("设置"),
-                        shortLabel: qsTr("设置"),
-                        iconSource: HusIcon.SettingOutlined
-                    }
-                ]
-                onClickMenu: (deep, key) => {
-                    if (deep !== 0)
-                        return;
+                anchors.margins: 8
+                height: 44
+                text: ""
+                iconSource: HusIcon.ReloadOutlined
+                iconSize: 20
+                type: HusButton.Type_Default
+                padding: 0
+                colorBg: hovered ? AppTheme.hover : "transparent"
+                colorIcon: AppTheme.textSecondary
+                colorBorder: visualFocus ? AppTheme.accent : "transparent"
+                borderWidth: visualFocus ? 1 : 0
+                radiusBg.all: 10
+                contentDescription: qsTr("刷新好友")
+                onClicked: {
+                    if (LanChat.running)
+                        root.refreshNetworkDiscovery();
+                    else
+                        root.startNetworkService();
+                }
 
-                    if (key === "refreshContacts") {
-                        if (LanChat.running)
-                            root.refreshNetworkDiscovery();
-                        else
-                            root.startNetworkService();
-                    } else if (key === "settings") {
-                        root.openPanel("settings");
-                    }
+                HusToolTip {
+                    visible: parent.hovered || parent.visualFocus
+                    showArrow: true
+                    position: HusToolTip.Position_Right
+                    text: parent.contentDescription
                 }
             }
         }
@@ -458,7 +464,7 @@ HusWindow {
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             anchors.leftMargin: 12
-            anchors.topMargin: 12
+            anchors.topMargin: 8
             anchors.bottomMargin: 12
             width: root.conversationListWidth
             radius: AppTheme.radiusLarge
@@ -490,7 +496,7 @@ HusWindow {
             anchors.bottom: parent.bottom
             anchors.leftMargin: 12
             anchors.rightMargin: 12
-            anchors.topMargin: 12
+            anchors.topMargin: 8
             anchors.bottomMargin: 12
             radius: AppTheme.radiusLarge
             color: AppTheme.surfaceSubtle
@@ -557,12 +563,6 @@ HusWindow {
         }
     }
 
-    AboutWindow {
-        id: aboutWindow
-
-        transientParent: root
-    }
-
     HusMessage {
         id: operationMessage
 
@@ -576,6 +576,8 @@ HusWindow {
     }
 
     Loader {
+        anchors.fill: parent
+        anchors.topMargin: root.captionBar.height
         active: root.activePanel === "settings"
         sourceComponent: settingsPanelComponent
     }
@@ -680,23 +682,12 @@ HusWindow {
     Component {
         id: settingsPanelComponent
 
-        Item {
-            HusDrawer {
-                id: settingsDrawer
-
-                title: qsTr("设置")
-                drawerSize: Math.min(560, root.width - 80)
-                maskClosable: true
-                closePosition: HusDrawer.Position_End
-                contentDelegate: SettingsPage {
-                    onCloseRequested: settingsDrawer.close()
-                    onSaved: {
-                        settingsDrawer.close();
-                        root.showModifiedSuccess();
-                    }
-                }
-                Component.onCompleted: open()
-                onClosed: root.activePanel = ""
+        SettingsPage {
+            anchors.fill: parent
+            onCloseRequested: root.activePanel = ""
+            onSaved: {
+                root.activePanel = "";
+                root.showModifiedSuccess();
             }
         }
     }
