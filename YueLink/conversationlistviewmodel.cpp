@@ -17,6 +17,14 @@ ConversationListViewModel::ConversationListViewModel(ChatCoordinator *coordinato
     m_filterModel.setFilterCaseSensitivity(Qt::CaseInsensitive);
     m_filterModel.setSortRole(SidebarItemModel::SortTimestampRole);
     m_filterModel.sort(0, Qt::DescendingOrder);
+    m_groupKindModel.setSourceModel(&m_model);
+    m_groupKindModel.setFilterRole(SidebarItemModel::ItemKindRole);
+    m_groupKindModel.setFilterFixedString(QStringLiteral("group"));
+    m_groupFilterModel.setSourceModel(&m_groupKindModel);
+    m_groupFilterModel.setFilterRole(SidebarItemModel::TitleRole);
+    m_groupFilterModel.setFilterCaseSensitivity(Qt::CaseInsensitive);
+    m_groupFilterModel.setSortRole(SidebarItemModel::SortTimestampRole);
+    m_groupFilterModel.sort(0, Qt::DescendingOrder);
     connect(m_coordinator, &ChatCoordinator::conversationsChanged, this, &ConversationListViewModel::synchronize);
     connect(m_coordinator, &ChatCoordinator::peersChanged, this, &ConversationListViewModel::synchronize);
     connect(&m_model, &SidebarItemModel::unreadCountChanged, this, &ConversationListViewModel::totalUnreadCountChanged);
@@ -28,6 +36,12 @@ QAbstractItemModel *ConversationListViewModel::model()
 {
     return &m_filterModel;
 }
+
+QAbstractItemModel *ConversationListViewModel::groupsModel()
+{
+    return &m_groupFilterModel;
+}
+
 QString ConversationListViewModel::searchText() const
 {
     return m_searchText;
@@ -42,6 +56,22 @@ void ConversationListViewModel::setSearchText(const QString &text)
     m_searchText = text;
     m_filterModel.setFilterFixedString(text.trimmed());
     emit searchTextChanged();
+}
+
+QString ConversationListViewModel::groupSearchText() const
+{
+    return m_groupSearchText;
+}
+
+void ConversationListViewModel::setGroupSearchText(const QString &text)
+{
+    if (m_groupSearchText == text)
+    {
+        return;
+    }
+    m_groupSearchText = text;
+    m_groupFilterModel.setFilterFixedString(text.trimmed());
+    emit groupSearchTextChanged();
 }
 
 QVariantMap ConversationListViewModel::conversationInfo(const QString &conversationId) const

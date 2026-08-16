@@ -35,9 +35,11 @@ class LanChatManager final : public QObject
     QML_NAMED_ELEMENT(LanChat)
     QML_SINGLETON
     Q_PROPERTY(QAbstractItemModel *conversations READ conversations CONSTANT)
+    Q_PROPERTY(QAbstractItemModel *groups READ groups CONSTANT)
     Q_PROPERTY(QAbstractItemModel *peers READ peers CONSTANT)
     Q_PROPERTY(QAbstractItemModel *messages READ messages CONSTANT)
     Q_PROPERTY(QString conversationSearchText READ conversationSearchText WRITE setConversationSearchText NOTIFY conversationSearchTextChanged)
+    Q_PROPERTY(QString groupSearchText READ groupSearchText WRITE setGroupSearchText NOTIFY groupSearchTextChanged)
     Q_PROPERTY(QString peerSearchText READ peerSearchText WRITE setPeerSearchText NOTIFY peerSearchTextChanged)
     Q_PROPERTY(QString messageSearchText READ messageSearchText WRITE setMessageSearchText NOTIFY messageSearchTextChanged)
     Q_PROPERTY(QString localName READ localName NOTIFY localProfileChanged)
@@ -90,6 +92,11 @@ public:
      */
     [[nodiscard]] QAbstractItemModel *conversations();
     /**
+     * @brief 返回仅包含群聊的联系人页模型。
+     * @return 群聊列表模型指针。
+     */
+    [[nodiscard]] QAbstractItemModel *groups();
+    /**
      * @brief 返回联系人模型。
      * @return 联系人列表模型指针。
      */
@@ -109,6 +116,16 @@ public:
      * @param text 新搜索文本。
      */
     void setConversationSearchText(const QString &text);
+    /**
+     * @brief 返回联系人页群聊搜索文本。
+     * @return 未经裁剪的群聊搜索文本。
+     */
+    [[nodiscard]] QString groupSearchText() const;
+    /**
+     * @brief 更新联系人页群聊搜索文本。
+     * @param text 新群聊搜索文本。
+     */
+    void setGroupSearchText(const QString &text);
     /**
      * @brief 返回联系人搜索文本。
      * @return 未经裁剪的联系人搜索文本。
@@ -315,6 +332,8 @@ public:
 signals:
     /** @brief 会话搜索文本发生变化时发出。 */
     void conversationSearchTextChanged();
+    /** @brief 联系人页群聊搜索文本发生变化时发出。 */
+    void groupSearchTextChanged();
     /** @brief 联系人搜索文本发生变化时发出。 */
     void peerSearchTextChanged();
     /** @brief 消息搜索文本发生变化时发出。 */

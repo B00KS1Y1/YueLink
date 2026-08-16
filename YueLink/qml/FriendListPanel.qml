@@ -10,8 +10,12 @@ Item {
 
     property string selectedConversationId: ""
     property bool contactsMode: false
+    readonly property bool groupContactsMode: contactsMode
+                                               && contactTypeSelector.currentIndex === 1
     readonly property string searchKeyword: (contactsMode
-                                              ? LanChat.peerSearchText
+                                              ? groupContactsMode
+                                                ? LanChat.groupSearchText
+                                                : LanChat.peerSearchText
                                               : LanChat.conversationSearchText).trim()
 
     signal conversationSelected(string conversationId)
@@ -23,7 +27,7 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        height: 68
+        height: 60
 
         RowLayout {
             anchors.left: parent.left
@@ -37,7 +41,7 @@ Item {
                 id: searchInput
 
                 Layout.fillWidth: true
-                Layout.preferredHeight: 42
+                Layout.preferredHeight: 36
                 iconSource: HusIcon.SearchOutlined
                 iconSize: 16
                 iconPosition: HusInput.Position_Left
@@ -47,21 +51,26 @@ Item {
                 placeholderText: qsTr("搜索")
                 contentDescription: placeholderText
                 text: root.contactsMode
-                      ? LanChat.peerSearchText
+                      ? root.groupContactsMode
+                        ? LanChat.groupSearchText
+                        : LanChat.peerSearchText
                       : LanChat.conversationSearchText
                 onTextChanged: {
-                    if (root.contactsMode)
-                        LanChat.peerSearchText = text;
-                    else
+                    if (!root.contactsMode) {
                         LanChat.conversationSearchText = text;
+                    } else if (root.groupContactsMode) {
+                        LanChat.groupSearchText = text;
+                    } else {
+                        LanChat.peerSearchText = text;
+                    }
                 }
             }
 
             HusIconButton {
                 id: quickActionsButton
 
-                Layout.preferredWidth: 42
-                Layout.preferredHeight: 42
+                Layout.preferredWidth: 36
+                Layout.preferredHeight: 36
                 padding: 0
                 type: HusButton.Type_Filled
                 iconSource: HusIcon.PlusOutlined
@@ -97,19 +106,53 @@ Item {
     }
 
     Item {
-        id: listHeader
+        id: contactTypeSection
 
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: searchSection.bottom
+        height: visible ? 46 : 0
+        visible: root.contactsMode
+
+        HusSegmented {
+            id: contactTypeSelector
+
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.leftMargin: 14
+            anchors.rightMargin: 14
+            height: 34
+            block: true
+            focusPolicy: Qt.StrongFocus
+            options: [
+                { "label": qsTr("好友"), "value": "friends" },
+                { "label": qsTr("群聊"), "value": "groups" }
+            ]
+            Accessible.name: qsTr("联系人类型")
+            Keys.onLeftPressed: currentIndex = 0
+            Keys.onRightPressed: currentIndex = 1
+        }
+    }
+
+    Item {
+        id: listHeader
+
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: root.contactsMode
+                     ? contactTypeSection.bottom
+                     : searchSection.bottom
         height: 38
 
         HusText {
             anchors.left: parent.left
             anchors.leftMargin: 16
             anchors.verticalCenter: parent.verticalCenter
-            text: root.contactsMode ? qsTr("联系人") : qsTr("消息")
-            color: AppTheme.textPrimary
+            text: root.contactsMode
+                  ? root.groupContactsMode ? qsTr("群聊") : qsTr("好友")
+                  : qsTr("消息")
+            color: HusTheme.Primary.colorTextBase
             font.pixelSize: HusTheme.Primary.fontPrimarySize
             font.weight: Font.Medium
         }
@@ -118,12 +161,16 @@ Item {
             anchors.right: parent.right
             anchors.rightMargin: 16
             anchors.verticalCenter: parent.verticalCenter
-            text: !root.contactsMode && LanChat.totalUnreadCount > 0
-                  ? qsTr("%1 未读 · %2 在线")
-                        .arg(LanChat.totalUnreadCount)
-                        .arg(LanChat.onlineCount)
-                  : qsTr("%1 在线").arg(LanChat.onlineCount)
-            color: AppTheme.textTertiary
+            text: root.contactsMode
+                  ? root.groupContactsMode
+                    ? qsTr("%1 个群聊").arg(conversationList.count)
+                    : qsTr("%1 在线").arg(LanChat.onlineCount)
+                  : LanChat.totalUnreadCount > 0
+                    ? qsTr("%1 未读 · %2 在线")
+                          .arg(LanChat.totalUnreadCount)
+                          .arg(LanChat.onlineCount)
+                    : qsTr("%1 在线").arg(LanChat.onlineCount)
+            color: HusTheme.Primary.colorTextQuaternary
             font.pixelSize: Math.max(11, HusTheme.Primary.fontPrimarySize - 1)
         }
 
@@ -134,7 +181,7 @@ Item {
             anchors.leftMargin: 16
             anchors.rightMargin: 16
             height: 1
-            color: AppTheme.divider
+            color: HusTheme.Primary.colorSplit
             Accessible.ignored: true
         }
     }
@@ -149,7 +196,9 @@ Item {
         anchors.leftMargin: 8
         anchors.rightMargin: 8
         anchors.bottomMargin: 10
-        model: root.contactsMode ? LanChat.peers : LanChat.conversations
+        model: root.contactsMode
+               ? root.groupContactsMode ? LanChat.groups : LanChat.peers
+               : LanChat.conversations
         currentIndex: -1
         boundsBehavior: Flickable.StopAtBounds
         reuseItems: true
@@ -182,14 +231,14 @@ Item {
             Rectangle {
                 anchors.fill: parent
                 anchors.margins: 4
-                radius: AppTheme.radiusMedium
+                radius: HusTheme.Primary.radiusPrimary
                 color: conversationDelegate.selected
-                       ? AppTheme.accentSoftStrong
+                       ? HusThemeFunctions.alpha(HusTheme.Primary.colorPrimary, HusTheme.isDark ? 0.28 : 0.16)
                        : conversationMouse.containsMouse
-                         ? AppTheme.hover
+                         ? HusTheme.Primary.colorFillSecondary
                          : "transparent"
                 border.width: conversationMouse.activeFocus ? 1 : 0
-                border.color: AppTheme.accent
+                border.color: HusTheme.Primary.colorPrimary
 
                 Behavior on color {
                     enabled: HusTheme.animationEnabled
@@ -207,7 +256,7 @@ Item {
                 height: 28
                 radius: width * 0.5
                 visible: conversationDelegate.selected
-                color: AppTheme.accent
+                color: HusTheme.Primary.colorPrimary
                 Accessible.ignored: true
             }
 
@@ -242,7 +291,7 @@ Item {
                 HusText {
                     width: parent.width
                     text: conversationDelegate.title
-                    color: AppTheme.textPrimary
+                    color: HusTheme.Primary.colorTextBase
                     elide: Text.ElideRight
                     font.pixelSize: HusTheme.Primary.fontPrimarySize
                     font.weight: Font.Medium
@@ -253,7 +302,7 @@ Item {
                     text: root.contactsMode
                           ? conversationDelegate.statusText
                           : conversationDelegate.lastMessage
-                    color: AppTheme.textSecondary
+                    color: HusTheme.Primary.colorTextTertiary
                     elide: Text.ElideRight
                     font.pixelSize: HusTheme.Primary.fontPrimarySize
                     font.weight: conversationDelegate.unread > 0
@@ -274,7 +323,7 @@ Item {
                 HusText {
                     width: parent.width
                     text: conversationDelegate.lastTime
-                    color: AppTheme.textTertiary
+                    color: HusTheme.Primary.colorTextQuaternary
                     horizontalAlignment: Text.AlignRight
                     font.pixelSize: Math.max(11, HusTheme.Primary.fontPrimarySize - 1)
                     font.weight: conversationDelegate.unread > 0
@@ -325,19 +374,21 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             width: 52
             height: 52
-            radius: AppTheme.radiusLarge
-            color: AppTheme.accentSoft
+            radius: HusTheme.Primary.radiusPrimary
+            color: HusThemeFunctions.alpha(HusTheme.Primary.colorPrimary, HusTheme.isDark ? 0.18 : 0.1)
             border.width: 1
-            border.color: AppTheme.border
+            border.color: HusTheme.Primary.colorSplit
             Accessible.ignored: true
 
             HusIconText {
                 anchors.centerIn: parent
                 iconSource: root.contactsMode
-                            ? HusIcon.ContactsOutlined
+                            ? root.groupContactsMode
+                              ? HusIcon.TeamOutlined
+                              : HusIcon.ContactsOutlined
                             : HusIcon.MessageOutlined
                 iconSize: 23
-                colorIcon: AppTheme.accent
+                colorIcon: HusTheme.Primary.colorPrimary
             }
         }
 
@@ -346,11 +397,13 @@ Item {
             text: root.searchKeyword.length > 0
                   ? qsTr("没有匹配结果")
                   : root.contactsMode
-                    ? LanChat.running
-                      ? qsTr("正在发现联系人")
-                      : qsTr("开始发现联系人")
+                    ? root.groupContactsMode
+                      ? qsTr("还没有群聊")
+                      : LanChat.running
+                        ? qsTr("正在发现联系人")
+                        : qsTr("开始发现联系人")
                     : qsTr("还没有会话")
-            color: AppTheme.textPrimary
+            color: HusTheme.Primary.colorTextBase
             horizontalAlignment: Text.AlignHCenter
             font.pixelSize: HusTheme.Primary.fontPrimarySizeHeading5
             font.weight: Font.Medium
@@ -361,13 +414,15 @@ Item {
             text: root.searchKeyword.length > 0
                   ? qsTr("没有找到与“%1”匹配的内容").arg(root.searchKeyword)
                   : root.contactsMode
-                    ? LanChat.running
-                      ? qsTr("正在自动发现同一局域网内的联系人…")
-                      : LanChat.lastError.length > 0
-                        ? LanChat.lastError
-                        : qsTr("点击左侧刷新好友按钮启动局域网发现")
+                    ? root.groupContactsMode
+                      ? qsTr("点击上方按钮创建群聊")
+                      : LanChat.running
+                        ? qsTr("正在自动发现同一局域网内的联系人…")
+                        : LanChat.lastError.length > 0
+                          ? LanChat.lastError
+                          : qsTr("点击左侧刷新好友按钮启动局域网发现")
                     : qsTr("从联系人页开始单聊，或点击上方按钮创建群聊")
-            color: AppTheme.textSecondary
+            color: HusTheme.Primary.colorTextTertiary
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.Wrap
             font.pixelSize: HusTheme.Primary.fontPrimarySize

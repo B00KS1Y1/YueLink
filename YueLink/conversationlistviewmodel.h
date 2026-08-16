@@ -35,6 +35,11 @@ public:
      */
     [[nodiscard]] QAbstractItemModel *model();
     /**
+     * @brief 返回仅包含群聊的筛选和排序模型。
+     * @return 群聊代理模型指针。
+     */
+    [[nodiscard]] QAbstractItemModel *groupsModel();
+    /**
      * @brief 返回会话搜索文本。
      * @return 当前搜索文本。
      */
@@ -44,6 +49,16 @@ public:
      * @param text 新搜索文本。
      */
     void setSearchText(const QString &text);
+    /**
+     * @brief 返回联系人页群聊搜索文本。
+     * @return 当前群聊搜索文本。
+     */
+    [[nodiscard]] QString groupSearchText() const;
+    /**
+     * @brief 更新联系人页群聊搜索文本。
+     * @param text 新群聊搜索文本。
+     */
+    void setGroupSearchText(const QString &text);
     /**
      * @brief 返回指定会话的 QML 属性。
      * @param conversationId 会话标识。
@@ -59,6 +74,8 @@ public:
 signals:
     /** @brief 搜索文本发生变化时发出。 */
     void searchTextChanged();
+    /** @brief 联系人页群聊搜索文本发生变化时发出。 */
+    void groupSearchTextChanged();
     /** @brief 未读总数发生变化时发出。 */
     void totalUnreadCountChanged();
     /** @brief 会话列表内容发生变化时发出。 */
@@ -89,7 +106,10 @@ private:
     ChatCoordinator *m_coordinator = nullptr;
     SidebarItemModel m_model;
     QSortFilterProxyModel m_filterModel;
+    QSortFilterProxyModel m_groupKindModel;
+    QSortFilterProxyModel m_groupFilterModel;
     QString m_searchText;
+    QString m_groupSearchText;
 };
 
 #endif // CONVERSATIONLISTVIEWMODEL_H

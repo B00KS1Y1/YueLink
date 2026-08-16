@@ -54,6 +54,11 @@ QAbstractItemModel *LanChatManager::conversations()
     return m_conversations->model();
 }
 
+QAbstractItemModel *LanChatManager::groups()
+{
+    return m_conversations->groupsModel();
+}
+
 QAbstractItemModel *LanChatManager::peers()
 {
     return m_peers->model();
@@ -72,6 +77,16 @@ QString LanChatManager::conversationSearchText() const
 void LanChatManager::setConversationSearchText(const QString &text)
 {
     m_conversations->setSearchText(text);
+}
+
+QString LanChatManager::groupSearchText() const
+{
+    return m_conversations->groupSearchText();
+}
+
+void LanChatManager::setGroupSearchText(const QString &text)
+{
+    m_conversations->setGroupSearchText(text);
 }
 
 QString LanChatManager::peerSearchText() const
@@ -339,6 +354,7 @@ void LanChatManager::setNotificationsEnabled(bool enabled)
 void LanChatManager::connectComponents()
 {
     connect(m_conversations.get(), &ConversationListViewModel::searchTextChanged, this, &LanChatManager::conversationSearchTextChanged);
+    connect(m_conversations.get(), &ConversationListViewModel::groupSearchTextChanged, this, &LanChatManager::groupSearchTextChanged);
     connect(m_conversations.get(), &ConversationListViewModel::totalUnreadCountChanged, this, &LanChatManager::totalUnreadCountChanged);
     connect(m_peers.get(), &PeerListViewModel::searchTextChanged, this, &LanChatManager::peerSearchTextChanged);
     connect(m_peers.get(), &PeerListViewModel::onlineCountChanged, this, &LanChatManager::onlineCountChanged);
