@@ -87,7 +87,7 @@ set_target_properties(YueLink PROPERTIES
 
 target_include_directories(YueLink
     PRIVATE
-        ${PROJECT_SOURCE_DIR}/src
+        ${PROJECT_SOURCE_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}
 )
 

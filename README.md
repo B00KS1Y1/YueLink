@@ -5,13 +5,12 @@ YueLink 是一个基于 Qt 6、Qt Quick 与 HuskarUI 的局域网聊天应用。
 ## 源码结构
 
 ```text
-src/
-├── domain/                         # 领域模型与端口接口
-├── application/                    # 聊天用例与状态编排
-├── infrastructure/
-│   └── config/                     # JSON 配置模型与读写
-└── YueLink/                        # QML 模块、桌面适配与程序入口
-    └── assets/                     # 应用图标等平台资源
+domain/                             # 领域模型与端口接口
+application/                        # 聊天用例与状态编排
+config/                             # JSON 配置模型与读写
+infrastructure/                     # 网络、存储、日志与运行时实现
+YueLink/                            # QML 模块、桌面适配与程序入口
+└── assets/                         # 应用图标等平台资源
 ```
 
 目录只表达领域、应用、基础设施和界面四个模块；除配置与静态资源外不再增加

@@ -19,7 +19,7 @@ add_library(YueLink::Config ALIAS YueLinkConfig)
 
 target_include_directories(YueLinkConfig
     PUBLIC
-        ${PROJECT_SOURCE_DIR}/src
+        ${PROJECT_SOURCE_DIR}
 )
 
 target_link_libraries(YueLinkConfig

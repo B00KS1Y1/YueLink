@@ -30,7 +30,7 @@ add_library(YueLink::Paths ALIAS YueLinkPaths)
 
 target_include_directories(YueLinkPaths
     PUBLIC
-        ${PROJECT_SOURCE_DIR}/src
+        ${PROJECT_SOURCE_DIR}
 )
 
 target_compile_definitions(YueLinkPaths
@@ -52,7 +52,7 @@ add_library(YueLink::Infrastructure ALIAS YueLinkInfrastructure)
 
 target_include_directories(YueLinkInfrastructure
     PUBLIC
-        ${PROJECT_SOURCE_DIR}/src
+        ${PROJECT_SOURCE_DIR}
 )
 
 target_link_libraries(YueLinkInfrastructure
