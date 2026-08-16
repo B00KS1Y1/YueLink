@@ -15,7 +15,6 @@ Item {
     property bool draggingFiles: false
     property var drafts: ({})
     property string draftConversationId: ""
-    readonly property color surfaceColor: AppTheme.surface
     readonly property color inputSurfaceColor: AppTheme.inputSurface
 
     signal imagesSelected(var imageUrls)
@@ -78,14 +77,12 @@ Item {
             draggingFiles = false;
     }
 
-    implicitHeight: 154
+    implicitHeight: 178
 
     Rectangle {
         anchors.fill: parent
-        radius: AppTheme.radiusLarge
-        color: root.surfaceColor
-        border.width: 1
-        border.color: AppTheme.border
+        radius: 0
+        color: root.inputSurfaceColor
         Accessible.ignored: true
     }
 
@@ -93,49 +90,88 @@ Item {
         id: composerTools
 
         anchors.left: parent.left
-        anchors.leftMargin: 12
+        anchors.leftMargin: 10
         anchors.top: parent.top
-        anchors.topMargin: 6
+        anchors.topMargin: 8
         spacing: 2
 
         HusIconButton {
-            width: 40
-            height: 40
+            width: 38
+            height: 38
             padding: 0
             type: HusButton.Type_Text
-            iconSource: HusIcon.PictureOutlined
-            iconSize: 20
-            enabled: root.filesEnabled
-            contentDescription: root.filesEnabled
-                                ? qsTr("发送图片")
-                                : qsTr("当前会话暂不支持发送图片")
-            onClicked: imageFileDialog.open()
+            effectEnabled: false
+            colorBg: "transparent"
+            colorBorder: "transparent"
+            borderWidth: 0
+            iconSource: HusIcon.SmileOutlined
+            iconSize: 19
+            colorIcon: !enabled ? AppTheme.textTertiary
+                                : visualFocus ? AppTheme.accent
+                                : hovered ? AppTheme.textPrimary : AppTheme.textSecondary
+            enabled: root.sendEnabled
+            contentDescription: qsTr("发送表情")
+            onClicked: emojiPopup.open()
+
+            HusToolTip {
+                visible: parent.hovered || parent.visualFocus
+                position: HusToolTip.Position_Bottom
+                text: parent.contentDescription
+            }
         }
 
         HusIconButton {
-            width: 40
-            height: 40
+            width: 38
+            height: 38
             padding: 0
             type: HusButton.Type_Text
+            effectEnabled: false
+            colorBg: "transparent"
+            colorBorder: "transparent"
+            borderWidth: 0
             iconSource: HusIcon.FolderOpenOutlined
-            iconSize: 20
+            iconSize: 19
+            colorIcon: !enabled ? AppTheme.textTertiary
+                                : visualFocus ? AppTheme.accent
+                                : hovered ? AppTheme.textPrimary : AppTheme.textSecondary
             enabled: root.filesEnabled
             contentDescription: root.filesEnabled
                                 ? qsTr("发送文件")
                                 : qsTr("当前会话暂不支持发送文件")
             onClicked: fileDialog.open()
+
+            HusToolTip {
+                visible: parent.hovered || parent.visualFocus
+                position: HusToolTip.Position_Bottom
+                text: parent.contentDescription
+            }
         }
 
         HusIconButton {
-            width: 40
-            height: 40
+            width: 38
+            height: 38
             padding: 0
             type: HusButton.Type_Text
-            iconSource: HusIcon.SmileOutlined
-            iconSize: 20
-            enabled: root.sendEnabled
-            contentDescription: qsTr("发送表情")
-            onClicked: emojiPopup.open()
+            effectEnabled: false
+            colorBg: "transparent"
+            colorBorder: "transparent"
+            borderWidth: 0
+            iconSource: HusIcon.PictureOutlined
+            iconSize: 19
+            colorIcon: !enabled ? AppTheme.textTertiary
+                                : visualFocus ? AppTheme.accent
+                                : hovered ? AppTheme.textPrimary : AppTheme.textSecondary
+            enabled: root.filesEnabled
+            contentDescription: root.filesEnabled
+                                ? qsTr("发送图片")
+                                : qsTr("当前会话暂不支持发送图片")
+            onClicked: imageFileDialog.open()
+
+            HusToolTip {
+                visible: parent.hovered || parent.visualFocus
+                position: HusToolTip.Position_Bottom
+                text: parent.contentDescription
+            }
         }
     }
 
@@ -144,8 +180,8 @@ Item {
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.leftMargin: 12
-        anchors.rightMargin: 20
-        anchors.topMargin: 18
+        anchors.rightMargin: 14
+        anchors.topMargin: 17
         visible: composer.text.length >= 1600
         text: qsTr("%1/2000 个字符").arg(composer.text.length)
         color: AppTheme.textTertiary
@@ -158,17 +194,17 @@ Item {
         id: composer
 
         anchors.left: parent.left
-        anchors.right: sendButton.left
+        anchors.right: parent.right
         anchors.top: composerTools.bottom
         anchors.bottom: parent.bottom
         anchors.leftMargin: 12
         anchors.rightMargin: 12
-        anchors.bottomMargin: 12
+        anchors.bottomMargin: 56
         maxLength: 2000
         enabled: root.sendEnabled
-        colorBg: root.inputSurfaceColor
-        colorBorder: composer.activeFocus ? AppTheme.accent : AppTheme.border
-        radiusBg.all: AppTheme.radiusMedium
+        colorBg: "transparent"
+        colorBorder: "transparent"
+        radiusBg.all: 0
         placeholderText: root.sendEnabled
                          ? qsTr("输入消息，按 Ctrl+Enter 发送")
                          : root.conversationId.length === 0
@@ -184,19 +220,17 @@ Item {
         }
     }
 
-    HusIconButton {
+    HusButton {
         id: sendButton
 
         anchors.right: parent.right
         anchors.rightMargin: 12
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 12
-        width: 88
-        height: 42
+        width: 96
+        height: 40
         type: HusButton.Type_Primary
         text: qsTr("发送")
-        iconSource: HusIcon.SendOutlined
-        iconSize: 17
         enabled: root.sendEnabled && composer.text.trim().length > 0
         contentDescription: qsTr("发送消息")
         onClicked: root.submitMessage()
@@ -285,7 +319,7 @@ Item {
     HusPopup {
         id: emojiPopup
 
-        x: 92
+        x: 12
         y: -height - 8
         width: 368
         height: 316
