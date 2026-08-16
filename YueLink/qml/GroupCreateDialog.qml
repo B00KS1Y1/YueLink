@@ -68,7 +68,7 @@ Item {
                 anchors.leftMargin: 24
                 anchors.topMargin: 20
                 text: qsTr("创建群聊")
-                color: AppTheme.textPrimary
+                color: HusTheme.Primary.colorTextBase
                 font.pixelSize: HusTheme.Primary.fontPrimarySizeHeading4
                 font.weight: Font.Medium
             }
@@ -98,7 +98,7 @@ Item {
                 anchors.rightMargin: 24
                 anchors.topMargin: 22
                 text: qsTr("群名称")
-                color: AppTheme.textSecondary
+                color: HusTheme.Primary.colorTextTertiary
                 font.pixelSize: HusTheme.Primary.fontPrimarySize
                 font.weight: Font.Medium
             }
@@ -136,7 +136,7 @@ Item {
 
                 HusText {
                     text: qsTr("选择联系人")
-                    color: AppTheme.textSecondary
+                    color: HusTheme.Primary.colorTextTertiary
                     font.pixelSize: HusTheme.Primary.fontPrimarySize
                     font.weight: Font.Medium
                 }
@@ -146,7 +146,7 @@ Item {
                     text: qsTr("已选 %1/%2").arg(root.selectedCount)
                                               .arg(root.maximumMembers)
                     color: root.selectedCount >= root.minimumMembers
-                           ? AppTheme.textTertiary
+                           ? HusTheme.Primary.colorTextQuaternary
                            : HusTheme.Primary.colorWarning
                     horizontalAlignment: Text.AlignRight
                     font.pixelSize: HusTheme.Primary.fontPrimarySize
@@ -164,10 +164,10 @@ Item {
                 anchors.rightMargin: 24
                 anchors.topMargin: 8
                 anchors.bottomMargin: 14
-                radius: AppTheme.radiusMedium
-                color: AppTheme.surfaceSubtle
+                radius: HusTheme.Primary.radiusPrimary
+                color: HusTheme.Primary.colorFillTertiary
                 border.width: 1
-                border.color: AppTheme.border
+                border.color: HusTheme.Primary.colorSplit
 
                 ListView {
                     id: memberList
@@ -199,12 +199,12 @@ Item {
                         Rectangle {
                             anchors.fill: parent
                             anchors.margins: 2
-                            radius: AppTheme.radiusSmall
+                            radius: HusTheme.Primary.radiusPrimary
                             color: memberMouse.containsMouse
-                                   ? AppTheme.hover
+                                   ? HusTheme.Primary.colorFillSecondary
                                    : "transparent"
                             border.width: memberMouse.activeFocus ? 1 : 0
-                            border.color: AppTheme.accent
+                            border.color: HusTheme.Primary.colorPrimary
                         }
 
                         Rectangle {
@@ -215,19 +215,19 @@ Item {
                             height: 22
                             radius: 6
                             color: memberDelegate.selected
-                                   ? AppTheme.accent
+                                   ? HusTheme.Primary.colorPrimary
                                    : "transparent"
                             border.width: 1
                             border.color: memberDelegate.selected
-                                          ? AppTheme.accent
-                                          : AppTheme.borderStrong
+                                          ? HusTheme.Primary.colorPrimary
+                                          : HusTheme.Primary.colorTextQuaternary
 
                             HusIconText {
                                 anchors.centerIn: parent
                                 visible: memberDelegate.selected
                                 iconSource: HusIcon.CheckOutlined
                                 iconSize: 14
-                                colorIcon: AppTheme.onAccent
+                                colorIcon: "white"
                             }
                         }
 
@@ -258,7 +258,7 @@ Item {
                             anchors.verticalCenter: parent.verticalCenter
                             text: memberDelegate.title
                             color: memberDelegate.selectable
-                                   ? AppTheme.textPrimary
+                                   ? HusTheme.Primary.colorTextBase
                                    : HusTheme.Primary.colorTextDisabled
                             elide: Text.ElideRight
                             font.pixelSize: HusTheme.Primary.fontPrimarySize
@@ -290,14 +290,14 @@ Item {
                         HusText {
                             anchors.horizontalCenter: parent.horizontalCenter
                             text: qsTr("暂无联系人")
-                            color: AppTheme.textPrimary
+                            color: HusTheme.Primary.colorTextBase
                             font.pixelSize: HusTheme.Primary.fontPrimarySizeHeading5
                         }
 
                         HusText {
                             anchors.horizontalCenter: parent.horizontalCenter
                             text: qsTr("先启动局域网发现并等待联系人出现")
-                            color: AppTheme.textTertiary
+                            color: HusTheme.Primary.colorTextQuaternary
                             font.pixelSize: HusTheme.Primary.fontPrimarySize
                         }
                     }
@@ -325,7 +325,7 @@ Item {
                           : qsTr("创建后会立即同步给在线成员")
                     color: root.selectedCount < root.minimumMembers
                            ? HusTheme.Primary.colorWarning
-                           : AppTheme.textTertiary
+                           : HusTheme.Primary.colorTextQuaternary
                     elide: Text.ElideRight
                     font.pixelSize: HusTheme.Primary.fontPrimarySize
                 }

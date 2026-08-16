@@ -12,8 +12,8 @@ HusWindow {
     minimumHeight: 460
     title: qsTr("关于 YueLink")
     visible: false
-    color: AppTheme.canvas
-    captionBar.color: AppTheme.canvas
+    color: HusTheme.Primary.colorBgBase
+    captionBar.color: HusTheme.Primary.colorBgBase
     captionBar.showMinimizeButton: false
     captionBar.showMaximizeButton: false
     captionBar.winIconDelegate: Item {
@@ -40,7 +40,7 @@ HusWindow {
 
     Rectangle {
         anchors.fill: parent
-        color: AppTheme.canvas
+        color: HusTheme.Primary.colorBgBase
 
         ColumnLayout {
             anchors.centerIn: parent
@@ -52,9 +52,9 @@ HusWindow {
                 Layout.preferredWidth: 88
                 Layout.preferredHeight: 88
                 radius: 22
-                color: AppTheme.surfaceElevated
+                color: HusTheme.HusCard.colorBg
                 border.width: 1
-                border.color: AppTheme.border
+                border.color: HusTheme.Primary.colorSplit
 
                 Image {
                     anchors.centerIn: parent
@@ -72,7 +72,7 @@ HusWindow {
                 Layout.fillWidth: true
                 horizontalAlignment: Text.AlignHCenter
                 text: qsTr("YueLink")
-                color: AppTheme.textPrimary
+                color: HusTheme.Primary.colorTextBase
                 font.pixelSize: HusTheme.Primary.fontPrimarySizeHeading3
                 font.weight: Font.Bold
             }
@@ -81,7 +81,7 @@ HusWindow {
                 Layout.fillWidth: true
                 horizontalAlignment: Text.AlignHCenter
                 text: qsTr("局域网即时聊天与文件传输工具")
-                color: AppTheme.textSecondary
+                color: HusTheme.Primary.colorTextTertiary
                 font.pixelSize: HusTheme.Primary.fontPrimarySize
             }
 
@@ -89,7 +89,7 @@ HusWindow {
                 Layout.fillWidth: true
                 horizontalAlignment: Text.AlignHCenter
                 text: qsTr("版本：0.1")
-                color: AppTheme.textPrimary
+                color: HusTheme.Primary.colorTextBase
                 font.pixelSize: HusTheme.Primary.fontPrimarySize
             }
 
@@ -97,7 +97,7 @@ HusWindow {
                 Layout.fillWidth: true
                 horizontalAlignment: Text.AlignHCenter
                 text: qsTr("作者：系梨xili")
-                color: AppTheme.textPrimary
+                color: HusTheme.Primary.colorTextBase
                 font.pixelSize: HusTheme.Primary.fontPrimarySize
             }
 
@@ -106,7 +106,7 @@ HusWindow {
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
                 text: qsTr("欢迎在局域网内与好友安全、快速地沟通与传输文件。")
-                color: AppTheme.textSecondary
+                color: HusTheme.Primary.colorTextTertiary
                 font.pixelSize: HusTheme.Primary.fontPrimarySize
             }
         }

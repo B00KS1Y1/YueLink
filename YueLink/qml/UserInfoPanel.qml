@@ -34,7 +34,7 @@ Item {
                     radius: width * 0.5
                     color: "transparent"
                     border.width: localProfileMouse.activeFocus ? 2 : 1
-                    border.color: AppTheme.accent
+                    border.color: HusTheme.Primary.colorPrimary
                     Accessible.ignored: true
                 }
 
@@ -73,7 +73,7 @@ Item {
             HusText {
                 width: parent.width
                 text: LanChat.localName
-                color: AppTheme.textPrimary
+                color: HusTheme.Primary.colorTextBase
                 elide: Text.ElideRight
                 font.pixelSize: HusTheme.Primary.fontPrimarySize
                 font.weight: Font.Medium
@@ -83,7 +83,7 @@ Item {
                 width: parent.width
                 visible: !LanChat.running
                 text: qsTr("网络服务未启动")
-                color: AppTheme.textTertiary
+                color: HusTheme.Primary.colorTextQuaternary
                 elide: Text.ElideRight
                 font.pixelSize: Math.max(11, HusTheme.Primary.fontPrimarySize - 2)
             }

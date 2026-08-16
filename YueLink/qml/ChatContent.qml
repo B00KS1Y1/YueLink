@@ -18,8 +18,8 @@ Item {
     property int onlineCount: 0
     property bool searchOpen: false
     readonly property string messageSearchKeyword: LanChat.messageSearchText.trim()
-    readonly property color headerSurfaceColor: AppTheme.surface
-    readonly property color messageBubbleColor: AppTheme.surfaceElevated
+    readonly property color headerSurfaceColor: HusTheme.Primary.colorBgBase
+    readonly property color messageBubbleColor: HusTheme.HusCard.colorBg
 
     signal cancelFileRequested(string messageId)
     signal acceptFileRequested(string messageId)
@@ -65,10 +65,10 @@ Item {
         anchors.rightMargin: 10
         anchors.topMargin: 10
         height: 72
-        radius: AppTheme.radiusMedium
+        radius: HusTheme.Primary.radiusPrimary
         color: root.headerSurfaceColor
         border.width: 1
-        border.color: AppTheme.border
+        border.color: HusTheme.Primary.colorSplit
 
         Row {
             id: friendSummary
@@ -103,7 +103,7 @@ Item {
                 HusText {
                     width: parent.width
                     text: root.conversationTitle
-                    color: AppTheme.textPrimary
+                    color: HusTheme.Primary.colorTextBase
                     elide: Text.ElideRight
                     font.pixelSize: HusTheme.Primary.fontPrimarySizeHeading5
                     font.weight: Font.Medium
@@ -112,7 +112,7 @@ Item {
                 HusText {
                     width: parent.width
                     text: root.conversationStatus
-                    color: AppTheme.textSecondary
+                    color: HusTheme.Primary.colorTextTertiary
                     elide: Text.ElideRight
                     font.pixelSize: HusTheme.Primary.fontPrimarySize
                 }
@@ -177,10 +177,10 @@ Item {
         Rectangle {
             id: searchPanel
 
-            radius: AppTheme.radiusMedium
+            radius: HusTheme.Primary.radiusPrimary
             color: root.headerSurfaceColor
             border.width: 1
-            border.color: AppTheme.border
+            border.color: HusTheme.Primary.colorSplit
 
             function focusInput(): void {
                 messageSearchInput.forceActiveFocus();
@@ -225,7 +225,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 width: 74
                 text: qsTr("%1 条结果").arg(messageList.count)
-                color: AppTheme.textTertiary
+                color: HusTheme.Primary.colorTextQuaternary
                 horizontalAlignment: Text.AlignRight
                 font.pixelSize: HusTheme.Primary.fontPrimarySize
             }
@@ -278,9 +278,9 @@ Item {
             width: 64
             height: 64
             radius: 20
-            color: AppTheme.accentSoft
+            color: HusThemeFunctions.alpha(HusTheme.Primary.colorPrimary, HusTheme.isDark ? 0.18 : 0.1)
             border.width: 1
-            border.color: AppTheme.border
+            border.color: HusTheme.Primary.colorSplit
             Accessible.ignored: true
 
             HusIconText {
@@ -289,7 +289,7 @@ Item {
                             ? HusIcon.MessageOutlined
                             : HusIcon.ContactsOutlined
                 iconSize: 28
-                colorIcon: AppTheme.accent
+                colorIcon: HusTheme.Primary.colorPrimary
             }
         }
 
@@ -300,7 +300,7 @@ Item {
                     ? qsTr("没有找到消息")
                     : qsTr("开始聊天")
                   : qsTr("发现身边的好友")
-            color: AppTheme.textPrimary
+            color: HusTheme.Primary.colorTextBase
             horizontalAlignment: Text.AlignHCenter
             font.pixelSize: HusTheme.Primary.fontPrimarySizeHeading5
             font.weight: Font.Medium
@@ -313,7 +313,7 @@ Item {
                     ? qsTr("没有找到与“%1”匹配的消息").arg(root.messageSearchKeyword)
                     : qsTr("还没有消息，发一句问候吧")
                   : qsTr("从左侧选择联系人或群聊，即可开始聊天")
-            color: AppTheme.textSecondary
+            color: HusTheme.Primary.colorTextTertiary
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.Wrap
             font.pixelSize: HusTheme.Primary.fontPrimarySize

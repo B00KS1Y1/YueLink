@@ -15,7 +15,7 @@ Item {
     property bool draggingFiles: false
     property var drafts: ({})
     property string draftConversationId: ""
-    readonly property color inputSurfaceColor: AppTheme.inputSurface
+    readonly property color inputSurfaceColor: HusTheme.HusInput.colorBgFilled
 
     signal imagesSelected(var imageUrls)
     signal filesSelected(var fileUrls)
@@ -106,9 +106,9 @@ Item {
             borderWidth: 0
             iconSource: HusIcon.SmileOutlined
             iconSize: 19
-            colorIcon: !enabled ? AppTheme.textTertiary
-                                : visualFocus ? AppTheme.accent
-                                : hovered ? AppTheme.textPrimary : AppTheme.textSecondary
+            colorIcon: !enabled ? HusTheme.Primary.colorTextQuaternary
+                                : visualFocus ? HusTheme.Primary.colorPrimary
+                                : hovered ? HusTheme.Primary.colorTextBase : HusTheme.Primary.colorTextTertiary
             enabled: root.sendEnabled
             contentDescription: qsTr("发送表情")
             onClicked: emojiPopup.open()
@@ -131,9 +131,9 @@ Item {
             borderWidth: 0
             iconSource: HusIcon.FolderOpenOutlined
             iconSize: 19
-            colorIcon: !enabled ? AppTheme.textTertiary
-                                : visualFocus ? AppTheme.accent
-                                : hovered ? AppTheme.textPrimary : AppTheme.textSecondary
+            colorIcon: !enabled ? HusTheme.Primary.colorTextQuaternary
+                                : visualFocus ? HusTheme.Primary.colorPrimary
+                                : hovered ? HusTheme.Primary.colorTextBase : HusTheme.Primary.colorTextTertiary
             enabled: root.filesEnabled
             contentDescription: root.filesEnabled
                                 ? qsTr("发送文件")
@@ -158,9 +158,9 @@ Item {
             borderWidth: 0
             iconSource: HusIcon.PictureOutlined
             iconSize: 19
-            colorIcon: !enabled ? AppTheme.textTertiary
-                                : visualFocus ? AppTheme.accent
-                                : hovered ? AppTheme.textPrimary : AppTheme.textSecondary
+            colorIcon: !enabled ? HusTheme.Primary.colorTextQuaternary
+                                : visualFocus ? HusTheme.Primary.colorPrimary
+                                : hovered ? HusTheme.Primary.colorTextBase : HusTheme.Primary.colorTextTertiary
             enabled: root.filesEnabled
             contentDescription: root.filesEnabled
                                 ? qsTr("发送图片")
@@ -184,7 +184,7 @@ Item {
         anchors.topMargin: 17
         visible: composer.text.length >= 1600
         text: qsTr("%1/2000 个字符").arg(composer.text.length)
-        color: AppTheme.textTertiary
+        color: HusTheme.Primary.colorTextQuaternary
         elide: Text.ElideRight
         horizontalAlignment: Text.AlignRight
         font.pixelSize: HusTheme.Primary.fontPrimarySize
@@ -252,15 +252,15 @@ Item {
         anchors.fill: parent
         visible: root.draggingFiles
         z: 10
-        radius: AppTheme.radiusLarge
-        color: AppTheme.accentSoftStrong
+        radius: HusTheme.Primary.radiusPrimary
+        color: HusThemeFunctions.alpha(HusTheme.Primary.colorPrimary, HusTheme.isDark ? 0.28 : 0.16)
         border.width: 2
-        border.color: AppTheme.accent
+        border.color: HusTheme.Primary.colorPrimary
 
         HusText {
             anchors.centerIn: parent
             text: qsTr("释放鼠标发送文件")
-            color: AppTheme.accent
+            color: HusTheme.Primary.colorPrimary
             font.pixelSize: HusTheme.Primary.fontPrimarySizeHeading5
             font.weight: Font.Medium
         }

@@ -44,11 +44,6 @@ list(FILTER YUELINK_ASSET_FILES
     REGEX "\\.rc$"
 )
 
-set_source_files_properties(qml/AppTheme.qml
-    PROPERTIES
-        QT_QML_SINGLETON_TYPE TRUE
-)
-
 qt_add_executable(YueLink
     ${YUELINK_MAIN_SOURCES}
 )

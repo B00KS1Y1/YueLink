@@ -42,10 +42,10 @@ Item {
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 116
-            radius: AppTheme.radiusMedium
-            color: AppTheme.surfaceElevated
+            radius: HusTheme.Primary.radiusPrimary
+            color: HusTheme.HusCard.colorBg
             border.width: 1
-            border.color: AppTheme.border
+            border.color: HusTheme.Primary.colorSplit
 
             RowLayout {
                 anchors.fill: parent
@@ -73,7 +73,7 @@ Item {
                         text: displayNameInput.text.trim().length > 0
                               ? displayNameInput.text.trim()
                               : qsTr("你的昵称")
-                        color: AppTheme.textPrimary
+                        color: HusTheme.Primary.colorTextBase
                         elide: Text.ElideRight
                         font.pixelSize: HusTheme.Primary.fontPrimarySizeHeading4
                         font.weight: Font.Medium
@@ -84,7 +84,7 @@ Item {
                         text: LanChat.running
                               ? qsTr("在线 · 局域网好友可以看到此昵称")
                               : qsTr("网络服务启动后好友可以看到此昵称")
-                        color: AppTheme.textSecondary
+                        color: HusTheme.Primary.colorTextTertiary
                         wrapMode: Text.Wrap
                         font.pixelSize: HusTheme.Primary.fontPrimarySize
                     }
@@ -99,7 +99,7 @@ Item {
             HusText {
                 Layout.fillWidth: true
                 text: qsTr("昵称")
-                color: AppTheme.textPrimary
+                color: HusTheme.Primary.colorTextBase
                 font.pixelSize: HusTheme.Primary.fontPrimarySize
                 font.weight: Font.Medium
             }
@@ -125,7 +125,7 @@ Item {
             HusText {
                 Layout.fillWidth: true
                 text: qsTr("%1/64 个字符").arg(displayNameInput.text.length)
-                color: AppTheme.textTertiary
+                color: HusTheme.Primary.colorTextQuaternary
                 horizontalAlignment: Text.AlignRight
                 font.pixelSize: HusTheme.Primary.fontPrimarySize
             }
@@ -138,7 +138,7 @@ Item {
             HusText {
                 Layout.fillWidth: true
                 text: qsTr("头像颜色")
-                color: AppTheme.textPrimary
+                color: HusTheme.Primary.colorTextBase
                 font.pixelSize: HusTheme.Primary.fontPrimarySize
                 font.weight: Font.Medium
             }
@@ -166,7 +166,7 @@ Item {
                 text: root.avatarUrl.toString().length > 0
                       ? qsTr("已选择本地头像图片")
                       : qsTr("未选择图片，将显示昵称首字母")
-                color: AppTheme.textSecondary
+                color: HusTheme.Primary.colorTextTertiary
                 elide: Text.ElideRight
                 font.pixelSize: HusTheme.Primary.fontPrimarySize
             }
@@ -196,8 +196,8 @@ Item {
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 76
-            radius: AppTheme.radiusMedium
-            color: AppTheme.accentSoft
+            radius: HusTheme.Primary.radiusPrimary
+            color: HusThemeFunctions.alpha(HusTheme.Primary.colorPrimary, HusTheme.isDark ? 0.18 : 0.1)
 
             RowLayout {
                 anchors.fill: parent
@@ -208,14 +208,14 @@ Item {
                     Layout.preferredWidth: 24
                     iconSource: HusIcon.InfoCircleOutlined
                     iconSize: 21
-                    colorIcon: AppTheme.accent
+                    colorIcon: HusTheme.Primary.colorPrimary
                     Accessible.ignored: true
                 }
 
                 HusText {
                     Layout.fillWidth: true
                     text: qsTr("昵称变更会立即广播给局域网好友；头像图片和颜色仅保存在当前设备。")
-                    color: AppTheme.textSecondary
+                    color: HusTheme.Primary.colorTextTertiary
                     wrapMode: Text.Wrap
                     font.pixelSize: HusTheme.Primary.fontPrimarySize
                 }

@@ -31,7 +31,7 @@ Column {
         text: root.caption.length > 0
               ? root.caption
               : qsTr("图片：%1").arg(root.fileName)
-        color: AppTheme.textPrimary
+        color: HusTheme.Primary.colorTextBase
         wrapMode: Text.Wrap
         font.pixelSize: HusTheme.Primary.fontPrimarySize
     }
@@ -40,7 +40,7 @@ Column {
         width: parent.width
         height: 4
         radius: 2
-        color: AppTheme.borderStrong
+        color: HusTheme.Primary.colorTextQuaternary
 
         Rectangle {
             anchors.left: parent.left
@@ -49,10 +49,10 @@ Column {
             width: parent.width * Math.max(0, Math.min(1, root.progress))
             radius: parent.radius
             color: root.deliveryStatus === "failed"
-                   ? AppTheme.error
+                   ? HusTheme.Primary.colorError
                    : root.deliveryStatus === "cancelled"
-                     ? AppTheme.textTertiary
-                     : AppTheme.accent
+                     ? HusTheme.Primary.colorTextQuaternary
+                     : HusTheme.Primary.colorPrimary
         }
     }
 }

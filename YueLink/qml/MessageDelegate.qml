@@ -103,7 +103,7 @@ Item {
             width: parent.width
             visible: root.conversationKind === "group" && !root.fromMe
             text: root.senderName
-            color: AppTheme.textSecondary
+            color: HusTheme.Primary.colorTextTertiary
             elide: Text.ElideRight
             font.pixelSize: Math.max(11, HusTheme.Primary.fontPrimarySize - 1)
             font.weight: Font.Medium
@@ -112,12 +112,12 @@ Item {
         Rectangle {
             width: parent.width
             implicitHeight: contentLoader.implicitHeight + 20
-            radius: AppTheme.radiusLarge
-            color: root.fromMe ? AppTheme.accentSoftStrong : root.bubbleColor
+            radius: HusTheme.Primary.radiusPrimary
+            color: root.fromMe ? HusThemeFunctions.alpha(HusTheme.Primary.colorPrimary, HusTheme.isDark ? 0.28 : 0.16) : root.bubbleColor
             border.width: 1
             border.color: root.fromMe
-                          ? HusThemeFunctions.alpha(AppTheme.accent, 0.45)
-                          : AppTheme.border
+                          ? HusThemeFunctions.alpha(HusTheme.Primary.colorPrimary, 0.45)
+                          : HusTheme.Primary.colorSplit
 
             Loader {
                 id: contentLoader
@@ -138,8 +138,8 @@ Item {
             width: parent.width
             text: root.deliverySummary()
             color: root.deliveryStatus === "failed"
-                   ? AppTheme.error
-                   : AppTheme.textTertiary
+                   ? HusTheme.Primary.colorError
+                   : HusTheme.Primary.colorTextQuaternary
             horizontalAlignment: root.fromMe ? Text.AlignRight : Text.AlignLeft
             font.pixelSize: Math.max(12, HusTheme.Primary.fontPrimarySize - 2)
         }

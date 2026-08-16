@@ -180,11 +180,11 @@ Item {
         leftPadding: compact ? 0 : 14
         rightPadding: compact ? 0 : 14
         type: HusButton.Type_Default
-        colorBg: selected ? AppTheme.accent
-                          : hovered ? AppTheme.hover : "transparent"
-        colorText: selected ? AppTheme.onAccent : AppTheme.textSecondary
+        colorBg: selected ? HusTheme.Primary.colorPrimary
+                          : hovered ? HusTheme.Primary.colorFillSecondary : "transparent"
+        colorText: selected ? "white" : HusTheme.Primary.colorTextTertiary
         colorIcon: colorText
-        colorBorder: visualFocus ? AppTheme.accent : "transparent"
+        colorBorder: visualFocus ? HusTheme.Primary.colorPrimary : "transparent"
         borderWidth: visualFocus ? 2 : 0
         radiusBg.all: 10
         contentDescription: label
@@ -210,14 +210,14 @@ Item {
                 Layout.preferredWidth: 4
                 Layout.preferredHeight: 22
                 radius: 2
-                color: AppTheme.accent
+                color: HusTheme.Primary.colorPrimary
                 Accessible.ignored: true
             }
 
             HusText {
                 Layout.fillWidth: true
                 text: settingsGroup.title
-                color: AppTheme.textPrimary
+                color: HusTheme.Primary.colorTextBase
                 font.pixelSize: HusTheme.Primary.fontPrimarySizeHeading4
                 font.weight: Font.DemiBold
             }
@@ -226,10 +226,10 @@ Item {
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: settingsGroupContent.implicitHeight
-            radius: AppTheme.radiusLarge
-            color: AppTheme.surface
+            radius: HusTheme.Primary.radiusPrimary
+            color: HusTheme.Primary.colorBgBase
             border.width: 1
-            border.color: AppTheme.border
+            border.color: HusTheme.Primary.colorSplit
 
             ColumnLayout {
                 id: settingsGroupContent
@@ -265,7 +265,7 @@ Item {
                 HusText {
                     Layout.fillWidth: true
                     text: settingsRow.title
-                    color: AppTheme.textPrimary
+                    color: HusTheme.Primary.colorTextBase
                     font.pixelSize: HusTheme.Primary.fontPrimarySize
                     font.weight: Font.Medium
                     elide: Text.ElideRight
@@ -275,7 +275,7 @@ Item {
                     Layout.fillWidth: true
                     visible: settingsRow.description.length > 0
                     text: settingsRow.description
-                    color: AppTheme.textTertiary
+                    color: HusTheme.Primary.colorTextQuaternary
                     font.pixelSize: Math.max(12, HusTheme.Primary.fontPrimarySize - 2)
                     elide: Text.ElideRight
                 }
@@ -298,7 +298,7 @@ Item {
             anchors.rightMargin: 20
             height: 1
             visible: !settingsRow.last
-            color: AppTheme.divider
+            color: HusTheme.Primary.colorSplit
             Accessible.ignored: true
         }
     }
@@ -320,7 +320,7 @@ Item {
         padding: 0
         type: HusButton.Type_Default
         colorBg: swatchColor
-        colorBorder: selected ? AppTheme.textPrimary : AppTheme.borderStrong
+        colorBorder: selected ? HusTheme.Primary.colorTextBase : HusTheme.Primary.colorTextQuaternary
         borderWidth: selected ? 2 : 1
         radiusBg.all: 9
         contentDescription: qsTr("选择主题色 %1").arg(String(swatchColor).toUpperCase())
@@ -366,7 +366,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: AppTheme.canvas
+        color: HusTheme.Primary.colorBgBase
         Accessible.ignored: true
     }
 
@@ -377,9 +377,9 @@ Item {
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         width: root.navigationWidth
-        color: AppTheme.navigationSurface
+        color: HusTheme.Primary.colorFillTertiary
         border.width: 1
-        border.color: AppTheme.border
+        border.color: HusTheme.Primary.colorSplit
 
         ColumnLayout {
             anchors.fill: parent
@@ -407,7 +407,7 @@ Item {
                     Layout.fillWidth: true
                     visible: !root.compactNavigation
                     text: qsTr("应用设置")
-                    color: AppTheme.textPrimary
+                    color: HusTheme.Primary.colorTextBase
                     font.pixelSize: HusTheme.Primary.fontPrimarySize
                     font.weight: Font.Medium
                     elide: Text.ElideRight
@@ -417,7 +417,7 @@ Item {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 1
-                color: AppTheme.divider
+                color: HusTheme.Primary.colorSplit
                 Accessible.ignored: true
             }
 
@@ -452,7 +452,7 @@ Item {
                 Layout.fillWidth: true
                 visible: !root.compactNavigation
                 text: qsTr("YueLink 0.1")
-                color: AppTheme.textTertiary
+                color: HusTheme.Primary.colorTextQuaternary
                 font.pixelSize: Math.max(12, HusTheme.Primary.fontPrimarySize - 2)
                 horizontalAlignment: Text.AlignHCenter
             }
@@ -466,7 +466,7 @@ Item {
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.bottom: parent.bottom
-        color: AppTheme.canvas
+        color: HusTheme.Primary.colorBgBase
 
         Item {
             id: pageHeader
@@ -487,7 +487,7 @@ Item {
                 HusText {
                     width: parent.width
                     text: root.currentCategoryTitle
-                    color: AppTheme.textPrimary
+                    color: HusTheme.Primary.colorTextBase
                     font.pixelSize: HusTheme.Primary.fontPrimarySizeHeading2
                     font.weight: Font.DemiBold
                     elide: Text.ElideRight
@@ -496,7 +496,7 @@ Item {
                 HusText {
                     width: parent.width
                     text: root.currentCategoryDescription
-                    color: AppTheme.textSecondary
+                    color: HusTheme.Primary.colorTextTertiary
                     font.pixelSize: HusTheme.Primary.fontPrimarySize
                     elide: Text.ElideRight
                 }
@@ -686,10 +686,10 @@ Item {
                     Rectangle {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 54
-                        radius: AppTheme.radiusMedium
-                        color: AppTheme.accentSoft
+                        radius: HusTheme.Primary.radiusPrimary
+                        color: HusThemeFunctions.alpha(HusTheme.Primary.colorPrimary, HusTheme.isDark ? 0.18 : 0.1)
                         border.width: 1
-                        border.color: AppTheme.accentSoftStrong
+                        border.color: HusThemeFunctions.alpha(HusTheme.Primary.colorPrimary, HusTheme.isDark ? 0.28 : 0.16)
 
                         RowLayout {
                             anchors.fill: parent
@@ -701,14 +701,14 @@ Item {
                                 Layout.preferredWidth: 20
                                 iconSource: HusIcon.InfoCircleOutlined
                                 iconSize: 18
-                                colorIcon: AppTheme.accent
+                                colorIcon: HusTheme.Primary.colorPrimary
                                 Accessible.ignored: true
                             }
 
                             HusText {
                                 Layout.fillWidth: true
                                 text: qsTr("这些选项主要用于问题诊断，一般情况下无需修改。")
-                                color: AppTheme.textSecondary
+                                color: HusTheme.Primary.colorTextTertiary
                                 font.pixelSize: HusTheme.Primary.fontPrimarySize
                                 wrapMode: Text.WordWrap
                             }
@@ -824,14 +824,14 @@ Item {
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             height: 72
-            color: AppTheme.surface
+            color: HusTheme.Primary.colorBgBase
 
             Rectangle {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.top: parent.top
                 height: 1
-                color: AppTheme.border
+                color: HusTheme.Primary.colorSplit
                 Accessible.ignored: true
             }
 
@@ -846,7 +846,7 @@ Item {
                     visible: root.errorText.length > 0
                     iconSource: HusIcon.CloseCircleFilled
                     iconSize: 16
-                    colorIcon: AppTheme.error
+                    colorIcon: HusTheme.Primary.colorError
                     Accessible.ignored: true
                 }
 
@@ -857,7 +857,7 @@ Item {
                           ? root.errorText
                           : root.hasUnsavedChanges ? qsTr("有未保存的更改") : ""
                     color: root.errorText.length > 0
-                           ? AppTheme.error : AppTheme.textTertiary
+                           ? HusTheme.Primary.colorError : HusTheme.Primary.colorTextQuaternary
                     font.pixelSize: HusTheme.Primary.fontPrimarySize
                     elide: Text.ElideRight
                 }
