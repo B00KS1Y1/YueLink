@@ -52,11 +52,11 @@ Item {
                 anchors.margins: 18
                 spacing: 18
 
-                HusAvatar {
+                AppAvatar {
                     Layout.preferredWidth: 76
                     Layout.preferredHeight: 76
                     size: 76
-                    imageSource: root.avatarUrl.toString()
+                    imageSource: root.avatarUrl
                     textSource: displayNameInput.text.trim().length > 0
                                 ? displayNameInput.text.trim().slice(0, 1).toUpperCase()
                                 : "?"

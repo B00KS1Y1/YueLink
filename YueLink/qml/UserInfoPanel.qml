@@ -19,13 +19,13 @@ Item {
             width: 38
             height: parent.height
 
-            HusAvatar {
+            AppAvatar {
                 id: localAvatar
 
                 anchors.centerIn: parent
                 size: 30
                 textSource: LanChat.localInitial
-                imageSource: LanChat.localAvatarUrl.toString()
+                imageSource: LanChat.localAvatarUrl
                 colorBg: LanChat.localAvatarColor
                 textSize: HusAvatar.Size_Auto
 
