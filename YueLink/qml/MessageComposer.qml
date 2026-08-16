@@ -15,7 +15,7 @@ Item {
     property bool draggingFiles: false
     property var drafts: ({})
     property string draftConversationId: ""
-    readonly property color inputSurfaceColor: HusTheme.HusInput.colorBgFilled
+    property color inputSurfaceColor: HusTheme.HusCard.colorBg
 
     signal imagesSelected(var imageUrls)
     signal filesSelected(var fileUrls)
@@ -81,8 +81,10 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        radius: 0
+        radius: HusTheme.Primary.radiusPrimary
         color: root.inputSurfaceColor
+        border.width: 1
+        border.color: HusTheme.Primary.colorSplit
         Accessible.ignored: true
     }
 

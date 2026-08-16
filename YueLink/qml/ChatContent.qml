@@ -17,9 +17,9 @@ Item {
     property int memberCount: 0
     property int onlineCount: 0
     property bool searchOpen: false
+    property color headerSurfaceColor: HusTheme.HusCard.colorBg
+    property color messageBubbleColor: HusTheme.HusCard.colorBg
     readonly property string messageSearchKeyword: LanChat.messageSearchText.trim()
-    readonly property color headerSurfaceColor: HusTheme.Primary.colorBgBase
-    readonly property color messageBubbleColor: HusTheme.HusCard.colorBg
 
     signal cancelFileRequested(string messageId)
     signal acceptFileRequested(string messageId)

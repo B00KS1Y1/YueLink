@@ -18,6 +18,9 @@ HusWindow {
     property int selectedConversationOnlineCount: 0
     property string activePanel: ""
     property string currentPage: "messages"
+    readonly property color shellSurfaceColor: HusTheme.Primary.colorBgBase
+    readonly property color elevatedSurfaceColor: HusTheme.HusCard.colorBg
+    readonly property color shellDividerColor: HusTheme.Primary.colorSplit
     readonly property color navigationSelectedIconColor: HusTheme.isDark
                                                           ? HusTheme.Primary.colorPrimary
                                                           : HusTheme.Primary.colorTextBase
@@ -28,7 +31,7 @@ HusWindow {
                                                                         width * 0.26)))
 
     captionBar.height: 42
-    captionBar.color: HusTheme.Primary.colorBgBase
+    captionBar.color: root.shellSurfaceColor
     captionBar.showWinIcon: false
     captionBar.winTitle: qsTr("YueLink")
     captionBar.winTitleDelegate: Item {
@@ -85,7 +88,7 @@ HusWindow {
                 anchors.verticalCenter: parent.verticalCenter
                 width: 1
                 height: 18
-                color: HusTheme.Primary.colorSplit
+                color: root.shellDividerColor
                 Accessible.ignored: true
             }
 
@@ -308,7 +311,7 @@ HusWindow {
     title: LanChat.totalUnreadCount > 0
            ? qsTr("YueLink（%1 条未读）").arg(LanChat.totalUnreadCount)
            : qsTr("YueLink")
-    color: HusTheme.Primary.colorBgBase
+    color: root.shellSurfaceColor
 
     onActiveChanged: {
         if (active && selectedConversationId.length > 0)
@@ -319,7 +322,7 @@ HusWindow {
         id: applicationBackground
 
         anchors.fill: parent
-        color: HusTheme.Primary.colorBgBase
+        color: root.shellSurfaceColor
         Accessible.ignored: true
     }
 
@@ -329,7 +332,7 @@ HusWindow {
         anchors.top: parent.top
         anchors.topMargin: root.captionBar.height - 1
         height: 1
-        color: HusTheme.Primary.colorSplit
+        color: root.shellDividerColor
         Accessible.ignored: true
     }
 
@@ -345,7 +348,7 @@ HusWindow {
             anchors.bottom: parent.bottom
             width: root.navigationWidth
             radius: 0
-            color: HusTheme.Primary.colorFillTertiary
+            color: root.shellSurfaceColor
             border.width: 0
 
             Column {
@@ -475,7 +478,7 @@ HusWindow {
                 anchors.top: parent.top
                 anchors.bottom: parent.bottom
                 width: 1
-                color: HusTheme.Primary.colorSplit
+                color: root.shellDividerColor
                 Accessible.ignored: true
             }
         }
@@ -488,7 +491,7 @@ HusWindow {
             anchors.bottom: parent.bottom
             width: root.conversationListWidth
             radius: 0
-            color: HusTheme.Primary.colorBgBase
+            color: root.shellSurfaceColor
             border.width: 0
 
             FriendListPanel {
@@ -510,7 +513,7 @@ HusWindow {
                 anchors.top: parent.top
                 anchors.bottom: parent.bottom
                 width: 1
-                color: HusTheme.Primary.colorSplit
+                color: root.shellDividerColor
                 Accessible.ignored: true
             }
         }
@@ -523,7 +526,7 @@ HusWindow {
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             radius: 0
-            color: HusTheme.Primary.colorFillTertiary
+            color: root.shellSurfaceColor
             border.width: 0
 
             ChatContent {
@@ -543,6 +546,8 @@ HusWindow {
                 conversationKind: root.selectedConversationKind
                 memberCount: root.selectedConversationMemberCount
                 onlineCount: root.selectedConversationOnlineCount
+                headerSurfaceColor: root.elevatedSurfaceColor
+                messageBubbleColor: root.elevatedSurfaceColor
                 onGroupInfoRequested: root.openPanel("groupInfo")
                 onCancelFileRequested: messageId => {
                     if (root.selectedConversationId.length > 0)
@@ -564,9 +569,9 @@ HusWindow {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                anchors.leftMargin: 14
-                anchors.rightMargin: 14
-                anchors.bottomMargin: 14
+                anchors.leftMargin: 10
+                anchors.rightMargin: 10
+                anchors.bottomMargin: 10
                 height: implicitHeight
                 conversationId: root.selectedConversationId
                 sendEnabled: root.selectedConversationId.length > 0
@@ -574,6 +579,7 @@ HusWindow {
                                  || root.selectedConversationOnline)
                 filesEnabled: root.selectedConversationKind === "direct"
                               && root.selectedConversationOnline
+                inputSurfaceColor: root.elevatedSurfaceColor
                 onImagesSelected: imageUrls => {
                     if (root.selectedConversationId.length > 0)
                         LanChat.sendImages(root.selectedConversationId, imageUrls);
