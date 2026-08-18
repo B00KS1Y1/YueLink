@@ -336,14 +336,6 @@ Item {
                 Layout.fillHeight: true
             }
 
-            HusText {
-                Layout.fillWidth: true
-                visible: !root.compactNavigation
-                text: qsTr("YueLink 0.1")
-                color: HusTheme.Primary.colorTextQuaternary
-                font.pixelSize: Math.max(12, HusTheme.Primary.fontPrimarySize - 2)
-                horizontalAlignment: Text.AlignHCenter
-            }
         }
     }
 
