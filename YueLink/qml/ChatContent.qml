@@ -210,6 +210,7 @@ Item {
                 iconPosition: HusInput.Position_Left
                 clearEnabled: "active"
                 type: HusInput.Type_Filled
+                colorBg: "transparent"
                 text: LanChat.messageSearchText
                 placeholderText: qsTr("搜索消息或文件名")
                 contentDescription: qsTr("搜索当前会话中的消息或文件")

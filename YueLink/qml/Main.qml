@@ -21,6 +21,10 @@ HusWindow {
     readonly property color shellSurfaceColor: HusTheme.Primary.colorBgBase
     readonly property color elevatedSurfaceColor: HusTheme.HusCard.colorBg
     readonly property color shellDividerColor: HusTheme.Primary.colorSplit
+    readonly property url windowBackgroundSource: AppSettings.theme.backgroundImage
+    readonly property color translucentSurfaceColor: HusThemeFunctions.alpha(
+                                                         root.shellSurfaceColor,
+                                                         AppSettings.theme.backgroundOpacity)
     readonly property color navigationSelectedIconColor: HusTheme.isDark
                                                           ? HusTheme.Primary.colorPrimary
                                                           : HusTheme.Primary.colorTextBase
@@ -31,7 +35,7 @@ HusWindow {
                                                                         width * 0.26)))
 
     captionBar.height: 42
-    captionBar.color: root.shellSurfaceColor
+    captionBar.color: root.translucentSurfaceColor
     captionBar.showWinIcon: false
     captionBar.winTitle: qsTr("YueLink")
     captionBar.winTitleDelegate: Item {
@@ -324,6 +328,21 @@ HusWindow {
         anchors.fill: parent
         color: root.shellSurfaceColor
         Accessible.ignored: true
+
+        Image {
+            id: windowBackgroundImage
+
+            anchors.fill: parent
+            source: root.windowBackgroundSource
+            sourceSize.width: 1586
+            sourceSize.height: 992
+            asynchronous: true
+            cache: true
+            fillMode: Image.Stretch
+            smooth: true
+            visible: status === Image.Ready
+            Accessible.ignored: true
+        }
     }
 
     Rectangle {
@@ -337,8 +356,11 @@ HusWindow {
     }
 
     Item {
+        id: mainWorkspace
+
         anchors.fill: parent
         anchors.topMargin: root.captionBar.height
+        visible: root.activePanel !== "settings"
 
         Rectangle {
             id: navigationRail
@@ -348,7 +370,7 @@ HusWindow {
             anchors.bottom: parent.bottom
             width: root.navigationWidth
             radius: 0
-            color: root.shellSurfaceColor
+            color: root.translucentSurfaceColor
             border.width: 0
 
             Column {
@@ -497,7 +519,7 @@ HusWindow {
             anchors.bottom: parent.bottom
             width: root.conversationListWidth
             radius: 0
-            color: root.shellSurfaceColor
+            color: root.translucentSurfaceColor
             border.width: 0
 
             FriendListPanel {
@@ -506,6 +528,7 @@ HusWindow {
                 anchors.fill: parent
                 selectedConversationId: root.selectedConversationId
                 contactsMode: root.currentPage === "contacts"
+                searchSurfaceColor: "transparent"
                 onConversationSelected: conversationId =>
                                         root.selectConversation(conversationId)
                 onCreateGroupRequested: {
@@ -532,7 +555,7 @@ HusWindow {
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             radius: 0
-            color: root.shellSurfaceColor
+            color: root.translucentSurfaceColor
             border.width: 0
 
             ChatContent {
@@ -552,7 +575,7 @@ HusWindow {
                 conversationKind: root.selectedConversationKind
                 memberCount: root.selectedConversationMemberCount
                 onlineCount: root.selectedConversationOnlineCount
-                headerSurfaceColor: root.elevatedSurfaceColor
+                headerSurfaceColor: "transparent"
                 messageBubbleColor: root.elevatedSurfaceColor
                 onGroupInfoRequested: root.openPanel("groupInfo")
                 onCancelFileRequested: messageId => {
@@ -585,7 +608,7 @@ HusWindow {
                                  || root.selectedConversationOnline)
                 filesEnabled: root.selectedConversationKind === "direct"
                               && root.selectedConversationOnline
-                inputSurfaceColor: root.elevatedSurfaceColor
+                inputSurfaceColor: "transparent"
                 onImagesSelected: imageUrls => {
                     if (root.selectedConversationId.length > 0)
                         LanChat.sendImages(root.selectedConversationId, imageUrls);
@@ -728,6 +751,8 @@ HusWindow {
 
         SettingsPage {
             anchors.fill: parent
+            navigationSurfaceColor: root.translucentSurfaceColor
+            contentSurfaceColor: root.translucentSurfaceColor
             onCloseRequested: root.activePanel = ""
         }
     }

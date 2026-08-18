@@ -33,3 +33,12 @@ function containingDirectoryPath(filePath) {
         return "/";
     return separatorIndex > 0 ? normalizedPath.substring(0, separatorIndex) : "";
 }
+
+function fileBaseName(fileUrl) {
+    const localPath = localFilePath(fileUrl);
+    const normalizedPath = localPath.replace(/\\/g, "/");
+    const separatorIndex = normalizedPath.lastIndexOf("/");
+    const fileName = separatorIndex >= 0 ? normalizedPath.substring(separatorIndex + 1) : normalizedPath;
+    const extensionIndex = fileName.lastIndexOf(".");
+    return extensionIndex > 0 ? fileName.substring(0, extensionIndex) : fileName;
+}

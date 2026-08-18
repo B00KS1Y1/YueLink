@@ -10,6 +10,7 @@ Item {
 
     property string selectedConversationId: ""
     property bool contactsMode: false
+    property color searchSurfaceColor: HusTheme.Primary.colorFillTertiary
     readonly property bool groupContactsMode: contactsMode
                                                && contactTypeSelector.currentIndex === 1
     readonly property string searchKeyword: (contactsMode
@@ -47,6 +48,7 @@ Item {
                 iconPosition: HusInput.Position_Left
                 clearEnabled: "active"
                 type: HusInput.Type_Filled
+                colorBg: root.searchSurfaceColor
                 verticalAlignment: TextInput.AlignVCenter
                 placeholderText: qsTr("搜索")
                 contentDescription: placeholderText

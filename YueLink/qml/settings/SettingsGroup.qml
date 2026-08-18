@@ -8,6 +8,7 @@ ColumnLayout {
     id: root
 
     required property string title
+    property color surfaceColor: "transparent"
     default property alias content: groupContent.data
 
     spacing: 10
@@ -37,7 +38,7 @@ ColumnLayout {
         Layout.fillWidth: true
         Layout.preferredHeight: groupContent.implicitHeight
         radius: HusTheme.Primary.radiusPrimary
-        color: HusTheme.Primary.colorBgBase
+        color: root.surfaceColor
         border.width: 1
         border.color: HusTheme.Primary.colorSplit
 

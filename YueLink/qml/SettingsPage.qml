@@ -11,6 +11,8 @@ Item {
     property int currentCategoryIndex: 0
     property int pendingCategoryIndex: -1
     property int categorySwitchDirection: 1
+    property color navigationSurfaceColor: HusTheme.Primary.colorFillTertiary
+    property color contentSurfaceColor: HusTheme.Primary.colorBgBase
 
     readonly property bool animationEnabled: HusTheme.animationEnabled
     readonly property bool compactNavigation: width < 760
@@ -251,19 +253,13 @@ Item {
     }
 
     Rectangle {
-        anchors.fill: parent
-        color: HusTheme.Primary.colorBgBase
-        Accessible.ignored: true
-    }
-
-    Rectangle {
         id: navigationPanel
 
         anchors.left: parent.left
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         width: root.navigationWidth
-        color: HusTheme.Primary.colorFillTertiary
+        color: root.navigationSurfaceColor
         border.width: 1
         border.color: HusTheme.Primary.colorSplit
 
@@ -352,7 +348,7 @@ Item {
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.bottom: parent.bottom
-        color: HusTheme.Primary.colorBgBase
+        color: root.contentSurfaceColor
 
         Item {
             id: pageHeader
