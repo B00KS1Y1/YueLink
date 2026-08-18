@@ -10,6 +10,9 @@ import "SettingsPathUtils.js" as PathUtils
 Flickable {
     id: root
 
+    property color controlSurfaceColor: HusThemeFunctions.alpha(
+                                            HusTheme.Primary.colorBgBase, 0.42)
+
     readonly property int logLevelIndex: AppSettings.log.level === "trace" ? 0
                                          : AppSettings.log.level === "debug" ? 1
                                          : AppSettings.log.level === "info" ? 2
@@ -110,6 +113,7 @@ Flickable {
 
                     anchors.fill: parent
                     clearEnabled: false
+                    colorBg: root.controlSurfaceColor
                     currentIndex: root.logLevelIndex
                     contentDescription: qsTr("日志级别")
                     model: [
@@ -144,6 +148,7 @@ Flickable {
 
                         Layout.fillWidth: true
                         Layout.preferredHeight: 38
+                        colorBg: root.controlSurfaceColor
                         text: AppSettings.log.filePath
                         selectByMouse: true
                         verticalAlignment: TextInput.AlignVCenter

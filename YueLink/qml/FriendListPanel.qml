@@ -11,6 +11,8 @@ Item {
     property string selectedConversationId: ""
     property bool contactsMode: false
     property color searchSurfaceColor: HusTheme.Primary.colorFillTertiary
+    property color controlSurfaceColor: HusThemeFunctions.alpha(
+                                            HusTheme.Primary.colorBgBase, 0.42)
     readonly property bool groupContactsMode: contactsMode
                                                && contactTypeSelector.currentIndex === 1
     readonly property string searchKeyword: (contactsMode
@@ -126,6 +128,10 @@ Item {
             anchors.rightMargin: 14
             height: 34
             block: true
+            colorBg: root.controlSurfaceColor
+            colorIndicatorBg: HusThemeFunctions.alpha(
+                                  HusTheme.Primary.colorTextBase,
+                                  HusTheme.isDark ? 0.14 : 0.1)
             focusPolicy: Qt.StrongFocus
             options: [
                 { "label": qsTr("好友"), "value": "friends" },

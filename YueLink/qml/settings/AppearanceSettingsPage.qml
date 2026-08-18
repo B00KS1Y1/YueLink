@@ -10,6 +10,9 @@ import "SettingsPathUtils.js" as PathUtils
 Flickable {
     id: root
 
+    property color controlSurfaceColor: HusThemeFunctions.alpha(
+                                            HusTheme.Primary.colorBgBase, 0.42)
+
     readonly property var colorPresets: [
         "#4F7CFF",
         "#16A6B6",
@@ -216,6 +219,10 @@ Flickable {
 
                     anchors.fill: parent
                     block: true
+                    colorBg: root.controlSurfaceColor
+                    colorIndicatorBg: HusThemeFunctions.alpha(
+                                          HusTheme.Primary.colorTextBase,
+                                          HusTheme.isDark ? 0.14 : 0.1)
                     currentIndex: root.themeModeIndex
                     options: [
                         { "label": qsTr("跟随系统"), "value": "system" },
@@ -262,6 +269,7 @@ Flickable {
                         Layout.fillWidth: true
                         Layout.minimumWidth: 104
                         Layout.preferredHeight: 38
+                        colorBg: root.controlSurfaceColor
                         autoChange: false
                         changeValue: AppSettings.theme.primaryColor
                         defaultValue: AppSettings.theme.primaryColor
@@ -322,6 +330,7 @@ Flickable {
 
                         Layout.fillWidth: true
                         Layout.preferredHeight: 38
+                        colorBg: root.controlSurfaceColor
                         clearEnabled: false
                         model: AppSettings.theme.backgroundImages
                         currentIndex: root.backgroundImageIndex
@@ -394,6 +403,7 @@ Flickable {
 
                         Layout.preferredWidth: 98
                         Layout.preferredHeight: 32
+                        colorBg: root.controlSurfaceColor
                         min: 0
                         max: 100
                         step: 1

@@ -10,6 +10,9 @@ import "SettingsPathUtils.js" as PathUtils
 Flickable {
     id: root
 
+    property color controlSurfaceColor: HusThemeFunctions.alpha(
+                                            HusTheme.Primary.colorBgBase, 0.42)
+
     contentWidth: width
     contentHeight: pageColumn.implicitHeight + 48
     boundsBehavior: Flickable.StopAtBounds
@@ -99,6 +102,7 @@ Flickable {
 
                         Layout.fillWidth: true
                         Layout.preferredHeight: 38
+                        colorBg: root.controlSurfaceColor
                         text: AppSettings.application.downloadDirectory
                         selectByMouse: true
                         verticalAlignment: TextInput.AlignVCenter

@@ -8,6 +8,9 @@ import HuskarUI.Basic
 Flickable {
     id: root
 
+    property color controlSurfaceColor: HusThemeFunctions.alpha(
+                                            HusTheme.Primary.colorBgBase, 0.42)
+
     readonly property string appVersion: Qt.application.version.length > 0
                                                  ? Qt.application.version : "0.1"
     readonly property url repositoryUrl: "https://github.com/B00KS1Y1/YueLink"
@@ -103,7 +106,7 @@ Flickable {
 
         implicitHeight: featureContent.implicitHeight + 36
         radius: HusTheme.Primary.radiusPrimary
-        color: HusTheme.HusCard.colorBg
+        color: root.controlSurfaceColor
         border.width: 1
         border.color: HusTheme.Primary.colorSplit
 
@@ -168,7 +171,7 @@ Flickable {
 
         implicitHeight: projectContent.implicitHeight + 32
         radius: HusTheme.Primary.radiusPrimary
-        color: HusTheme.HusCard.colorBg
+        color: root.controlSurfaceColor
         border.width: 1
         border.color: HusTheme.Primary.colorSplit
 
@@ -274,7 +277,7 @@ Flickable {
                     Layout.preferredHeight: 112
                     Layout.alignment: Qt.AlignVCenter
                     radius: 28
-                    color: HusTheme.HusCard.colorBg
+                    color: root.controlSurfaceColor
                     border.width: 1
                     border.color: HusTheme.Primary.colorSplit
 
@@ -410,7 +413,7 @@ Flickable {
         SettingsGroup {
             Layout.fillWidth: true
             title: qsTr("版本与技术信息")
-            surfaceColor: HusTheme.HusCard.colorBg
+            surfaceColor: root.controlSurfaceColor
 
             SettingsRow {
                 title: qsTr("应用版本")
@@ -509,7 +512,7 @@ Flickable {
             Layout.fillWidth: true
             Layout.preferredHeight: developerContent.implicitHeight + 40
             radius: HusTheme.Primary.radiusPrimary
-            color: HusTheme.HusCard.colorBg
+            color: root.controlSurfaceColor
             border.width: 1
             border.color: HusTheme.Primary.colorSplit
 

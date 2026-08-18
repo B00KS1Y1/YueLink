@@ -25,6 +25,9 @@ HusWindow {
     readonly property color translucentSurfaceColor: HusThemeFunctions.alpha(
                                                          root.shellSurfaceColor,
                                                          AppSettings.theme.backgroundOpacity)
+    readonly property color controlSurfaceColor: HusThemeFunctions.alpha(
+                                                     root.shellSurfaceColor,
+                                                     AppSettings.theme.backgroundOpacity * 0.55)
     readonly property color navigationSelectedIconColor: HusTheme.isDark
                                                           ? HusTheme.Primary.colorPrimary
                                                           : HusTheme.Primary.colorTextBase
@@ -529,6 +532,7 @@ HusWindow {
                 selectedConversationId: root.selectedConversationId
                 contactsMode: root.currentPage === "contacts"
                 searchSurfaceColor: "transparent"
+                controlSurfaceColor: root.controlSurfaceColor
                 onConversationSelected: conversationId =>
                                         root.selectConversation(conversationId)
                 onCreateGroupRequested: {
@@ -753,6 +757,7 @@ HusWindow {
             anchors.fill: parent
             navigationSurfaceColor: root.translucentSurfaceColor
             contentSurfaceColor: root.translucentSurfaceColor
+            controlSurfaceColor: root.controlSurfaceColor
             onCloseRequested: root.activePanel = ""
         }
     }

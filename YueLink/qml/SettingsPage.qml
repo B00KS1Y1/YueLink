@@ -13,6 +13,8 @@ Item {
     property int categorySwitchDirection: 1
     property color navigationSurfaceColor: HusTheme.Primary.colorFillTertiary
     property color contentSurfaceColor: HusTheme.Primary.colorBgBase
+    property color controlSurfaceColor: HusThemeFunctions.alpha(
+                                            HusTheme.Primary.colorBgBase, 0.42)
 
     readonly property bool animationEnabled: HusTheme.animationEnabled
     readonly property bool compactNavigation: width < 760
@@ -423,11 +425,13 @@ Item {
 
                     Layout.fillWidth: true
                     Layout.fillHeight: true
+                    controlSurfaceColor: root.controlSurfaceColor
                 }
 
                 SettingsUi.AppearanceSettingsPage {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
+                    controlSurfaceColor: root.controlSurfaceColor
                 }
 
                 SettingsUi.AdvancedSettingsPage {
@@ -435,11 +439,13 @@ Item {
 
                     Layout.fillWidth: true
                     Layout.fillHeight: true
+                    controlSurfaceColor: root.controlSurfaceColor
                 }
 
                 SettingsUi.AboutSettingsPage {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
+                    controlSurfaceColor: root.controlSurfaceColor
                 }
             }
         }
