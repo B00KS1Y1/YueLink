@@ -9,7 +9,8 @@ Item {
 
     required property var settingsModel
 
-    readonly property bool hasError: settingsModel.saveState === SettingsModel.Error
+    readonly property bool hasError: settingsModel !== null
+                                     && settingsModel.saveState === SettingsModel.Error
     readonly property string statusText: hasError ? settingsModel.errorMessage : ""
 
     visible: statusText.length > 0

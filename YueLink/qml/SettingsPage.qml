@@ -22,7 +22,9 @@ Item {
     readonly property var currentSettingsModel: currentCategoryKey === "general"
                                                     ? AppSettings.application
                                                     : currentCategoryKey === "appearance"
-                                                      ? AppSettings.theme : AppSettings.log
+                                                      ? AppSettings.theme
+                                                      : currentCategoryKey === "advanced"
+                                                        ? AppSettings.log : null
     readonly property string currentCategoryDescription: {
         switch (currentCategoryKey) {
         case "general":
@@ -31,6 +33,8 @@ Item {
             return qsTr("调整主题、颜色和界面显示方式");
         case "advanced":
             return qsTr("配置诊断日志和开发辅助选项");
+        case "about":
+            return qsTr("了解 YueLink、技术信息与开源项目");
         default:
             return "";
         }
@@ -52,7 +56,7 @@ Item {
             "iconSource": HusIcon.BugOutlined
         },
         {
-            "key": "adbout",
+            "key": "about",
             "label": qsTr("关于"),
             "iconSource": HusIcon.InfoCircleOutlined
         }
@@ -429,6 +433,11 @@ Item {
                 SettingsUi.AdvancedSettingsPage {
                     id: advancedSettingsPage
 
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                }
+
+                SettingsUi.AboutSettingsPage {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                 }
