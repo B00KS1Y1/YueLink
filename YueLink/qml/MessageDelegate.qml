@@ -43,6 +43,17 @@ Item {
         && (fromMe || transferComplete)
     readonly property int metadataFontSize:
         Math.max(12, HusTheme.Primary.fontPrimarySize - 2)
+    readonly property real bubbleRadius:
+        HusTheme.Primary.radiusPrimaryLG * 2
+    readonly property color bubbleColor:
+        HusThemeFunctions.alpha(HusTheme.Primary.colorPrimary,
+                                HusTheme.isDark ? 0.28 : 0.16)
+    readonly property color bubbleBorderColor:
+        HusThemeFunctions.alpha(HusTheme.Primary.colorPrimary,
+                                HusTheme.isDark ? 0.54 : 0.32)
+    readonly property color bubbleShadowColor:
+        HusThemeFunctions.alpha(HusTheme.HusCard.colorShadow,
+                                HusTheme.isDark ? 0.1 : 0.08)
     readonly property string deliveryText: deliverySummary()
     readonly property bool timeVisible:
         messageTime.length > 0 && (showTime || index === 0)
@@ -218,9 +229,8 @@ Item {
                 y: 2
                 width: parent.width
                 height: parent.height
-                radius: HusTheme.Primary.radiusPrimaryLG
-                color: HusThemeFunctions.alpha(HusTheme.HusCard.colorShadow,
-                                               HusTheme.isDark ? 0.1 : 0.08)
+                radius: root.bubbleRadius
+                color: root.bubbleShadowColor
                 Accessible.ignored: true
             }
 
@@ -228,13 +238,10 @@ Item {
                 id: messageBubble
 
                 anchors.fill: parent
-                radius: HusTheme.Primary.radiusPrimaryLG
-                color: HusThemeFunctions.alpha(HusTheme.Primary.colorPrimary,
-                                               HusTheme.isDark ? 0.28 : 0.16)
+                radius: root.bubbleRadius
+                color: root.bubbleColor
                 border.width: 1
-                border.color: HusThemeFunctions.alpha(
-                                  HusTheme.Primary.colorPrimary,
-                                  HusTheme.isDark ? 0.54 : 0.32)
+                border.color: root.bubbleBorderColor
 
                 Loader {
                     id: contentLoader
