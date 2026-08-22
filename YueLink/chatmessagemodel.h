@@ -9,6 +9,7 @@
 #define CHATMESSAGEMODEL_H
 
 #include <QAbstractListModel>
+#include <QDateTime>
 #include <QHash>
 #include <QList>
 #include <QString>
@@ -28,6 +29,7 @@ public:
         SenderColorRole,
         MessageTextRole,
         MessageTimeRole,
+        ShowTimeRole,
         DeliveryStatusRole,
         DeliveredCountRole,
         TotalRecipientCountRole,
@@ -52,6 +54,7 @@ public:
         QString senderColor;
         QString messageText;
         QString messageTime;
+        QDateTime timestamp;
         QString deliveryStatus;
         QString messageKind = QStringLiteral("text");
         QString fileName;
@@ -66,6 +69,7 @@ public:
         int deliveredCount = 0;
         int totalRecipientCount = 0;
         bool fromMe = false;
+        bool showTime = false;
     };
 
     /**

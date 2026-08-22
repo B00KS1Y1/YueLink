@@ -18,7 +18,6 @@ Item {
     property int onlineCount: 0
     property bool searchOpen: false
     property color headerSurfaceColor: HusTheme.HusCard.colorBg
-    property color messageBubbleColor: HusTheme.HusCard.colorBg
     readonly property string messageSearchKeyword: LanChat.messageSearchText.trim()
 
     signal cancelFileRequested(string messageId)
@@ -65,10 +64,11 @@ Item {
         anchors.rightMargin: 10
         anchors.topMargin: 10
         height: 72
-        radius: HusTheme.Primary.radiusPrimary
+        radius: HusTheme.Primary.radiusPrimaryLG
         color: root.headerSurfaceColor
         border.width: 1
-        border.color: HusTheme.Primary.colorSplit
+        border.color: HusThemeFunctions.alpha(HusTheme.Primary.colorPrimary,
+                                              HusTheme.isDark ? 0.34 : 0.2)
 
         Row {
             id: friendSummary
@@ -240,12 +240,12 @@ Item {
         anchors.right: parent.right
         anchors.top: messageSearchLoader.bottom
         anchors.bottom: parent.bottom
-        anchors.leftMargin: 18
-        anchors.rightMargin: 18
-        anchors.topMargin: 12
-        anchors.bottomMargin: 10
+        anchors.leftMargin: 22
+        anchors.rightMargin: 22
+        anchors.topMargin: 16
+        anchors.bottomMargin: 12
         model: LanChat.messages
-        spacing: 10
+        spacing: 6
         boundsBehavior: Flickable.StopAtBounds
         reuseItems: true
         clip: true
@@ -256,7 +256,6 @@ Item {
 
             width: messageList.width
             conversationKind: root.conversationKind
-            bubbleColor: root.messageBubbleColor
             onCancelFileRequested: messageId =>
                 root.cancelFileRequested(messageId)
             onAcceptFileRequested: messageId =>

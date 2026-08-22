@@ -2,6 +2,11 @@
 
 #include <utility>
 
+namespace
+{
+constexpr qint64 TimeSeparatorThresholdSeconds = 5 * 60;
+}
+
 ChatMessageModel::ChatMessageModel(QObject *parent)
 : QAbstractListModel(parent)
 {
@@ -36,6 +41,8 @@ QVariant ChatMessageModel::data(const QModelIndex &index, int role) const
         return message.messageText;
     case MessageTimeRole:
         return message.messageTime;
+    case ShowTimeRole:
+        return message.showTime;
     case DeliveryStatusRole:
         return message.deliveryStatus;
     case DeliveredCountRole:
@@ -80,6 +87,7 @@ QHash<int, QByteArray> ChatMessageModel::roleNames() const
             {SenderColorRole, "senderColor"},
             {MessageTextRole, "messageText"},
             {MessageTimeRole, "messageTime"},
+            {ShowTimeRole, "showTime"},
             {DeliveryStatusRole, "deliveryStatus"},
             {DeliveredCountRole, "deliveredCount"},
             {TotalRecipientCountRole, "totalRecipientCount"},
@@ -109,6 +117,17 @@ void ChatMessageModel::selectConversation(const QString &conversationId)
 
 void ChatMessageModel::setConversation(const QString &conversationId, QList<Message> messages)
 {
+    QDateTime previousTimestamp;
+    for (Message &message : messages)
+    {
+        message.showTime = message.timestamp.isValid()
+                           && (!previousTimestamp.isValid()
+                               || previousTimestamp.secsTo(message.timestamp) > TimeSeparatorThresholdSeconds);
+        if (message.timestamp.isValid())
+        {
+            previousTimestamp = message.timestamp;
+        }
+    }
     if (conversationId == m_currentConversationId)
     {
         beginResetModel();
@@ -135,6 +154,10 @@ void ChatMessageModel::removeConversation(const QString &conversationId)
 void ChatMessageModel::append(const QString &conversationId, Message message)
 {
     QList<Message> &messages = m_conversations[conversationId];
+    const QDateTime previousTimestamp = messages.isEmpty() ? QDateTime{} : messages.constLast().timestamp;
+    message.showTime = message.timestamp.isValid()
+                       && (!previousTimestamp.isValid()
+                           || previousTimestamp.secsTo(message.timestamp) > TimeSeparatorThresholdSeconds);
     if (conversationId == m_currentConversationId)
     {
         const int row = messages.size();

@@ -81,10 +81,11 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        radius: HusTheme.Primary.radiusPrimary
+        radius: HusTheme.Primary.radiusPrimaryLG
         color: root.inputSurfaceColor
         border.width: 1
-        border.color: HusTheme.Primary.colorSplit
+        border.color: HusThemeFunctions.alpha(HusTheme.Primary.colorPrimary,
+                                              HusTheme.isDark ? 0.34 : 0.2)
         Accessible.ignored: true
     }
 

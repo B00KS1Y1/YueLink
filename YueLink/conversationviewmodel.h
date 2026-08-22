@@ -129,9 +129,9 @@ private:
      */
     [[nodiscard]] static QString displayFileSize(qint64 bytes, const QString &fallback);
     /**
-     * @brief 格式化消息时间。
+     * @brief 按今天、本周、本年和跨年层级格式化消息时间。
      * @param timestamp 消息时间。
-     * @return 本地化短时间文本。
+     * @return 今天返回短时间，其他日期返回相应日期层级和短时间；时间无效时返回空字符串。
      */
     [[nodiscard]] static QString displayTime(const QDateTime &timestamp);
     /**

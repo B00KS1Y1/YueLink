@@ -19,7 +19,6 @@ HusWindow {
     property string activePanel: ""
     property string currentPage: "messages"
     readonly property color shellSurfaceColor: HusTheme.Primary.colorBgBase
-    readonly property color elevatedSurfaceColor: HusTheme.HusCard.colorBg
     readonly property color shellDividerColor: HusTheme.Primary.colorSplit
     readonly property url windowBackgroundSource: AppSettings.theme.backgroundImage
     readonly property color translucentSurfaceColor: HusThemeFunctions.alpha(
@@ -590,8 +589,7 @@ HusWindow {
                 conversationKind: root.selectedConversationKind
                 memberCount: root.selectedConversationMemberCount
                 onlineCount: root.selectedConversationOnlineCount
-                headerSurfaceColor: "transparent"
-                messageBubbleColor: root.elevatedSurfaceColor
+                headerSurfaceColor: root.controlSurfaceColor
                 onGroupInfoRequested: root.openPanel("groupInfo")
                 onCancelFileRequested: messageId => {
                     if (root.selectedConversationId.length > 0)
@@ -623,7 +621,7 @@ HusWindow {
                                  || root.selectedConversationOnline)
                 filesEnabled: root.selectedConversationKind === "direct"
                               && root.selectedConversationOnline
-                inputSurfaceColor: "transparent"
+                inputSurfaceColor: root.controlSurfaceColor
                 onImagesSelected: imageUrls => {
                     if (root.selectedConversationId.length > 0)
                         LanChat.sendImages(root.selectedConversationId, imageUrls);

@@ -141,6 +141,7 @@ ChatMessageModel::Message ConversationViewModel::toViewMessage(const Domain::Mes
     view.senderInitial = initialForName(name);
     view.senderColor = colorForId(message.metadata.senderId);
     view.messageText = Domain::messageText(message);
+    view.timestamp = message.metadata.timestamp;
     view.messageTime = displayTime(message.metadata.timestamp);
     view.deliveryStatus = Domain::deliveryStateName(message.deliveryState);
     view.messageKind = Domain::messageKindName(Domain::messageKind(message));
@@ -214,7 +215,45 @@ QString ConversationViewModel::displayFileSize(qint64 bytes, const QString &fall
 
 QString ConversationViewModel::displayTime(const QDateTime &timestamp)
 {
-    return timestamp.isValid() ? QLocale().toString(timestamp.toLocalTime().time(), QLocale::ShortFormat) : QString{};
+    if (!timestamp.isValid())
+    {
+        return {};
+    }
+
+    const QLocale locale;
+    const QDateTime localTimestamp = timestamp.toLocalTime();
+    const QDate messageDate = localTimestamp.date();
+    const QDate currentDate = QDate::currentDate();
+    const QString timeText = locale.toString(localTimestamp.time(), QLocale::ShortFormat);
+    if (messageDate == currentDate)
+    {
+        return timeText;
+    }
+
+    const int daysSinceWeekStart = (currentDate.dayOfWeek()
+                                    - static_cast<int>(locale.firstDayOfWeek()) + 7)
+                                   % 7;
+    const QDate currentWeekStart = currentDate.addDays(-daysSinceWeekStart);
+    const QDate currentWeekEnd = currentWeekStart.addDays(6);
+    if (messageDate >= currentWeekStart && messageDate <= currentWeekEnd)
+    {
+        return tr("%1 %2").arg(locale.dayName(messageDate.dayOfWeek(), QLocale::ShortFormat),
+                                timeText);
+    }
+
+    if (messageDate.year() == currentDate.year())
+    {
+        return tr("%1月%2日 %3")
+            .arg(locale.toString(messageDate.month()),
+                 locale.toString(messageDate.day()),
+                 timeText);
+    }
+
+    return tr("%1年%2月%3日 %4")
+        .arg(locale.toString(messageDate.year()),
+             locale.toString(messageDate.month()),
+             locale.toString(messageDate.day()),
+             timeText);
 }
 
 QString ConversationViewModel::initialForName(const QString &name)
