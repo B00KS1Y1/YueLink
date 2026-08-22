@@ -109,6 +109,8 @@ QString messageKindName(MessageKind kind)
         return QStringLiteral("file");
     case MessageKind::Emoji:
         return QStringLiteral("emoji");
+    case MessageKind::Shake:
+        return QStringLiteral("shake");
     }
     return QStringLiteral("text");
 }
@@ -126,6 +128,10 @@ MessageKind messageKindFromName(const QString &name)
     if (name == QLatin1String("emoji"))
     {
         return MessageKind::Emoji;
+    }
+    if (name == QLatin1String("shake"))
+    {
+        return MessageKind::Shake;
     }
     return MessageKind::Text;
 }
@@ -147,9 +153,13 @@ MessageKind messageKind(const Message &message)
             {
                 return MessageKind::File;
             }
-            else
+            else if constexpr (std::is_same_v<Payload, EmojiPayload>)
             {
                 return MessageKind::Emoji;
+            }
+            else
+            {
+                return MessageKind::Shake;
             }
         },
         message.payload);
@@ -171,6 +181,10 @@ QString messageText(const Message &message)
             else if constexpr (std::is_same_v<Payload, EmojiPayload>)
             {
                 return payload.fallbackText;
+            }
+            else if constexpr (std::is_same_v<Payload, ShakePayload>)
+            {
+                return QStringLiteral("窗口抖动");
             }
             else
             {
@@ -214,9 +228,13 @@ QString messageSummary(const Message &message)
             {
                 return QStringLiteral("[文件] %1").arg(payload.attachment.fileName);
             }
-            else
+            else if constexpr (std::is_same_v<Payload, EmojiPayload>)
             {
                 return payload.fallbackText;
+            }
+            else
+            {
+                return QStringLiteral("[窗口抖动]");
             }
         },
         message.payload);
@@ -246,7 +264,7 @@ QJsonObject messagePayloadToJson(const MessagePayload &payload)
                     object.insert(QStringLiteral("caption"), value.caption);
                 }
             }
-            else
+            else if constexpr (std::is_same_v<Payload, EmojiPayload>)
             {
                 object.insert(QStringLiteral("packageId"), value.packageId);
                 object.insert(QStringLiteral("emojiId"), value.emojiId);
@@ -306,6 +324,8 @@ std::optional<MessagePayload> messagePayloadFromJson(MessageKind kind, const QJs
             }
             return emoji;
         }
+    case MessageKind::Shake:
+        return ShakePayload{};
     }
     return std::nullopt;
 }

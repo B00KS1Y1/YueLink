@@ -12,6 +12,7 @@ Item {
     property string conversationId: ""
     property bool sendEnabled: false
     property bool filesEnabled: false
+    property bool shakeEnabled: false
     property bool draggingFiles: false
     property var drafts: ({})
     property string draftConversationId: ""
@@ -19,6 +20,7 @@ Item {
 
     signal imagesSelected(var imageUrls)
     signal filesSelected(var fileUrls)
+    signal shakeRequested()
     signal historyRequested()
 
     function submitMessage(): void {
@@ -181,6 +183,35 @@ Item {
                 visible: imagePickerButton.hovered || imagePickerButton.visualFocus
                 position: HusToolTip.Position_Top
                 text: imagePickerButton.contentDescription
+            }
+        }
+
+        HusIconButton {
+            id: shakeButton
+
+            width: 38
+            height: 38
+            padding: 0
+            type: HusButton.Type_Text
+            effectEnabled: false
+            colorBg: "transparent"
+            colorBorder: "transparent"
+            borderWidth: 0
+            iconSource: HusIcon.ShakeOutlined
+            iconSize: 19
+            colorIcon: !enabled ? HusTheme.Primary.colorTextQuaternary
+                                : visualFocus ? HusTheme.Primary.colorPrimary
+                                : hovered ? HusTheme.Primary.colorTextBase : HusTheme.Primary.colorTextTertiary
+            enabled: root.shakeEnabled
+            contentDescription: root.shakeEnabled
+                                ? qsTr("窗口抖动")
+                                : qsTr("仅支持向在线联系人发送窗口抖动")
+            onClicked: root.shakeRequested()
+
+            HusToolTip {
+                visible: shakeButton.hovered || shakeButton.visualFocus
+                position: HusToolTip.Position_Top
+                text: shakeButton.contentDescription
             }
         }
     }

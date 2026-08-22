@@ -19,6 +19,8 @@ HusWindow {
     property string activePanel: ""
     property string currentPage: "messages"
     property bool chatHistoryOpen: false
+    property int shakeOriginX: 0
+    property int shakeOriginY: 0
     readonly property color shellSurfaceColor: HusTheme.Primary.colorBgBase
     readonly property color shellDividerColor: HusTheme.Primary.colorSplit
     readonly property url windowBackgroundSource: AppSettings.theme.backgroundImage
@@ -183,6 +185,23 @@ HusWindow {
         operationMessage.success(qsTr("修改成功"));
     }
 
+    function setShakeOffset(offsetX: int, offsetY: int): void {
+        root.x = root.shakeOriginX + offsetX;
+        root.y = root.shakeOriginY + offsetY;
+    }
+
+    function shakeWindow(): void {
+        if (windowShakeAnimation.running
+                || root.visibility !== Window.Windowed
+                || !HusTheme.animationEnabled) {
+            return;
+        }
+
+        root.shakeOriginX = root.x;
+        root.shakeOriginY = root.y;
+        windowShakeAnimation.restart();
+    }
+
     function refreshSelectedConversation(): void {
         if (selectedConversationId.length === 0) {
             selectedConversationTitle = qsTr("选择一个会话");
@@ -310,6 +329,10 @@ HusWindow {
             root.showOperationError(reason);
         }
 
+        function onWindowShakeReceived(): void {
+            root.shakeWindow();
+        }
+
         function onConversationRemoved(conversationId: string): void {
             if (conversationId === root.selectedConversationId) {
                 root.chatHistoryOpen = false;
@@ -345,6 +368,28 @@ HusWindow {
            ? qsTr("YueLink（%1 条未读）").arg(LanChat.totalUnreadCount)
            : qsTr("YueLink")
     color: root.shellSurfaceColor
+
+    SequentialAnimation {
+        id: windowShakeAnimation
+
+        alwaysRunToEnd: true
+
+        ScriptAction { script: root.setShakeOffset(-7, 0) }
+        PauseAnimation { duration: 60 }
+        ScriptAction { script: root.setShakeOffset(7, 0) }
+        PauseAnimation { duration: 60 }
+        ScriptAction { script: root.setShakeOffset(-6, 1) }
+        PauseAnimation { duration: 60 }
+        ScriptAction { script: root.setShakeOffset(6, -1) }
+        PauseAnimation { duration: 60 }
+        ScriptAction { script: root.setShakeOffset(-4, 0) }
+        PauseAnimation { duration: 60 }
+        ScriptAction { script: root.setShakeOffset(4, 0) }
+        PauseAnimation { duration: 60 }
+        ScriptAction { script: root.setShakeOffset(0, 0) }
+        PauseAnimation { duration: 60 }
+        ScriptAction { script: root.setShakeOffset(0, 0) }
+    }
 
     onActiveChanged: {
         if (active && selectedConversationId.length > 0)
@@ -636,6 +681,8 @@ HusWindow {
                                  || root.selectedConversationOnline)
                 filesEnabled: root.selectedConversationKind === "direct"
                               && root.selectedConversationOnline
+                shakeEnabled: root.selectedConversationKind === "direct"
+                              && root.selectedConversationOnline
                 inputSurfaceColor: root.controlSurfaceColor
                 onImagesSelected: imageUrls => {
                     if (root.selectedConversationId.length > 0)
@@ -644,6 +691,12 @@ HusWindow {
                 onFilesSelected: fileUrls => {
                     if (root.selectedConversationId.length > 0)
                         LanChat.sendFiles(root.selectedConversationId, fileUrls);
+                }
+                onShakeRequested: {
+                    if (root.selectedConversationId.length > 0
+                            && LanChat.sendWindowShake(root.selectedConversationId)) {
+                        root.shakeWindow();
+                    }
                 }
                 onHistoryRequested: root.openChatHistory()
             }

@@ -318,7 +318,8 @@ void TcpChatTransport::handleIncomingMessage(const QJsonObject &object, QTcpSock
     const QString messageText = payload ? Domain::messageText(payloadMessage) : QString{};
     if (!peer.isValid() || peer.peerId == m_identity.deviceId || messageId.isEmpty() || conversationId.size() > 128 ||
         (!conversationId.isEmpty() && !conversationId.startsWith(QLatin1String("group:"))) || !payload || kind == Domain::MessageKind::Image ||
-        kind == Domain::MessageKind::File || messageText.size() > 2000 || !rememberEventId(messageId))
+        kind == Domain::MessageKind::File || (kind == Domain::MessageKind::Shake && !conversationId.isEmpty()) || messageText.size() > 2000 ||
+        !rememberEventId(messageId))
     {
         QLOG_DEBUG() << QStringLiteral("[网络.传输] 已拒绝无效或重复的消息 地址=") << socket->peerAddress().toString();
         return;

@@ -21,6 +21,11 @@
 #include <algorithm>
 #include <utility>
 
+namespace
+{
+constexpr qint64 WindowShakeCooldownMs = 1500;
+}
+
 ChatCoordinator::ChatCoordinator(std::unique_ptr<IPeerDiscovery> discovery,
                                  std::unique_ptr<IChatTransport> transport,
                                  std::unique_ptr<IChatRepository> repository,
@@ -321,6 +326,45 @@ Domain::OperationResult ChatCoordinator::sendText(const QString &conversationId,
     }
 
     return sendPayload(conversationId, Domain::TextPayload{content});
+}
+
+Domain::OperationResult ChatCoordinator::sendWindowShake(const QString &conversationId)
+{
+    if (!m_running)
+    {
+        return Domain::OperationResult::failure(QStringLiteral("window_shake.not_running"), tr("局域网服务未启动。"));
+    }
+
+    Domain::Conversation conversation;
+    if (!m_conversations->conversation(conversationId, &conversation))
+    {
+        return Domain::OperationResult::failure(QStringLiteral("window_shake.unknown_conversation"), tr("会话不存在。"));
+    }
+    if (conversation.kind != Domain::ConversationKind::Direct)
+    {
+        return Domain::OperationResult::failure(QStringLiteral("window_shake.group_unsupported"), tr("窗口抖动仅支持直接会话。"));
+    }
+
+    Domain::Peer peerRecord;
+    if (!m_conversations->peer(conversation.peerId, &peerRecord) || !peerRecord.online)
+    {
+        return Domain::OperationResult::failure(QStringLiteral("window_shake.peer_offline"), tr("联系人当前不在线。"));
+    }
+
+    const qint64 now = QDateTime::currentMSecsSinceEpoch();
+    if (now - m_lastWindowShakeSentAt.value(conversation.peerId, -WindowShakeCooldownMs) < WindowShakeCooldownMs)
+    {
+        return Domain::OperationResult::failure(QStringLiteral("window_shake.cooldown"), tr("操作太频繁，请稍后再试。"));
+    }
+
+    const Domain::OperationResult result = sendPayload(conversationId, Domain::ShakePayload{});
+    if (!result)
+    {
+        return result;
+    }
+
+    m_lastWindowShakeSentAt.insert(conversation.peerId, now);
+    return result;
 }
 
 Domain::OperationResult ChatCoordinator::sendImage(const QString &conversationId, const QString &filePath, const QString &caption)
@@ -728,6 +772,12 @@ bool ChatCoordinator::initializeIdentity()
 
 void ChatCoordinator::handleMessage(const Domain::Message &message, const Network::PeerEndpoint &sender)
 {
+    const bool windowShake = Domain::messageKind(message) == Domain::MessageKind::Shake;
+    if (windowShake && !message.metadata.conversationId.isEmpty())
+    {
+        return;
+    }
+
     m_conversations->observePeer(sender);
     QString conversationId;
     if (message.metadata.conversationId.isEmpty())
@@ -769,6 +819,15 @@ void ChatCoordinator::handleMessage(const Domain::Message &message, const Networ
     if (m_conversations->appendMessage(std::move(received), summary, true))
     {
         emit messageReceived(conversationId, summary);
+        if (windowShake)
+        {
+            const qint64 now = QDateTime::currentMSecsSinceEpoch();
+            if (now - m_lastWindowShakeReceivedAt.value(sender.peerId, -WindowShakeCooldownMs) >= WindowShakeCooldownMs)
+            {
+                m_lastWindowShakeReceivedAt.insert(sender.peerId, now);
+                emit windowShakeReceived(conversationId);
+            }
+        }
     }
 }
 

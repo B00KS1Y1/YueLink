@@ -292,6 +292,17 @@ bool LanChatManager::sendMessage(const QString &conversationId, const QString &t
     return static_cast<bool>(m_coordinator->sendText(conversationId, text));
 }
 
+bool LanChatManager::sendWindowShake(const QString &conversationId)
+{
+    const Domain::OperationResult result = m_coordinator->sendWindowShake(conversationId);
+    if (!result)
+    {
+        emit operationFailed(result.message);
+        return false;
+    }
+    return true;
+}
+
 bool LanChatManager::sendFile(const QString &conversationId, const QUrl &fileUrl)
 {
     if (!fileUrl.isLocalFile())
@@ -429,6 +440,7 @@ void LanChatManager::connectComponents()
     connect(m_coordinator, &ChatCoordinator::runningChanged, this, &LanChatManager::runningChanged);
     connect(m_coordinator, &ChatCoordinator::lastErrorChanged, this, &LanChatManager::lastErrorChanged);
     connect(m_coordinator, &ChatCoordinator::messageReceived, this, &LanChatManager::messageReceived);
+    connect(m_coordinator, &ChatCoordinator::windowShakeReceived, this, &LanChatManager::windowShakeReceived);
     connect(m_coordinator, &ChatCoordinator::conversationRemoved, this, &LanChatManager::conversationRemoved);
     connect(m_coordinator, &ChatCoordinator::sendFailed, this, &LanChatManager::sendFailed);
     connect(m_coordinator, &ChatCoordinator::fileReceived, this, &LanChatManager::fileReceived);

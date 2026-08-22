@@ -39,6 +39,7 @@ Item {
                                              || deliveryStatus === "received"
     readonly property bool attachmentMessage: messageKind === "image"
                                               || messageKind === "file"
+    readonly property bool shakeMessage: messageKind === "shake"
     readonly property bool imagePreviewAvailable:
         messageKind === "image" && fileUrl.toString().length > 0
         && (fromMe || transferComplete)
@@ -59,6 +60,19 @@ Item {
     readonly property bool timeVisible:
         messageTime.length > 0 && (showTime || index === 0)
     readonly property bool deliveryStatusVisible: deliveryText.length > 0
+    readonly property string shakeStatusText: {
+        if (!fromMe)
+            return "";
+        if (deliveryStatus === "failed")
+            return qsTr("（发送失败）");
+        if (deliveryStatus === "sending" || deliveryStatus === "pending")
+            return qsTr("（发送中）");
+        return "";
+    }
+    readonly property string shakeNoticeText:
+        fromMe
+        ? qsTr("你发送了一个窗口抖动%1").arg(shakeStatusText)
+        : qsTr("%1 发送了一个窗口抖动").arg(senderName)
     readonly property real contentTopMargin: timeVisible ? 30 : 0
     readonly property real availableBubbleWidth:
         Math.max(0, width - avatarHalo.width - 12
@@ -152,8 +166,18 @@ Item {
         text: root.messageTime
     }
 
+    TextMetrics {
+        id: shakeNoticeTextMetrics
+
+        font.family: HusTheme.Primary.fontPrimaryFamily
+        font.pixelSize: root.metadataFontSize
+        text: root.shakeNoticeText
+    }
+
     implicitHeight: root.contentTopMargin
-                    + Math.max(avatarHalo.height, messageBody.height) + 10
+                    + (root.shakeMessage
+                       ? shakeNotice.height
+                       : Math.max(avatarHalo.height, messageBody.height)) + 10
     height: implicitHeight
 
     Rectangle {
@@ -177,6 +201,56 @@ Item {
     }
 
     Rectangle {
+        id: shakeNotice
+
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: root.contentTopMargin
+        width: Math.min(Math.max(0, root.width - 24),
+                        Math.max(180,
+                                 Math.ceil(shakeNoticeTextMetrics.advanceWidth) + 46))
+        height: visible ? 34 : 0
+        visible: root.shakeMessage
+        radius: height / 2
+        color: HusThemeFunctions.alpha(HusTheme.Primary.colorPrimary,
+                                       HusTheme.isDark ? 0.14 : 0.08)
+        border.width: 1
+        border.color: HusThemeFunctions.alpha(HusTheme.Primary.colorPrimary,
+                                              HusTheme.isDark ? 0.3 : 0.18)
+        Accessible.role: Accessible.StaticText
+        Accessible.name: root.shakeNoticeText
+
+        Row {
+            anchors.centerIn: parent
+            spacing: 7
+
+            HusIconText {
+                width: 18
+                height: 18
+                iconSource: HusIcon.ShakeOutlined
+                iconSize: 16
+                colorIcon: root.deliveryStatus === "failed"
+                           ? HusTheme.Primary.colorError
+                           : HusTheme.Primary.colorTextTertiary
+                Accessible.ignored: true
+            }
+
+            HusText {
+                anchors.verticalCenter: parent.verticalCenter
+                width: Math.min(implicitWidth,
+                                Math.max(0, shakeNotice.width - 49))
+                text: root.shakeNoticeText
+                color: root.deliveryStatus === "failed"
+                       ? HusTheme.Primary.colorError
+                       : HusTheme.Primary.colorTextTertiary
+                elide: Text.ElideRight
+                maximumLineCount: 1
+                font.pixelSize: root.metadataFontSize
+                Accessible.ignored: true
+            }
+        }
+    }
+
+    Rectangle {
         id: avatarHalo
 
         y: root.contentTopMargin
@@ -189,6 +263,7 @@ Item {
         border.width: 1
         border.color: HusThemeFunctions.alpha(HusTheme.Primary.colorPrimary,
                                               HusTheme.isDark ? 0.42 : 0.28)
+        visible: !root.shakeMessage
         Accessible.ignored: true
 
         HusAvatar {
@@ -208,6 +283,7 @@ Item {
                        : avatarHalo.x + avatarHalo.width + 12
         width: root.preferredBodyWidth
         spacing: 4
+        visible: !root.shakeMessage
 
         HusText {
             x: 2

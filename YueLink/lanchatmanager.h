@@ -292,6 +292,12 @@ public:
      */
     Q_INVOKABLE bool sendMessage(const QString &conversationId, const QString &text);
     /**
+     * @brief 向在线联系人的直接会话发送窗口抖动提醒消息。
+     * @param conversationId 目标直接会话标识。
+     * @return 发送请求被接受时返回 @c true。
+     */
+    Q_INVOKABLE bool sendWindowShake(const QString &conversationId);
+    /**
      * @brief 向指定直接会话发送本地文件。
      * @param conversationId 目标直接会话标识。
      * @param fileUrl 本地文件 URL。
@@ -416,6 +422,11 @@ signals:
      * @param text 收到的消息文本。
      */
     void messageReceived(const QString &conversationId, const QString &text);
+    /**
+     * @brief 收到窗口抖动提醒消息时发出。
+     * @param conversationId 发送方对应的直接会话标识。
+     */
+    void windowShakeReceived(const QString &conversationId);
     /**
      * @brief 文本消息发送失败时发出。
      * @param conversationId 目标会话标识。

@@ -15,14 +15,18 @@ Item {
     required property string fileName
     required property string fileSizeText
 
-    readonly property var kindIcon: messageKind === "file"
-                                            ? HusIcon.FileOutlined
-                                            : messageKind === "image"
-                                              ? HusIcon.PictureOutlined
-                                              : messageKind === "emoji"
-                                                ? HusIcon.SmileOutlined
-                                                : HusIcon.MessageOutlined
+    readonly property var kindIcon: messageKind === "shake"
+                                    ? HusIcon.ShakeOutlined
+                                    : messageKind === "file"
+                                      ? HusIcon.FileOutlined
+                                      : messageKind === "image"
+                                        ? HusIcon.PictureOutlined
+                                        : messageKind === "emoji"
+                                          ? HusIcon.SmileOutlined
+                                          : HusIcon.MessageOutlined
     readonly property string summaryText: {
+        if (messageKind === "shake")
+            return qsTr("窗口抖动");
         if (messageKind === "file")
             return fileSizeText.length > 0
                     ? qsTr("文件：%1 · %2").arg(fileName).arg(fileSizeText)

@@ -41,7 +41,8 @@ enum class MessageKind
     Text,  ///< 文本消息。
     Image, ///< 图片消息。
     File,  ///< 文件消息。
-    Emoji  ///< 表情消息。
+    Emoji, ///< 表情消息。
+    Shake  ///< 窗口抖动提醒消息。
 };
 
 /**
@@ -148,7 +149,12 @@ struct EmojiPayload
     QString fallbackText; ///< 不支持该表情时显示的文本。
 };
 
-using MessagePayload = std::variant<TextPayload, ImagePayload, FilePayload, EmojiPayload>;
+/** @brief 窗口抖动提醒消息载荷。 */
+struct ShakePayload
+{
+};
+
+using MessagePayload = std::variant<TextPayload, ImagePayload, FilePayload, EmojiPayload, ShakePayload>;
 
 struct LocalAttachment
 {
@@ -310,7 +316,7 @@ struct OperationResult
 /**
  * @brief 返回消息的文本内容。
  * @param message 消息。
- * @return 文本正文、图片说明或表情回退文本；文件消息返回空字符串。
+ * @return 文本正文、图片说明、表情回退文本或窗口抖动说明；文件消息返回空字符串。
  */
 [[nodiscard]] QString messageText(const Message &message);
 

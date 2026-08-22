@@ -189,6 +189,12 @@ public:
      */
     [[nodiscard]] Domain::OperationResult sendText(const QString &conversationId, const QString &text);
     /**
+     * @brief 向在线联系人的直接会话发送窗口抖动提醒消息。
+     * @param conversationId 目标直接会话标识。
+     * @return 发送请求被接受时返回成功结果。
+     */
+    [[nodiscard]] Domain::OperationResult sendWindowShake(const QString &conversationId);
+    /**
      * @brief 向直接会话发送图片。
      * @param conversationId 直接会话标识。
      * @param filePath 本地图片路径。
@@ -309,6 +315,11 @@ signals:
      */
     void messageReceived(const QString &conversationId, const QString &text);
     /**
+     * @brief 收到直接会话的窗口抖动提醒消息时发出。
+     * @param conversationId 发送方对应的直接会话标识。
+     */
+    void windowShakeReceived(const QString &conversationId);
+    /**
      * @brief 消息发送失败或仍待发送时发出。
      * @param conversationId 会话标识。
      * @param reason 原因。
@@ -407,6 +418,8 @@ private:
     QString m_localAvatarColor;
     QString m_lastError;
     QMultiHash<QString, Domain::Message> m_pendingGroupMessages;
+    QHash<QString, qint64> m_lastWindowShakeSentAt;
+    QHash<QString, qint64> m_lastWindowShakeReceivedAt;
     bool m_identityReady = false;
     bool m_running = false;
 };
