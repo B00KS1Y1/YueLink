@@ -8,6 +8,54 @@
 
 #include <utility>
 
+ChatHistoryFilterModel::ChatHistoryFilterModel(QObject *parent)
+: QSortFilterProxyModel(parent)
+{
+    setDynamicSortFilter(true);
+}
+
+void ChatHistoryFilterModel::setSearchText(const QString &text)
+{
+    const QString normalized = text.trimmed();
+    if (m_searchText == normalized)
+    {
+        return;
+    }
+    m_searchText = normalized;
+    invalidateFilter();
+}
+
+void ChatHistoryFilterModel::setCategory(const QString &category)
+{
+    const QString normalized = category == QLatin1String("media") || category == QLatin1String("file")
+                                   ? category
+                                   : QStringLiteral("all");
+    if (m_category == normalized)
+    {
+        return;
+    }
+    m_category = normalized;
+    invalidateFilter();
+}
+
+bool ChatHistoryFilterModel::filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const
+{
+    if (!sourceModel())
+    {
+        return false;
+    }
+    const QModelIndex sourceIndex = sourceModel()->index(sourceRow, 0, sourceParent);
+    const QString messageKind = sourceIndex.data(ChatMessageModel::MessageKindRole).toString();
+    const bool categoryMatches = m_category == QLatin1String("all") ||
+                                 (m_category == QLatin1String("media") && messageKind == QLatin1String("image")) ||
+                                 (m_category == QLatin1String("file") && messageKind == QLatin1String("file"));
+    if (!categoryMatches || m_searchText.isEmpty())
+    {
+        return categoryMatches;
+    }
+    return sourceIndex.data(ChatMessageModel::SearchTextRole).toString().contains(m_searchText, Qt::CaseInsensitive);
+}
+
 ConversationViewModel::ConversationViewModel(ChatCoordinator *coordinator, QObject *parent)
 : QObject(parent)
 , m_coordinator(coordinator)
@@ -16,6 +64,7 @@ ConversationViewModel::ConversationViewModel(ChatCoordinator *coordinator, QObje
     m_filterModel.setSourceModel(&m_model);
     m_filterModel.setFilterRole(ChatMessageModel::SearchTextRole);
     m_filterModel.setFilterCaseSensitivity(Qt::CaseInsensitive);
+    m_historyFilterModel.setSourceModel(&m_model);
     connect(m_coordinator, &ChatCoordinator::messageAdded, this, &ConversationViewModel::handleMessageAdded);
     connect(m_coordinator, &ChatCoordinator::conversationRemoved, this, &ConversationViewModel::handleConversationRemoved);
     connect(m_coordinator, &ChatCoordinator::messageStateChanged, this, &ConversationViewModel::handleMessageStateChanged);
@@ -28,6 +77,12 @@ QAbstractItemModel *ConversationViewModel::model()
 {
     return &m_filterModel;
 }
+
+QAbstractItemModel *ConversationViewModel::historyModel()
+{
+    return &m_historyFilterModel;
+}
+
 QString ConversationViewModel::searchText() const
 {
     return m_searchText;
@@ -42,6 +97,41 @@ void ConversationViewModel::setSearchText(const QString &text)
     m_searchText = text;
     m_filterModel.setFilterFixedString(text.trimmed());
     emit searchTextChanged();
+}
+
+QString ConversationViewModel::historySearchText() const
+{
+    return m_historySearchText;
+}
+
+void ConversationViewModel::setHistorySearchText(const QString &text)
+{
+    if (m_historySearchText == text)
+    {
+        return;
+    }
+    m_historySearchText = text;
+    m_historyFilterModel.setSearchText(text);
+    emit historySearchTextChanged();
+}
+
+QString ConversationViewModel::historyCategory() const
+{
+    return m_historyCategory;
+}
+
+void ConversationViewModel::setHistoryCategory(const QString &category)
+{
+    const QString normalized = category == QLatin1String("media") || category == QLatin1String("file")
+                                   ? category
+                                   : QStringLiteral("all");
+    if (m_historyCategory == normalized)
+    {
+        return;
+    }
+    m_historyCategory = normalized;
+    m_historyFilterModel.setCategory(normalized);
+    emit historyCategoryChanged();
 }
 
 QString ConversationViewModel::currentConversationId() const
@@ -70,6 +160,8 @@ bool ConversationViewModel::selectConversation(const QString &conversationId)
     m_searchText.clear();
     m_filterModel.setFilterFixedString({});
     emit searchTextChanged();
+    setHistorySearchText({});
+    setHistoryCategory(QStringLiteral("all"));
     synchronize(conversationId);
     static_cast<void>(m_coordinator->markConversationRead(conversationId));
     if (changed)
@@ -110,6 +202,8 @@ void ConversationViewModel::handleConversationRemoved(const QString &conversatio
         m_filterModel.setFilterFixedString({});
         emit searchTextChanged();
     }
+    setHistorySearchText({});
+    setHistoryCategory(QStringLiteral("all"));
     emit currentConversationIdChanged();
 }
 

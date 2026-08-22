@@ -38,10 +38,13 @@ class LanChatManager final : public QObject
     Q_PROPERTY(QAbstractItemModel *groups READ groups CONSTANT)
     Q_PROPERTY(QAbstractItemModel *peers READ peers CONSTANT)
     Q_PROPERTY(QAbstractItemModel *messages READ messages CONSTANT)
+    Q_PROPERTY(QAbstractItemModel *messageHistory READ messageHistory CONSTANT)
     Q_PROPERTY(QString conversationSearchText READ conversationSearchText WRITE setConversationSearchText NOTIFY conversationSearchTextChanged)
     Q_PROPERTY(QString groupSearchText READ groupSearchText WRITE setGroupSearchText NOTIFY groupSearchTextChanged)
     Q_PROPERTY(QString peerSearchText READ peerSearchText WRITE setPeerSearchText NOTIFY peerSearchTextChanged)
     Q_PROPERTY(QString messageSearchText READ messageSearchText WRITE setMessageSearchText NOTIFY messageSearchTextChanged)
+    Q_PROPERTY(QString messageHistorySearchText READ messageHistorySearchText WRITE setMessageHistorySearchText NOTIFY messageHistorySearchTextChanged)
+    Q_PROPERTY(QString messageHistoryCategory READ messageHistoryCategory WRITE setMessageHistoryCategory NOTIFY messageHistoryCategoryChanged)
     Q_PROPERTY(QString localName READ localName NOTIFY localProfileChanged)
     Q_PROPERTY(QString localInitial READ localInitial NOTIFY localProfileChanged)
     Q_PROPERTY(QUrl localAvatarUrl READ localAvatarUrl NOTIFY localProfileChanged)
@@ -107,6 +110,11 @@ public:
      */
     [[nodiscard]] QAbstractItemModel *messages();
     /**
+     * @brief 返回聊天记录窗口使用的消息模型。
+     * @return 支持关键词与分类组合筛选的消息列表模型。
+     */
+    [[nodiscard]] QAbstractItemModel *messageHistory();
+    /**
      * @brief 返回会话搜索文本。
      * @return 未经裁剪的会话搜索文本。
      */
@@ -146,6 +154,26 @@ public:
      * @param text 新搜索文本。
      */
     void setMessageSearchText(const QString &text);
+    /**
+     * @brief 返回聊天记录搜索文本。
+     * @return 未经裁剪的聊天记录搜索文本。
+     */
+    [[nodiscard]] QString messageHistorySearchText() const;
+    /**
+     * @brief 更新聊天记录搜索文本。
+     * @param text 新搜索文本。
+     */
+    void setMessageHistorySearchText(const QString &text);
+    /**
+     * @brief 返回聊天记录分类。
+     * @return 当前分类名称。
+     */
+    [[nodiscard]] QString messageHistoryCategory() const;
+    /**
+     * @brief 更新聊天记录分类。
+     * @param category 分类名称，支持 @c all、@c media 与 @c file。
+     */
+    void setMessageHistoryCategory(const QString &category);
     /**
      * @brief 返回本地显示名称。
      * @return 当前本地显示名称。
@@ -351,6 +379,10 @@ signals:
     void peerSearchTextChanged();
     /** @brief 消息搜索文本发生变化时发出。 */
     void messageSearchTextChanged();
+    /** @brief 聊天记录搜索文本发生变化时发出。 */
+    void messageHistorySearchTextChanged();
+    /** @brief 聊天记录分类发生变化时发出。 */
+    void messageHistoryCategoryChanged();
     /** @brief 本地身份信息发生变化时发出。 */
     void localProfileChanged();
     /** @brief 当前统一会话标识发生变化时发出。 */

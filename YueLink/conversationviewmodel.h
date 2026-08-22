@@ -17,6 +17,39 @@
 
 class ChatCoordinator;
 
+class ChatHistoryFilterModel final : public QSortFilterProxyModel
+{
+public:
+    /**
+     * @brief 构造聊天记录筛选模型。
+     * @param parent 可选的 QObject 父对象。
+     */
+    explicit ChatHistoryFilterModel(QObject *parent = nullptr);
+    /**
+     * @brief 更新聊天记录关键词。
+     * @param text 新搜索文本。
+     */
+    void setSearchText(const QString &text);
+    /**
+     * @brief 更新聊天记录分类。
+     * @param category 分类名称，支持 @c all、@c media 与 @c file。
+     */
+    void setCategory(const QString &category);
+
+protected:
+    /**
+     * @brief 判断源模型消息是否符合关键词与分类条件。
+     * @param sourceRow 源模型行号。
+     * @param sourceParent 源模型父索引。
+     * @return 消息符合全部筛选条件时返回 @c true。
+     */
+    [[nodiscard]] bool filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const override;
+
+private:
+    QString m_searchText;
+    QString m_category = QStringLiteral("all");
+};
+
 class ConversationViewModel final : public QObject
 {
     Q_OBJECT
@@ -36,6 +69,11 @@ public:
      */
     [[nodiscard]] QAbstractItemModel *model();
     /**
+     * @brief 返回供聊天记录窗口使用的消息筛选模型。
+     * @return 聊天记录模型指针。
+     */
+    [[nodiscard]] QAbstractItemModel *historyModel();
+    /**
      * @brief 返回消息搜索文本。
      * @return 当前搜索文本。
      */
@@ -45,6 +83,26 @@ public:
      * @param text 新搜索文本。
      */
     void setSearchText(const QString &text);
+    /**
+     * @brief 返回聊天记录搜索文本。
+     * @return 当前聊天记录搜索文本。
+     */
+    [[nodiscard]] QString historySearchText() const;
+    /**
+     * @brief 更新聊天记录搜索文本。
+     * @param text 新搜索文本。
+     */
+    void setHistorySearchText(const QString &text);
+    /**
+     * @brief 返回聊天记录分类。
+     * @return 当前分类名称。
+     */
+    [[nodiscard]] QString historyCategory() const;
+    /**
+     * @brief 更新聊天记录分类。
+     * @param category 分类名称，支持 @c all、@c media 与 @c file。
+     */
+    void setHistoryCategory(const QString &category);
     /**
      * @brief 返回当前会话标识。
      * @return 当前会话标识；未选择时为空。
@@ -65,6 +123,10 @@ public:
 signals:
     /** @brief 消息搜索文本发生变化时发出。 */
     void searchTextChanged();
+    /** @brief 聊天记录搜索文本发生变化时发出。 */
+    void historySearchTextChanged();
+    /** @brief 聊天记录分类发生变化时发出。 */
+    void historyCategoryChanged();
     /** @brief 当前会话发生变化时发出。 */
     void currentConversationIdChanged();
 
@@ -150,7 +212,10 @@ private:
     ChatCoordinator *m_coordinator = nullptr;
     ChatMessageModel m_model;
     QSortFilterProxyModel m_filterModel;
+    ChatHistoryFilterModel m_historyFilterModel;
     QString m_searchText;
+    QString m_historySearchText;
+    QString m_historyCategory = QStringLiteral("all");
     QString m_currentConversationId;
 };
 

@@ -70,9 +70,7 @@ QVariant ChatMessageModel::data(const QModelIndex &index, int role) const
     case EmojiIdRole:
         return message.emojiId;
     case SearchTextRole:
-        return message.messageKind == QLatin1String("file") || message.messageKind == QLatin1String("image")
-                   ? QStringLiteral("%1 %2").arg(message.fileName, message.messageText)
-                   : message.messageText;
+        return QStringLiteral("%1 %2 %3").arg(message.senderName, message.fileName, message.messageText);
     default:
         return {};
     }

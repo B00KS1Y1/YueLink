@@ -69,6 +69,11 @@ QAbstractItemModel *LanChatManager::messages()
     return m_conversation->model();
 }
 
+QAbstractItemModel *LanChatManager::messageHistory()
+{
+    return m_conversation->historyModel();
+}
+
 QString LanChatManager::conversationSearchText() const
 {
     return m_conversations->searchText();
@@ -107,6 +112,26 @@ QString LanChatManager::messageSearchText() const
 void LanChatManager::setMessageSearchText(const QString &text)
 {
     m_conversation->setSearchText(text);
+}
+
+QString LanChatManager::messageHistorySearchText() const
+{
+    return m_conversation->historySearchText();
+}
+
+void LanChatManager::setMessageHistorySearchText(const QString &text)
+{
+    m_conversation->setHistorySearchText(text);
+}
+
+QString LanChatManager::messageHistoryCategory() const
+{
+    return m_conversation->historyCategory();
+}
+
+void LanChatManager::setMessageHistoryCategory(const QString &category)
+{
+    m_conversation->setHistoryCategory(category);
 }
 
 QString LanChatManager::localName() const
@@ -389,6 +414,14 @@ void LanChatManager::connectComponents()
     connect(m_peers.get(), &PeerListViewModel::peerDiscovered, this, &LanChatManager::peerDiscovered);
     connect(m_peers.get(), &PeerListViewModel::peerUpdated, this, &LanChatManager::peerUpdated);
     connect(m_conversation.get(), &ConversationViewModel::searchTextChanged, this, &LanChatManager::messageSearchTextChanged);
+    connect(m_conversation.get(),
+            &ConversationViewModel::historySearchTextChanged,
+            this,
+            &LanChatManager::messageHistorySearchTextChanged);
+    connect(m_conversation.get(),
+            &ConversationViewModel::historyCategoryChanged,
+            this,
+            &LanChatManager::messageHistoryCategoryChanged);
     connect(m_conversation.get(), &ConversationViewModel::currentConversationIdChanged, this, &LanChatManager::currentConversationIdChanged);
     connect(m_desktop.get(), &DesktopIntegration::notificationActivated, this, &LanChatManager::notificationActivated);
 
