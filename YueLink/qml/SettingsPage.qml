@@ -30,7 +30,7 @@ Item {
     readonly property string currentCategoryDescription: {
         switch (currentCategoryKey) {
         case "general":
-            return qsTr("管理消息通知和接收文件的保存位置");
+            return qsTr("管理应用启动、消息通知和接收文件的保存位置");
         case "appearance":
             return qsTr("调整主题、颜色和界面显示方式");
         case "advanced":

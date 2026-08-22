@@ -56,6 +56,35 @@ Flickable {
 
         SettingsGroup {
             Layout.fillWidth: true
+            title: qsTr("应用启动")
+
+            SettingsRow {
+                title: qsTr("开机自启动")
+                description: qsTr("登录系统后自动启动 YueLink")
+                controlWidth: 64
+                last: true
+
+                HusSwitch {
+                    property bool initialized: false
+
+                    anchors.centerIn: parent
+                    width: 48
+                    height: 28
+                    checked: AppSettings.application.autoStartEnabled
+                    contentDescription: qsTr("启用开机自启动")
+                    Component.onCompleted: initialized = true
+                    onToggled: {
+                        if (!initialized || checked === AppSettings.application.autoStartEnabled)
+                            return;
+                        AppSettings.application.updateAutoStartEnabled(checked);
+                        checked = Qt.binding(() => AppSettings.application.autoStartEnabled);
+                    }
+                }
+            }
+        }
+
+        SettingsGroup {
+            Layout.fillWidth: true
             title: qsTr("消息通知")
 
             SettingsRow {

@@ -97,6 +97,7 @@ target_link_libraries(YueLink
         Qt6::QuickControls2
         Qt6::Widgets
         HuskarUI::Basic
+        QAutoStart::QAutoStart
         QyLog::QyLog
 )
 

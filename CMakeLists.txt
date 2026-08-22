@@ -15,6 +15,8 @@ set(BUILD_HUSKARUI_STATIC_LIBRARY OFF CACHE BOOL "" FORCE)
 set(BUILD_HUSKARUI_ON_DESKTOP_PLATFORM ON CACHE BOOL "" FORCE)
 set(INSTALL_HUSKARUI_IN_DEFAULT_LOCATION OFF CACHE BOOL "" FORCE)
 set(HUSKARUI_INSTALL_DIRECTORY "${CMAKE_INSTALL_PREFIX}" CACHE PATH "" FORCE)
+# HuskarUI intentionally uses Qt Quick private APIs.
+set(QT_NO_PRIVATE_MODULE_WARNING ON)
 add_subdirectory(thirdparty/HuskarUI)
 add_library(HuskarUI::Basic ALIAS HuskarUIBasic)
 
@@ -22,6 +24,11 @@ set(QYLOG_QT_VERSION 6 CACHE STRING "" FORCE)
 set(QYLOG_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 add_subdirectory(thirdparty/QyLog)
 add_subdirectory(thirdparty/nlohmann_json)
+add_subdirectory(thirdparty/QAutoStart EXCLUDE_FROM_ALL)
+
+if(NOT TARGET QAutoStart::QAutoStart)
+    add_library(QAutoStart::QAutoStart ALIAS QAutoStart)
+endif()
 
 add_subdirectory(config)
 add_subdirectory(domain)

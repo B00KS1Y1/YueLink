@@ -7,3 +7,6 @@
 [submodule "thirdparty/HuskarUI"]
 	path = thirdparty/HuskarUI
 	url = https://github.com/mengps/HuskarUI.git
+[submodule "thirdparty/QAutoStart"]
+	path = thirdparty/QAutoStart
+	url = https://github.com/MrEricSir/QAutoStart.git

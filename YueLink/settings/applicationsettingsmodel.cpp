@@ -9,12 +9,19 @@
 
 #include "config/configapi.h"
 
+#include <QAutoStart.h>
 #include <QyLog.h>
 
 ApplicationSettingsModel::ApplicationSettingsModel(QObject *parent)
 : SettingsModelBase(parent)
 {
     refreshFromConfig();
+    setAutoStartEnabled(QAutoStart::Get().isEnabled());
+}
+
+bool ApplicationSettingsModel::autoStartEnabled() const
+{
+    return m_autoStartEnabled;
 }
 
 bool ApplicationSettingsModel::notificationsEnabled() const
@@ -25,6 +32,32 @@ bool ApplicationSettingsModel::notificationsEnabled() const
 QString ApplicationSettingsModel::downloadDirectory() const
 {
     return m_downloadDirectory;
+}
+
+bool ApplicationSettingsModel::updateAutoStartEnabled(bool enabled)
+{
+    QAutoStart &autoStart = QAutoStart::Get();
+    setAutoStartEnabled(autoStart.isEnabled());
+    if (m_autoStartEnabled == enabled)
+    {
+        markSaved();
+        return true;
+    }
+
+    autoStart.setEnabled(enabled);
+    setAutoStartEnabled(autoStart.isEnabled());
+    if (m_autoStartEnabled != enabled)
+    {
+        const QString error = tr("无法更新开机自启动设置，请检查系统权限。");
+        markError(error);
+        QLOG_ERROR() << QStringLiteral("[设置] 更新开机自启动失败 目标状态=") << enabled;
+        return false;
+    }
+
+    markSaved();
+    QLOG_INFO() << (enabled ? QStringLiteral("[设置] 已启用开机自启动")
+                            : QStringLiteral("[设置] 已禁用开机自启动"));
+    return true;
 }
 
 bool ApplicationSettingsModel::updateNotificationsEnabled(bool enabled)
@@ -97,4 +130,16 @@ void ApplicationSettingsModel::refreshFromConfig()
     {
         emit settingsChanged();
     }
+}
+
+void ApplicationSettingsModel::setAutoStartEnabled(bool enabled)
+{
+    if (m_autoStartEnabled == enabled)
+    {
+        return;
+    }
+
+    m_autoStartEnabled = enabled;
+    emit autoStartEnabledChanged();
+    emit settingsChanged();
 }

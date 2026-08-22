@@ -29,7 +29,7 @@ YueLink 将导航、会话列表与聊天区域集中在同一个桌面窗口中
 
 ### 通用设置
 
-通用设置用于管理桌面消息通知，以及接收文件的默认保存目录。
+通用设置用于管理开机自启动、桌面消息通知，以及接收文件的默认保存目录。
 
 ![YueLink 通用设置](docs/images/yuelink-settings-general.png)
 
@@ -58,6 +58,7 @@ YueLink 将导航、会话列表与聊天区域集中在同一个桌面窗口中
 - 多种消息：支持文本、Emoji、图片和普通文件。
 - 文件传输：支持接收确认、取消、打开文件和定位文件。
 - 本地历史：使用 SQLite 保存会话、群组和消息记录。
+- 开机自启动：可在登录系统后自动启动 YueLink。
 - 桌面通知：应用不在前台时可显示新消息通知。
 - 个性化外观：支持主题模式、主题色、动画、背景图和透明度配置。
 - 诊断能力：提供可配置的日志级别、文件位置与异步写入选项。
@@ -82,8 +83,9 @@ YueLink 将导航、会话列表与聊天区域集中在同一个桌面窗口中
   - QuickControls2
   - Widgets
 - [HuskarUI v0.6.1](https://github.com/mengps/HuskarUI)
+- [QAutoStart](https://github.com/MrEricSir/QAutoStart)
 
-HuskarUI、QyLog 与 nlohmann/json 均通过 Git submodule 管理，无需单独安装这些依赖。
+HuskarUI、QAutoStart、QyLog 与 nlohmann/json 均通过 Git submodule 管理，无需单独安装这些依赖。
 
 ## 构建项目
 
@@ -154,6 +156,7 @@ Debug 构建的 JSON 配置默认保存在项目根目录的 `system/configs`；
 
 - [Qt](https://www.qt.io/)：跨平台应用框架与 Qt Quick 界面技术。
 - [HuskarUI](https://github.com/mengps/HuskarUI)：MIT License。
+- [QAutoStart](https://github.com/MrEricSir/QAutoStart)：MIT License。
 - [QyLog](https://github.com/XiL1-Yue/QyLog)：轻量级 Qt/C++ 日志库。
 - [nlohmann/json](https://github.com/nlohmann/json)：MIT License。
 
