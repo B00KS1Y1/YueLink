@@ -84,7 +84,7 @@ QList<Issue> LogConfig::validate(const LogConfig &config)
     }
     if (config.file_enabled && config.max_files > MaxLogFileCount)
     {
-        issues.append(Detail::makeIssue(QStringLiteral("max_files"), QStringLiteral("QsLog 最多保留 10 个旧日志文件。")));
+        issues.append(Detail::makeIssue(QStringLiteral("max_files"), QStringLiteral("QyLog 最多保留 10 个旧日志文件。")));
     }
     return issues;
 }

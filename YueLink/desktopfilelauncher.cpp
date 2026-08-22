@@ -6,7 +6,7 @@
 #include <QProcess>
 #include <QUrl>
 
-#include <QsLog.h>
+#include <QyLog.h>
 
 namespace
 {

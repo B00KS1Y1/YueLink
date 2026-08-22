@@ -11,7 +11,7 @@
 #include <QVariant>
 #include <QUuid>
 
-#include <QsLog.h>
+#include <QyLog.h>
 
 #include <cstddef>
 #include <utility>

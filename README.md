@@ -83,16 +83,18 @@ YueLink 将导航、会话列表与聊天区域集中在同一个桌面窗口中
   - Widgets
 - [HuskarUI](https://github.com/mengps/HuskarUI)
 
-仓库已经包含 QsLog 和 nlohmann/json 源码，无需单独安装这两个依赖。
+QyLog 与 nlohmann/json 均通过 Git submodule 管理，无需单独安装这两个依赖。
 
 ## 构建项目
 
 克隆仓库：
 
 ```bash
-git clone https://github.com/B00KS1Y1/YueLink.git
+git clone --recurse-submodules https://github.com/B00KS1Y1/YueLink.git
 cd YueLink
 ```
+
+已有仓库可执行 `git submodule update --init --recursive` 初始化第三方 submodule。
 
 配置并构建：
 
@@ -152,7 +154,7 @@ Debug 构建的 JSON 配置默认保存在项目根目录的 `system/configs`；
 
 - [Qt](https://www.qt.io/)：跨平台应用框架与 Qt Quick 界面技术。
 - [HuskarUI](https://github.com/mengps/HuskarUI)：MIT License。
-- [QsLog](https://github.com/victronenergy/QsLog)：BSD 3-Clause License。
+- [QyLog](https://github.com/XiL1-Yue/QyLog)：轻量级 Qt/C++ 日志库。
 - [nlohmann/json](https://github.com/nlohmann/json)：MIT License。
 
 第三方组件及资源遵循各自的许可证与授权要求，详细信息请参考对应项目和仓库中的第三方说明文件。

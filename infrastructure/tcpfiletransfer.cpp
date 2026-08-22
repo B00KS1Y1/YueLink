@@ -16,7 +16,7 @@
 #include <QUuid>
 #include <QtEndian>
 
-#include <QsLog.h>
+#include <QyLog.h>
 
 namespace
 {

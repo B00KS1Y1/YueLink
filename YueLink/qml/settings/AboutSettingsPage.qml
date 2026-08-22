@@ -48,11 +48,11 @@ Flickable {
             "projectUrl": "https://github.com/mengps/HuskarUI"
         },
         {
-            "title": qsTr("QsLog"),
+            "title": qsTr("QyLog"),
             "description": qsTr("轻量、易用的 Qt 应用日志组件"),
-            "meta": qsTr("BSD 3-Clause"),
+            "meta": qsTr("QyLog v0.1.0"),
             "iconSource": HusIcon.FileTextOutlined,
-            "projectUrl": "https://github.com/victronenergy/QsLog"
+            "projectUrl": "https://github.com/XiL1-Yue/QyLog"
         },
         {
             "title": qsTr("nlohmann/json"),

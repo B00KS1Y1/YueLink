@@ -9,7 +9,7 @@
 
 #include "config/configapi.h"
 
-#include <QsLog.h>
+#include <QyLog.h>
 
 ApplicationSettingsModel::ApplicationSettingsModel(QObject *parent)
 : SettingsModelBase(parent)

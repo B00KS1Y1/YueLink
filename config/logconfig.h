@@ -1,6 +1,6 @@
 /**
  * @file logconfig.h
- * @brief 定义 QsLog 配置及其 JSON 自动映射。
+ * @brief 定义 QyLog 配置及其 JSON 自动映射。
  * @author xili <1424858143@qq.com>
  * @date 2026-08-08
  */
@@ -19,7 +19,7 @@ namespace Config
 {
 
 /**
- * @brief 保存 QsLog 的过滤、源码位置、写入线程、控制台输出与滚动文件设置。
+ * @brief 保存 QyLog 的过滤、源码位置、写入线程、控制台输出与滚动文件设置。
  */
 struct LogConfig final : ConfigBase<LogConfig>
 {
@@ -32,7 +32,7 @@ struct LogConfig final : ConfigBase<LogConfig>
     std::string level = "info";
     /// 是否在每条日志中包含调用点的源码文件路径和行号。
     bool source_location_enabled = false;
-    /// 是否通过 QsLog 的专用单线程队列异步写入日志。
+    /// 是否通过 QyLog 的专用单线程队列异步写入日志。
     bool separate_thread_enabled = true;
     /// 是否启用调试控制台输出。
     bool console_enabled = true;
@@ -42,7 +42,7 @@ struct LogConfig final : ConfigBase<LogConfig>
     std::string file_path = "yuelink.log";
     /// 单个滚动日志文件的最大字节数，启用文件输出时必须大于零。
     std::size_t max_file_size = 5 * 1024 * 1024;
-    /// 保留的旧日志文件数量，启用文件输出时必须大于零；QsLog 最多保留 10 个。
+    /// 保留的旧日志文件数量，启用文件输出时必须大于零；QyLog 最多保留 10 个。
     std::size_t max_files = 3;
 
     /**

@@ -64,5 +64,5 @@ target_link_libraries(YueLinkInfrastructure
         Qt6::Network
         Qt6::Sql
     PRIVATE
-        QsLog::QsLog
+        QyLog::QyLog
 )

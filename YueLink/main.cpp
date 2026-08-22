@@ -13,7 +13,7 @@
 #include "infrastructure/udppeerdiscovery.h"
 #include "YueLink/lanchatmanager.h"
 
-#include <QsLog.h>
+#include <QyLog.h>
 
 #include <memory>
 

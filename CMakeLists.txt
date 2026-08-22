@@ -22,7 +22,9 @@ if(NOT TARGET huskaruiimplplugin)
     add_library(huskaruiimplplugin MODULE IMPORTED)
 endif()
 
-add_subdirectory(thirdparty/QsLog)
+set(QYLOG_QT_VERSION 6 CACHE STRING "" FORCE)
+set(QYLOG_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+add_subdirectory(thirdparty/QyLog)
 add_subdirectory(thirdparty/nlohmann_json)
 
 add_subdirectory(config)

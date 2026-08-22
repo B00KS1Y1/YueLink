@@ -1,0 +1,6 @@
+[submodule "thirdparty/QyLog"]
+	path = thirdparty/QyLog
+	url = https://github.com/XiL1-Yue/QyLog.git
+[submodule "thirdparty/nlohmann_json"]
+	path = thirdparty/nlohmann_json
+	url = https://github.com/nlohmann/json.git

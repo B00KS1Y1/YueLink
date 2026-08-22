@@ -10,7 +10,7 @@
 #include "config/configapi.h"
 #include "infrastructure/logging.h"
 
-#include <QsLog.h>
+#include <QyLog.h>
 
 LogSettingsModel::LogSettingsModel(QObject *parent)
 : SettingsModelBase(parent)

@@ -29,5 +29,5 @@ target_link_libraries(YueLinkApplication
     PRIVATE
         YueLink::Config
         Qt6::Gui
-        QsLog::QsLog
+        QyLog::QyLog
 )

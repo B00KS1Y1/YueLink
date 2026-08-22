@@ -9,7 +9,7 @@
 #include <QTcpSocket>
 #include <QtEndian>
 
-#include <QsLog.h>
+#include <QyLog.h>
 
 #include <utility>
 

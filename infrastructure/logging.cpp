@@ -5,8 +5,8 @@
 #include <QStringList>
 #include <QVector>
 
-#include <QsLog.h>
-#include <QsLogDest.h>
+#include <QyLog.h>
+#include <QyLogDest.h>
 
 #include <algorithm>
 #include <exception>
@@ -15,43 +15,43 @@
 
 namespace
 {
-constexpr int MaxQsLogBackupCount = 10;
+constexpr int MaxQyLogBackupCount = 10;
 
 QString normalizedLevelName(const std::string &name)
 {
     return QString::fromStdString(name).trimmed().toLower();
 }
 
-QsLogging::Level configuredLevel(const std::string &name, QsLogging::Level fallback, QStringList *warnings = nullptr)
+QyLogging::Level configuredLevel(const std::string &name, QyLogging::Level fallback, QStringList *warnings = nullptr)
 {
     const QString normalized = normalizedLevelName(name);
     if (normalized == QLatin1String("trace"))
     {
-        return QsLogging::TraceLevel;
+        return QyLogging::TraceLevel;
     }
     if (normalized == QLatin1String("debug"))
     {
-        return QsLogging::DebugLevel;
+        return QyLogging::DebugLevel;
     }
     if (normalized == QLatin1String("info"))
     {
-        return QsLogging::InfoLevel;
+        return QyLogging::InfoLevel;
     }
     if (normalized == QLatin1String("warn") || normalized == QLatin1String("warning"))
     {
-        return QsLogging::WarnLevel;
+        return QyLogging::WarnLevel;
     }
     if (normalized == QLatin1String("error") || normalized == QLatin1String("err"))
     {
-        return QsLogging::ErrorLevel;
+        return QyLogging::ErrorLevel;
     }
     if (normalized == QLatin1String("critical") || normalized == QLatin1String("fatal"))
     {
-        return QsLogging::FatalLevel;
+        return QyLogging::FatalLevel;
     }
     if (normalized == QLatin1String("off"))
     {
-        return QsLogging::OffLevel;
+        return QyLogging::OffLevel;
     }
 
     if (warnings)
@@ -63,12 +63,12 @@ QsLogging::Level configuredLevel(const std::string &name, QsLogging::Level fallb
 
 void installFallbackLogger()
 {
-    QsLogging::Logger::destroyInstance();
-    QsLogging::Logger &logger = QsLogging::Logger::instance();
-    logger.setLoggingLevel(QsLogging::InfoLevel);
+    QyLogging::Logger::destroyInstance();
+    QyLogging::Logger &logger = QyLogging::Logger::instance();
+    logger.setLoggingLevel(QyLogging::InfoLevel);
     logger.setIncludeSourceLocation(false);
     logger.setUseSeparateThread(false);
-    logger.addDestination(QsLogging::DestinationFactory::MakeDebugOutputDestination());
+    logger.addDestination(QyLogging::DestinationFactory::MakeDebugOutputDestination());
 }
 } // namespace
 
@@ -77,12 +77,12 @@ Config::Result Logging::initialize(const Config::LogConfig &config)
     try
     {
         QStringList warnings;
-        const QsLogging::Level level = configuredLevel(config.level, QsLogging::InfoLevel, &warnings);
-        QVector<QsLogging::DestinationPtr> destinations;
+        const QyLogging::Level level = configuredLevel(config.level, QyLogging::InfoLevel, &warnings);
+        QVector<QyLogging::DestinationPtr> destinations;
 
         if (config.console_enabled)
         {
-            destinations.append(QsLogging::DestinationFactory::MakeDebugOutputDestination());
+            destinations.append(QyLogging::DestinationFactory::MakeDebugOutputDestination());
         }
 
         QString logPath;
@@ -100,18 +100,18 @@ Config::Result Logging::initialize(const Config::LogConfig &config)
             const std::size_t requestedFileCount = std::max<std::size_t>(config.max_files, 1);
             const qint64 maxFileSize =
                 static_cast<qint64>(std::min<std::size_t>(requestedFileSize, static_cast<std::size_t>(std::numeric_limits<qint64>::max())));
-            const int maxFiles = static_cast<int>(std::min<std::size_t>(requestedFileCount, static_cast<std::size_t>(MaxQsLogBackupCount)));
+            const int maxFiles = static_cast<int>(std::min<std::size_t>(requestedFileCount, static_cast<std::size_t>(MaxQyLogBackupCount)));
             if (requestedFileSize != config.max_file_size || requestedFileCount != config.max_files)
             {
                 warnings.append(QStringLiteral("滚动日志文件限制必须大于零，已使用最小有效值。"));
             }
-            if (requestedFileCount > static_cast<std::size_t>(MaxQsLogBackupCount))
+            if (requestedFileCount > static_cast<std::size_t>(MaxQyLogBackupCount))
             {
-                warnings.append(QStringLiteral("QsLog 最多保留 %1 个旧日志文件，已截断配置值。").arg(MaxQsLogBackupCount));
+                warnings.append(QStringLiteral("QyLog 最多保留 %1 个旧日志文件，已截断配置值。").arg(MaxQyLogBackupCount));
             }
 
-            const QsLogging::DestinationPtr fileDestination = QsLogging::DestinationFactory::MakeFileDestination(
-                logPath, QsLogging::EnableLogRotation, QsLogging::MaxSizeBytes(maxFileSize), QsLogging::MaxOldLogCount(maxFiles));
+            const QyLogging::DestinationPtr fileDestination = QyLogging::DestinationFactory::MakeFileDestination(
+                logPath, QyLogging::EnableLogRotation, QyLogging::MaxSizeBytes(maxFileSize), QyLogging::MaxOldLogCount(maxFiles));
             if (!fileDestination || !fileDestination->isValid())
             {
                 installFallbackLogger();
@@ -120,12 +120,12 @@ Config::Result Logging::initialize(const Config::LogConfig &config)
             destinations.append(fileDestination);
         }
 
-        QsLogging::Logger::destroyInstance();
-        QsLogging::Logger &logger = QsLogging::Logger::instance();
+        QyLogging::Logger::destroyInstance();
+        QyLogging::Logger &logger = QyLogging::Logger::instance();
         logger.setLoggingLevel(level);
         logger.setIncludeSourceLocation(config.source_location_enabled);
         logger.setUseSeparateThread(config.separate_thread_enabled);
-        for (const QsLogging::DestinationPtr &destination : std::as_const(destinations))
+        for (const QyLogging::DestinationPtr &destination : std::as_const(destinations))
         {
             logger.addDestination(destination);
         }
@@ -151,10 +151,10 @@ Config::Result Logging::initialize(const Config::LogConfig &config)
 
 void Logging::setLevel(const std::string &level)
 {
-    QsLogging::Logger::instance().setLoggingLevel(configuredLevel(level, QsLogging::InfoLevel));
+    QyLogging::Logger::instance().setLoggingLevel(configuredLevel(level, QyLogging::InfoLevel));
 }
 
 void Logging::shutdown()
 {
-    QsLogging::Logger::destroyInstance();
+    QyLogging::Logger::destroyInstance();
 }

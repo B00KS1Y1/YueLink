@@ -5,7 +5,7 @@
 #include <QIcon>
 #include <QStyle>
 
-#include <QsLog.h>
+#include <QyLog.h>
 
 DesktopNotificationService::DesktopNotificationService(QObject *parent)
 : INotificationService(parent)

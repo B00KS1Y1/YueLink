@@ -6,7 +6,7 @@
 
 #include <QDir>
 
-#include <QsLog.h>
+#include <QyLog.h>
 
 namespace RuntimeBootstrap
 {

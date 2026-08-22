@@ -20,7 +20,7 @@
 #include <QVariantMap>
 #include <QtGlobal>
 
-#include <QsLog.h>
+#include <QyLog.h>
 
 #include <algorithm>
 

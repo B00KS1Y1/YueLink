@@ -7,7 +7,7 @@
 #include <QSet>
 #include <QStringList>
 
-#include <QsLog.h>
+#include <QyLog.h>
 
 namespace
 {

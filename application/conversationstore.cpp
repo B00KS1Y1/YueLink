@@ -4,7 +4,7 @@
 
 #include <QDateTime>
 
-#include <QsLog.h>
+#include <QyLog.h>
 
 #include <utility>
 
