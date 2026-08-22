@@ -119,6 +119,19 @@ void ChatMessageModel::setConversation(const QString &conversationId, QList<Mess
     m_conversations.insert(conversationId, std::move(messages));
 }
 
+void ChatMessageModel::removeConversation(const QString &conversationId)
+{
+    if (conversationId != m_currentConversationId)
+    {
+        m_conversations.remove(conversationId);
+        return;
+    }
+    beginResetModel();
+    m_conversations.remove(conversationId);
+    m_currentConversationId.clear();
+    endResetModel();
+}
+
 void ChatMessageModel::append(const QString &conversationId, Message message)
 {
     QList<Message> &messages = m_conversations[conversationId];

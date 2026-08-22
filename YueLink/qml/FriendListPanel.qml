@@ -20,9 +20,28 @@ Item {
                                                 ? LanChat.groupSearchText
                                                 : LanChat.peerSearchText
                                               : LanChat.conversationSearchText).trim()
+    property string contextConversationId: ""
+    property string contextConversationTitle: ""
+    property string contextConversationKind: ""
+    property bool contextConversationPinned: false
+    property int contextConversationUnread: 0
 
     signal conversationSelected(string conversationId)
     signal createGroupRequested()
+
+    function openConversationMenu(delegateItem, localX: real, localY: real,
+                                  conversationId: string, title: string,
+                                  kind: string, pinned: bool, unread: int): void {
+        const position = delegateItem.mapToItem(root, localX, localY);
+        contextConversationId = conversationId;
+        contextConversationTitle = title;
+        contextConversationKind = kind;
+        contextConversationPinned = pinned;
+        contextConversationUnread = unread;
+        conversationContextMenu.x = position.x;
+        conversationContextMenu.y = position.y;
+        conversationContextMenu.open();
+    }
 
     Item {
         id: searchSection
@@ -228,6 +247,7 @@ Item {
             required property string peerId
             required property int memberCount
             required property int onlineCount
+            required property bool pinned
             readonly property bool selected: root.selectedConversationId
                                              === conversationDelegate.itemId
 
@@ -240,6 +260,9 @@ Item {
                 radius: HusTheme.Primary.radiusPrimary
                 color: conversationDelegate.selected
                        ? HusThemeFunctions.alpha(HusTheme.Primary.colorPrimary, HusTheme.isDark ? 0.28 : 0.16)
+                       : conversationContextMenu.visible
+                         && root.contextConversationId === conversationDelegate.itemId
+                         ? HusTheme.Primary.colorFillSecondary
                        : conversationMouse.containsMouse
                          ? HusTheme.Primary.colorFillSecondary
                          : "transparent"
@@ -341,9 +364,25 @@ Item {
                     width: parent.width
                     height: 20
 
-                    HusBadge {
+                    RowLayout {
                         anchors.right: parent.right
-                        count: conversationDelegate.unread
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 6
+
+                        HusIconText {
+                            Layout.alignment: Qt.AlignVCenter
+                            visible: !root.contactsMode && conversationDelegate.pinned
+                            iconSource: HusIcon.PushpinFilled
+                            iconSize: 12
+                            colorIcon: HusTheme.Primary.colorTextQuaternary
+                            Accessible.name: qsTr("已置顶")
+                        }
+
+                        HusBadge {
+                            Layout.alignment: Qt.AlignVCenter
+                            visible: conversationDelegate.unread > 0
+                            count: conversationDelegate.unread
+                        }
                     }
                 }
             }
@@ -353,6 +392,9 @@ Item {
 
                 anchors.fill: parent
                 activeFocusOnTab: true
+                acceptedButtons: root.contactsMode
+                                 ? Qt.LeftButton
+                                 : Qt.LeftButton | Qt.RightButton
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
                 Accessible.role: Accessible.ListItem
@@ -363,10 +405,136 @@ Item {
                                         ? qsTr("%1 条未读消息")
                                               .arg(conversationDelegate.unread)
                                         : qsTr("没有未读消息")
-                onClicked: root.conversationSelected(conversationDelegate.itemId)
+                onClicked: mouse => {
+                    if (mouse.button === Qt.RightButton) {
+                        root.openConversationMenu(
+                                    conversationDelegate,
+                                    mouse.x,
+                                    mouse.y,
+                                    conversationDelegate.itemId,
+                                    conversationDelegate.title,
+                                    conversationDelegate.itemKind,
+                                    conversationDelegate.pinned,
+                                    conversationDelegate.unread);
+                        return;
+                    }
+                    root.conversationSelected(conversationDelegate.itemId);
+                }
                 Keys.onReturnPressed: root.conversationSelected(conversationDelegate.itemId)
                 Keys.onSpacePressed: root.conversationSelected(conversationDelegate.itemId)
+                Keys.onPressed: event => {
+                    const contextKey = event.key === Qt.Key_Menu
+                            || (event.key === Qt.Key_F10
+                                && (event.modifiers & Qt.ShiftModifier));
+                    if (!root.contactsMode && contextKey) {
+                        root.openConversationMenu(
+                                    conversationDelegate,
+                                    conversationDelegate.width - 18,
+                                    conversationDelegate.height * 0.5,
+                                    conversationDelegate.itemId,
+                                    conversationDelegate.title,
+                                    conversationDelegate.itemKind,
+                                    conversationDelegate.pinned,
+                                    conversationDelegate.unread);
+                        event.accepted = true;
+                    }
+                }
             }
+        }
+    }
+
+    HusContextMenu {
+        id: conversationContextMenu
+
+        defaultMenuWidth: 164
+        initModel: [
+            {
+                key: "pin",
+                label: root.contextConversationPinned
+                       ? qsTr("取消置顶")
+                       : qsTr("置顶会话"),
+                iconSource: root.contextConversationPinned
+                            ? HusIcon.PushpinFilled
+                            : HusIcon.PushpinOutlined
+            },
+            {
+                key: "markRead",
+                label: qsTr("标为已读"),
+                iconSource: HusIcon.CheckOutlined,
+                enabled: root.contextConversationUnread > 0
+            },
+            { type: "divider" },
+            {
+                key: "delete",
+                label: qsTr("删除会话"),
+                iconSource: HusIcon.DeleteOutlined
+            }
+        ]
+        onClickMenu: (deep, key) => {
+            if (deep !== 0 || root.contextConversationId.length === 0)
+                return;
+            if (key === "pin") {
+                const targetPinned = !root.contextConversationPinned;
+                if (LanChat.setConversationPinned(root.contextConversationId,
+                                                  targetPinned))
+                    root.contextConversationPinned = targetPinned;
+            } else if (key === "markRead") {
+                if (LanChat.markConversationRead(root.contextConversationId))
+                    root.contextConversationUnread = 0;
+            } else if (key === "delete") {
+                deleteConversationModal.conversationId = root.contextConversationId;
+                deleteConversationModal.conversationTitle = root.contextConversationTitle;
+                deleteConversationModal.conversationKind = root.contextConversationKind;
+                deleteConversationModal.open();
+            }
+        }
+    }
+
+    HusModal {
+        id: deleteConversationModal
+
+        property string conversationId: ""
+        property string conversationTitle: ""
+        property string conversationKind: ""
+
+        width: 440
+        title: qsTr("删除会话")
+        iconSource: HusIcon.DeleteOutlined
+        colorIcon: HusTheme.Primary.colorError
+        confirmText: qsTr("删除")
+        cancelText: qsTr("取消")
+        maskClosable: true
+        bodyDelegate: Column {
+            height: implicitHeight
+            spacing: 8
+
+            HusText {
+                width: parent.width
+                text: deleteConversationModal.conversationKind === "group"
+                      ? qsTr("确定删除群聊“%1”的本地会话吗？消息记录会从本机删除，但不会退出群聊或通知其他成员。").arg(deleteConversationModal.conversationTitle)
+                      : qsTr("确定删除与“%1”的本地会话吗？消息记录会从本机删除，但联系人仍会保留。").arg(deleteConversationModal.conversationTitle)
+                color: HusTheme.Primary.colorTextTertiary
+                font.pixelSize: HusTheme.Primary.fontPrimarySize
+                wrapMode: Text.WordWrap
+            }
+
+            HusText {
+                width: parent.width
+                text: qsTr("此操作无法撤销。已保存的本地文件不会被删除；收到新消息或从联系人页重新打开后，会话会再次出现。")
+                color: HusTheme.Primary.colorTextQuaternary
+                font.pixelSize: Math.max(12, HusTheme.Primary.fontPrimarySize - 1)
+                wrapMode: Text.WordWrap
+            }
+        }
+        onConfirm: {
+            if (LanChat.removeConversation(conversationId))
+                close();
+        }
+        onCancel: close()
+        onClosed: {
+            conversationId = "";
+            conversationTitle = "";
+            conversationKind = "";
         }
     }
 

@@ -4,6 +4,7 @@
 
 #include <QCryptographicHash>
 #include <QLocale>
+#include <QRegularExpression>
 
 #include <utility>
 
@@ -12,7 +13,10 @@ ConversationListViewModel::ConversationListViewModel(ChatCoordinator *coordinato
 , m_coordinator(coordinator)
 {
     Q_ASSERT(m_coordinator);
-    m_filterModel.setSourceModel(&m_model);
+    m_visibleModel.setSourceModel(&m_model);
+    m_visibleModel.setFilterRole(SidebarItemModel::HiddenRole);
+    m_visibleModel.setFilterRegularExpression(QRegularExpression(QStringLiteral("^(false|0)$"), QRegularExpression::CaseInsensitiveOption));
+    m_filterModel.setSourceModel(&m_visibleModel);
     m_filterModel.setFilterRole(SidebarItemModel::TitleRole);
     m_filterModel.setFilterCaseSensitivity(Qt::CaseInsensitive);
     m_filterModel.setSortRole(SidebarItemModel::SortTimestampRole);
@@ -101,7 +105,10 @@ void ConversationListViewModel::synchronize()
         item.peerId = conversation.peerId;
         item.unread = conversation.unreadCount;
         item.memberCount = conversation.memberCount;
-        item.sortTimestamp = conversation.lastActivity.toMSecsSinceEpoch();
+        item.pinned = conversation.pinned;
+        item.hidden = conversation.hidden;
+        constexpr qint64 PinnedSortOffset = qint64{1} << 62;
+        item.sortTimestamp = conversation.lastActivity.toMSecsSinceEpoch() + (conversation.pinned ? PinnedSortOffset : 0);
         if (conversation.kind == Domain::ConversationKind::Direct)
         {
             Domain::Peer peer;

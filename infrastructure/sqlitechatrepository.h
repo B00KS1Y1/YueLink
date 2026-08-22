@@ -113,6 +113,21 @@ public:
      */
     [[nodiscard]] bool clearUnread(const QString &conversationId, QString *errorMessage) override;
     /**
+     * @brief 更新会话置顶状态。
+     * @param conversationId 会话标识。
+     * @param pinned 是否置顶。
+     * @param[out] errorMessage 失败时接收错误说明。
+     * @return 更新成功时返回 @c true。
+     */
+    [[nodiscard]] bool setConversationPinned(const QString &conversationId, bool pinned, QString *errorMessage) override;
+    /**
+     * @brief 原子删除会话消息与投递记录并隐藏会话。
+     * @param conversationId 会话标识。
+     * @param[out] errorMessage 失败时接收错误说明。
+     * @return 删除并隐藏成功时返回 @c true。
+     */
+    [[nodiscard]] bool removeConversation(const QString &conversationId, QString *errorMessage) override;
+    /**
      * @brief 新增或更新消息。
      * @param message 消息记录。
      * @param[out] errorMessage 失败时接收错误说明。

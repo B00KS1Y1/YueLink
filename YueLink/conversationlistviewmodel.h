@@ -105,6 +105,7 @@ private:
 
     ChatCoordinator *m_coordinator = nullptr;
     SidebarItemModel m_model;
+    QSortFilterProxyModel m_visibleModel;
     QSortFilterProxyModel m_filterModel;
     QSortFilterProxyModel m_groupKindModel;
     QSortFilterProxyModel m_groupFilterModel;

@@ -86,6 +86,8 @@ struct Conversation
     QDateTime lastActivity;                           ///< 最近活动时间。
     int unreadCount = 0;                              ///< 未读消息数。
     int memberCount = 0;                              ///< 会话成员数。
+    bool pinned = false;                              ///< 是否在消息列表顶部置顶。
+    bool hidden = false;                              ///< 是否从消息列表隐藏。
 };
 
 struct GroupMember

@@ -138,6 +138,27 @@ public:
      */
     [[nodiscard]] Domain::OperationResult markConversationRead(const QString &conversationId);
     /**
+     * @brief 恢复隐藏会话并将其作为最近打开的会话。
+     * @param conversationId 会话标识。
+     * @return 结构化操作结果。
+     */
+    [[nodiscard]] Domain::OperationResult restoreConversation(const QString &conversationId);
+    /**
+     * @brief 更新会话置顶状态并持久化。
+     * @param conversationId 会话标识。
+     * @param pinned 是否置顶。
+     * @return 结构化操作结果。
+     */
+    [[nodiscard]] Domain::OperationResult setConversationPinned(const QString &conversationId, bool pinned);
+    /**
+     * @brief 删除会话本地消息并从消息列表隐藏。
+     * @param conversationId 会话标识。
+     * @return 结构化操作结果。
+     *
+     * 联系人、群组元数据与本地附件文件会保留；存在活动附件传输时拒绝删除。
+     */
+    [[nodiscard]] Domain::OperationResult removeConversation(const QString &conversationId);
+    /**
      * @brief 幂等追加消息并更新会话摘要。
      * @param message 待追加消息。
      * @param summary 会话列表摘要。
@@ -172,6 +193,11 @@ signals:
     void peersChanged();
     /** @brief 会话集合或摘要发生变化时发出。 */
     void conversationsChanged();
+    /**
+     * @brief 会话已删除本地消息并隐藏时发出。
+     * @param conversationId 已隐藏的会话标识。
+     */
+    void conversationRemoved(const QString &conversationId);
     /**
      * @brief 发现此前未知的联系人时发出。
      * @param peerId 联系人设备标识。

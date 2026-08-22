@@ -47,6 +47,10 @@ QVariant SidebarItemModel::data(const QModelIndex &index, int role) const
         return item.memberCount;
     case OnlineCountRole:
         return item.onlineCount;
+    case PinnedRole:
+        return item.pinned;
+    case HiddenRole:
+        return item.hidden;
     case SortTimestampRole:
         return item.sortTimestamp;
     default:
@@ -69,6 +73,8 @@ QHash<int, QByteArray> SidebarItemModel::roleNames() const
             {PeerIdRole, "peerId"},
             {MemberCountRole, "memberCount"},
             {OnlineCountRole, "onlineCount"},
+            {PinnedRole, "pinned"},
+            {HiddenRole, "hidden"},
             {SortTimestampRole, "sortTimestamp"}};
 }
 
@@ -90,7 +96,9 @@ QVariantMap SidebarItemModel::itemInfo(const QString &itemId) const
                     {QStringLiteral("unread"), item.unread},
                     {QStringLiteral("peerId"), item.peerId},
                     {QStringLiteral("memberCount"), item.memberCount},
-                    {QStringLiteral("onlineCount"), item.onlineCount}};
+                    {QStringLiteral("onlineCount"), item.onlineCount},
+                    {QStringLiteral("pinned"), item.pinned},
+                    {QStringLiteral("hidden"), item.hidden}};
         }
     }
     return {};

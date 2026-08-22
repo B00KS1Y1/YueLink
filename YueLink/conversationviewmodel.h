@@ -80,6 +80,11 @@ private:
      */
     void handleMessageAdded(const Domain::Message &message);
     /**
+     * @brief 清理已删除会话的消息缓存与当前选择。
+     * @param conversationId 已删除的会话标识。
+     */
+    void handleConversationRemoved(const QString &conversationId);
+    /**
      * @brief 处理消息状态变化。
      * @param conversationId 会话标识。
      * @param messageId 消息标识。

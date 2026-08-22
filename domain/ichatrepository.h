@@ -122,6 +122,25 @@ public:
     [[nodiscard]] virtual bool clearUnread(const QString &conversationId, QString *errorMessage) = 0;
 
     /**
+     * @brief 更新会话置顶状态。
+     * @param conversationId 会话标识。
+     * @param pinned 是否置顶。
+     * @param[out] errorMessage 失败时接收错误说明。
+     * @return 更新成功时返回 @c true。
+     */
+    [[nodiscard]] virtual bool setConversationPinned(const QString &conversationId, bool pinned, QString *errorMessage) = 0;
+
+    /**
+     * @brief 删除会话的本地消息并将会话从消息列表隐藏。
+     * @param conversationId 会话标识。
+     * @param[out] errorMessage 失败时接收错误说明。
+     * @return 删除并隐藏成功时返回 @c true。
+     *
+     * 联系人、群组元数据及本地附件文件不在此函数的删除范围内。
+     */
+    [[nodiscard]] virtual bool removeConversation(const QString &conversationId, QString *errorMessage) = 0;
+
+    /**
      * @brief 持久化消息。
      * @param message 待保存的消息。
      * @param[out] errorMessage 失败时接收错误说明。

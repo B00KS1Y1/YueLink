@@ -162,6 +162,21 @@ Domain::OperationResult ChatCoordinator::markConversationRead(const QString &con
     return m_conversations->markConversationRead(conversationId);
 }
 
+Domain::OperationResult ChatCoordinator::restoreConversation(const QString &conversationId)
+{
+    return m_conversations->restoreConversation(conversationId);
+}
+
+Domain::OperationResult ChatCoordinator::setConversationPinned(const QString &conversationId, bool pinned)
+{
+    return m_conversations->setConversationPinned(conversationId, pinned);
+}
+
+Domain::OperationResult ChatCoordinator::removeConversation(const QString &conversationId)
+{
+    return m_conversations->removeConversation(conversationId);
+}
+
 Domain::OperationResult ChatCoordinator::createGroup(const QString &name, const QStringList &memberIds)
 {
     const QString normalizedName = name.trimmed();
@@ -619,6 +634,7 @@ void ChatCoordinator::connectServices()
 
     connect(m_conversations.get(), &ConversationStore::peersChanged, this, &ChatCoordinator::peersChanged);
     connect(m_conversations.get(), &ConversationStore::conversationsChanged, this, &ChatCoordinator::conversationsChanged);
+    connect(m_conversations.get(), &ConversationStore::conversationRemoved, this, &ChatCoordinator::conversationRemoved);
     connect(m_conversations.get(), &ConversationStore::peerDiscovered, this, &ChatCoordinator::peerDiscovered);
     connect(m_conversations.get(), &ConversationStore::peerUpdated, this, &ChatCoordinator::peerUpdated);
     connect(m_conversations.get(), &ConversationStore::groupChanged, this, &ChatCoordinator::groupChanged);

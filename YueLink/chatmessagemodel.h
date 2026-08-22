@@ -103,6 +103,11 @@ public:
      */
     void setConversation(const QString &conversationId, QList<Message> messages);
     /**
+     * @brief 删除指定会话的消息缓存并在必要时清空当前列表。
+     * @param conversationId 会话标识。
+     */
+    void removeConversation(const QString &conversationId);
+    /**
      * @brief 向指定会话追加消息。
      * @param conversationId 会话标识。
      * @param message 新消息。

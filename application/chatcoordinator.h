@@ -148,6 +148,25 @@ public:
      */
     [[nodiscard]] Domain::OperationResult markConversationRead(const QString &conversationId);
     /**
+     * @brief 恢复此前从消息列表删除的会话。
+     * @param conversationId 会话标识。
+     * @return 结构化操作结果。
+     */
+    [[nodiscard]] Domain::OperationResult restoreConversation(const QString &conversationId);
+    /**
+     * @brief 更新会话置顶状态。
+     * @param conversationId 会话标识。
+     * @param pinned 是否置顶。
+     * @return 结构化操作结果。
+     */
+    [[nodiscard]] Domain::OperationResult setConversationPinned(const QString &conversationId, bool pinned);
+    /**
+     * @brief 删除会话本地消息并从消息列表隐藏。
+     * @param conversationId 会话标识。
+     * @return 结构化操作结果。
+     */
+    [[nodiscard]] Domain::OperationResult removeConversation(const QString &conversationId);
+    /**
      * @brief 创建群聊并向在线成员发送快照。
      * @param name 群名称，1 到 64 个字符。
      * @param memberIds 至少两个、最多三十一个联系人标识。
@@ -230,6 +249,11 @@ signals:
     void peersChanged();
     /** @brief 会话集合或摘要发生变化时发出。 */
     void conversationsChanged();
+    /**
+     * @brief 会话本地消息已删除且会话已隐藏时发出。
+     * @param conversationId 会话标识。
+     */
+    void conversationRemoved(const QString &conversationId);
     /** @brief 网络运行状态发生变化时发出。 */
     void runningChanged();
     /** @brief 最近错误发生变化时发出。 */

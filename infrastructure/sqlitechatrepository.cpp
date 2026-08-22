@@ -18,7 +18,7 @@
 
 namespace
 {
-constexpr int CurrentSchemaVersion = 4;
+constexpr int CurrentSchemaVersion = 5;
 
 void setError(QString *target, const QString &message)
 {
@@ -175,8 +175,8 @@ bool SqliteChatRepository::loadConversations(QList<Domain::Conversation> *conver
     }
     QSqlQuery query(database());
     if (!query.exec(QStringLiteral("SELECT conversation_id, kind, peer_id, title, last_message, "
-                                   "last_activity_utc, unread_count, member_count FROM conversations "
-                                   "ORDER BY last_activity_utc DESC")))
+                                   "last_activity_utc, unread_count, member_count, pinned, hidden "
+                                   "FROM conversations ORDER BY pinned DESC, last_activity_utc DESC")))
     {
         setError(errorMessage, query.lastError().text());
         return false;
@@ -194,6 +194,8 @@ bool SqliteChatRepository::loadConversations(QList<Domain::Conversation> *conver
         conversation.lastActivity = timestampFromText(query.value(5).toString());
         conversation.unreadCount = qMax(0, query.value(6).toInt());
         conversation.memberCount = qMax(0, query.value(7).toInt());
+        conversation.pinned = query.value(8).toBool();
+        conversation.hidden = query.value(9).toBool();
         if (!conversation.conversationId.isEmpty())
         {
             result.append(std::move(conversation));
@@ -362,12 +364,13 @@ bool SqliteChatRepository::saveConversation(const Domain::Conversation &conversa
     }
     QSqlQuery query(database());
     query.prepare(QStringLiteral("INSERT INTO conversations(conversation_id, kind, peer_id, title, "
-                                 "last_message, last_activity_utc, unread_count, member_count) "
-                                 "VALUES(:id, :kind, :peer, :title, :last_message, :activity, :unread, :members) "
+                                 "last_message, last_activity_utc, unread_count, member_count, pinned, hidden) "
+                                 "VALUES(:id, :kind, :peer, :title, :last_message, :activity, :unread, :members, :pinned, :hidden) "
                                  "ON CONFLICT(conversation_id) DO UPDATE SET kind=excluded.kind, "
                                  "peer_id=excluded.peer_id, title=excluded.title, "
                                  "last_message=excluded.last_message, last_activity_utc=excluded.last_activity_utc, "
-                                 "unread_count=excluded.unread_count, member_count=excluded.member_count"));
+                                 "unread_count=excluded.unread_count, member_count=excluded.member_count, "
+                                 "pinned=excluded.pinned, hidden=excluded.hidden"));
     query.bindValue(QStringLiteral(":id"), conversation.conversationId);
     query.bindValue(QStringLiteral(":kind"), Domain::conversationKindName(conversation.kind));
     query.bindValue(QStringLiteral(":peer"), nonNullText(conversation.peerId));
@@ -376,6 +379,8 @@ bool SqliteChatRepository::saveConversation(const Domain::Conversation &conversa
     query.bindValue(QStringLiteral(":activity"), timestampText(conversation.lastActivity));
     query.bindValue(QStringLiteral(":unread"), qMax(0, conversation.unreadCount));
     query.bindValue(QStringLiteral(":members"), qMax(0, conversation.memberCount));
+    query.bindValue(QStringLiteral(":pinned"), conversation.pinned);
+    query.bindValue(QStringLiteral(":hidden"), conversation.hidden);
     if (!query.exec())
     {
         setError(errorMessage, query.lastError().text());
@@ -452,7 +457,7 @@ bool SqliteChatRepository::updateConversation(
 {
     QSqlQuery query(database());
     query.prepare(QStringLiteral("UPDATE conversations SET last_message=:message, last_activity_utc=:activity, "
-                                 "unread_count=MAX(0, unread_count+:delta) WHERE conversation_id=:id"));
+                                 "unread_count=MAX(0, unread_count+:delta), hidden=0 WHERE conversation_id=:id"));
     query.bindValue(QStringLiteral(":message"), nonNullText(lastMessage));
     query.bindValue(QStringLiteral(":activity"), timestampText(timestamp));
     query.bindValue(QStringLiteral(":delta"), incrementUnread ? 1 : 0);
@@ -473,6 +478,55 @@ bool SqliteChatRepository::clearUnread(const QString &conversationId, QString *e
     if (!query.exec())
     {
         setError(errorMessage, query.lastError().text());
+        return false;
+    }
+    return true;
+}
+
+bool SqliteChatRepository::setConversationPinned(const QString &conversationId, bool pinned, QString *errorMessage)
+{
+    QSqlQuery query(database());
+    query.prepare(QStringLiteral("UPDATE conversations SET pinned=:pinned WHERE conversation_id=:id"));
+    query.bindValue(QStringLiteral(":pinned"), pinned);
+    query.bindValue(QStringLiteral(":id"), conversationId);
+    if (!query.exec())
+    {
+        setError(errorMessage, query.lastError().text());
+        return false;
+    }
+    return true;
+}
+
+bool SqliteChatRepository::removeConversation(const QString &conversationId, QString *errorMessage)
+{
+    QSqlDatabase connection = database();
+    if (!connection.transaction())
+    {
+        setError(errorMessage, connection.lastError().text());
+        return false;
+    }
+
+    const QStringList statements{QStringLiteral("DELETE FROM message_deliveries WHERE conversation_id=:id"),
+                                 QStringLiteral("DELETE FROM messages WHERE conversation_id=:id"),
+                                 QStringLiteral("UPDATE conversations SET last_message='', unread_count=0, pinned=0, hidden=1 "
+                                                "WHERE conversation_id=:id")};
+    for (const QString &statement : statements)
+    {
+        QSqlQuery query(connection);
+        query.prepare(statement);
+        query.bindValue(QStringLiteral(":id"), conversationId);
+        if (!query.exec())
+        {
+            connection.rollback();
+            setError(errorMessage, query.lastError().text());
+            return false;
+        }
+    }
+    if (!connection.commit())
+    {
+        const QString commitError = connection.lastError().text();
+        connection.rollback();
+        setError(errorMessage, commitError);
         return false;
     }
     return true;
@@ -637,7 +691,8 @@ bool SqliteChatRepository::ensureSchema(QString *errorMessage)
                                              "conversation_id TEXT PRIMARY KEY NOT NULL, kind TEXT NOT NULL, "
                                              "peer_id TEXT NOT NULL DEFAULT '', title TEXT NOT NULL, "
                                              "last_message TEXT NOT NULL DEFAULT '', last_activity_utc TEXT NOT NULL, "
-                                             "unread_count INTEGER NOT NULL DEFAULT 0, member_count INTEGER NOT NULL DEFAULT 0)"),
+                                             "unread_count INTEGER NOT NULL DEFAULT 0, member_count INTEGER NOT NULL DEFAULT 0, "
+                                             "pinned INTEGER NOT NULL DEFAULT 0, hidden INTEGER NOT NULL DEFAULT 0)"),
                               QStringLiteral("CREATE TABLE IF NOT EXISTS groups("
                                              "group_id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL, owner_id TEXT NOT NULL, "
                                              "revision INTEGER NOT NULL, created_at_utc TEXT NOT NULL, "

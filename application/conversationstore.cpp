@@ -401,6 +401,119 @@ Domain::OperationResult ConversationStore::markConversationRead(const QString &c
     return Domain::OperationResult::success();
 }
 
+Domain::OperationResult ConversationStore::restoreConversation(const QString &conversationId)
+{
+    Domain::Conversation *record = mutableConversation(conversationId);
+    if (!record)
+    {
+        return Domain::OperationResult::failure(QStringLiteral("conversation.unknown"), tr("会话不存在。"));
+    }
+    if (!record->hidden)
+    {
+        return Domain::OperationResult::success();
+    }
+
+    Domain::Conversation restored = *record;
+    restored.hidden = false;
+    restored.lastActivity = QDateTime::currentDateTimeUtc();
+    QString error;
+    if (m_repositoryReady && !m_repository->saveConversation(restored, &error))
+    {
+        reportRepositoryError("restoreConversation", error);
+        return Domain::OperationResult::failure(QStringLiteral("storage.restore_conversation"), error);
+    }
+    *record = std::move(restored);
+    emit conversationsChanged();
+    return Domain::OperationResult::success();
+}
+
+Domain::OperationResult ConversationStore::setConversationPinned(const QString &conversationId, bool pinned)
+{
+    Domain::Conversation *record = mutableConversation(conversationId);
+    if (!record || record->hidden)
+    {
+        return Domain::OperationResult::failure(QStringLiteral("conversation.unknown"), tr("会话不存在。"));
+    }
+    if (record->pinned == pinned)
+    {
+        return Domain::OperationResult::success();
+    }
+
+    QString error;
+    if (m_repositoryReady && !m_repository->setConversationPinned(conversationId, pinned, &error))
+    {
+        reportRepositoryError("setConversationPinned", error);
+        return Domain::OperationResult::failure(QStringLiteral("storage.pin_conversation"), error);
+    }
+    record->pinned = pinned;
+    emit conversationsChanged();
+    return Domain::OperationResult::success();
+}
+
+Domain::OperationResult ConversationStore::removeConversation(const QString &conversationId)
+{
+    Domain::Conversation *record = mutableConversation(conversationId);
+    if (!record || record->hidden)
+    {
+        return Domain::OperationResult::failure(QStringLiteral("conversation.unknown"), tr("会话不存在。"));
+    }
+
+    const QList<Domain::Message> conversationMessages = messages(conversationId, 5000);
+    for (const Domain::Message &message : conversationMessages)
+    {
+        const bool activeTransfer = Domain::messageAttachment(message) &&
+                                    (message.deliveryState == Domain::DeliveryState::Pending ||
+                                     message.deliveryState == Domain::DeliveryState::Sending ||
+                                     message.deliveryState == Domain::DeliveryState::AwaitingAcceptance ||
+                                     message.deliveryState == Domain::DeliveryState::Transferring ||
+                                     message.deliveryState == Domain::DeliveryState::Receiving);
+        if (activeTransfer)
+        {
+            return Domain::OperationResult::failure(QStringLiteral("conversation.active_transfer"),
+                                                    tr("当前会话仍有文件正在传输，请完成或取消传输后再删除。"));
+        }
+    }
+
+    QString error;
+    if (m_repositoryReady && !m_repository->removeConversation(conversationId, &error))
+    {
+        reportRepositoryError("removeConversation", error);
+        return Domain::OperationResult::failure(QStringLiteral("storage.remove_conversation"), error);
+    }
+
+    record->lastMessage.clear();
+    record->unreadCount = 0;
+    record->pinned = false;
+    record->hidden = true;
+    m_messages.remove(conversationId);
+    m_loadedConversations.remove(conversationId);
+    auto deliveryIterator = m_deliveries.begin();
+    while (deliveryIterator != m_deliveries.end())
+    {
+        bool belongsToConversation = false;
+        for (const Domain::MessageDelivery &delivery : deliveryIterator.value())
+        {
+            if (delivery.conversationId == conversationId)
+            {
+                belongsToConversation = true;
+                break;
+            }
+        }
+        if (belongsToConversation)
+        {
+            deliveryIterator = m_deliveries.erase(deliveryIterator);
+        }
+        else
+        {
+            ++deliveryIterator;
+        }
+    }
+
+    emit conversationRemoved(conversationId);
+    emit conversationsChanged();
+    return Domain::OperationResult::success();
+}
+
 bool ConversationStore::appendMessage(Domain::Message message, const QString &summary, bool incrementUnread)
 {
     Domain::Message duplicate;
@@ -518,6 +631,7 @@ void ConversationStore::updateConversationSummary(const QString &conversationId,
     }
     record->lastMessage = lastMessage;
     record->lastActivity = timestamp;
+    record->hidden = false;
     if (incrementUnread)
     {
         ++record->unreadCount;

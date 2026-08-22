@@ -32,6 +32,8 @@ public:
         PeerIdRole,
         MemberCountRole,
         OnlineCountRole,
+        PinnedRole,
+        HiddenRole,
         SortTimestampRole
     };
 
@@ -51,6 +53,8 @@ public:
         int onlineCount = 0;
         qint64 sortTimestamp = 0;
         bool online = false;
+        bool pinned = false;
+        bool hidden = false;
     };
 
     /**

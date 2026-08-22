@@ -217,6 +217,19 @@ public:
      */
     Q_INVOKABLE bool markConversationRead(const QString &conversationId);
     /**
+     * @brief 更新会话置顶状态。
+     * @param conversationId 会话标识。
+     * @param pinned 是否置顶。
+     * @return 操作成功时返回 @c true。
+     */
+    Q_INVOKABLE bool setConversationPinned(const QString &conversationId, bool pinned);
+    /**
+     * @brief 删除会话本地消息并从消息列表隐藏。
+     * @param conversationId 会话标识。
+     * @return 操作成功时返回 @c true。
+     */
+    Q_INVOKABLE bool removeConversation(const QString &conversationId);
+    /**
      * @brief 返回指定会话的 QML 属性映射。
      * @param conversationId 会话标识。
      * @return 会话属性；会话不存在时为空映射。
@@ -346,6 +359,11 @@ signals:
     void onlineCountChanged();
     /** @brief 会话未读消息总数发生变化时发出。 */
     void totalUnreadCountChanged();
+    /**
+     * @brief 会话本地消息已删除且会话已隐藏时发出。
+     * @param conversationId 会话标识。
+     */
+    void conversationRemoved(const QString &conversationId);
     /** @brief 服务运行状态发生变化时发出。 */
     void runningChanged();
     /** @brief 最近错误发生变化时发出。 */

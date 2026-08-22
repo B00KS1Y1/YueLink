@@ -180,6 +180,34 @@ bool LanChatManager::markConversationRead(const QString &conversationId)
     return static_cast<bool>(m_coordinator->markConversationRead(conversationId));
 }
 
+bool LanChatManager::setConversationPinned(const QString &conversationId, bool pinned)
+{
+    const Domain::OperationResult result = m_coordinator->setConversationPinned(conversationId, pinned);
+    if (!result)
+    {
+        if (!result.code.startsWith(QLatin1String("storage.")))
+        {
+            emit operationFailed(result.message);
+        }
+        return false;
+    }
+    return true;
+}
+
+bool LanChatManager::removeConversation(const QString &conversationId)
+{
+    const Domain::OperationResult result = m_coordinator->removeConversation(conversationId);
+    if (!result)
+    {
+        if (!result.code.startsWith(QLatin1String("storage.")))
+        {
+            emit operationFailed(result.message);
+        }
+        return false;
+    }
+    return true;
+}
+
 QVariantMap LanChatManager::conversationInfo(const QString &conversationId) const
 {
     return m_conversations->conversationInfo(conversationId);
@@ -368,6 +396,7 @@ void LanChatManager::connectComponents()
     connect(m_coordinator, &ChatCoordinator::runningChanged, this, &LanChatManager::runningChanged);
     connect(m_coordinator, &ChatCoordinator::lastErrorChanged, this, &LanChatManager::lastErrorChanged);
     connect(m_coordinator, &ChatCoordinator::messageReceived, this, &LanChatManager::messageReceived);
+    connect(m_coordinator, &ChatCoordinator::conversationRemoved, this, &LanChatManager::conversationRemoved);
     connect(m_coordinator, &ChatCoordinator::sendFailed, this, &LanChatManager::sendFailed);
     connect(m_coordinator, &ChatCoordinator::fileReceived, this, &LanChatManager::fileReceived);
     connect(m_coordinator, &ChatCoordinator::fileTransferFailed, this, [this](const QString &conversationId, const QString &reason, bool) {

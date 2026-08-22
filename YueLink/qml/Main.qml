@@ -188,8 +188,11 @@ HusWindow {
         }
 
         const conversation = LanChat.conversationInfo(selectedConversationId);
-        if (conversation.itemId === undefined)
+        if (conversation.itemId === undefined || conversation.hidden === true) {
+            selectedConversationId = "";
+            refreshSelectedConversation();
             return;
+        }
 
         selectedConversationTitle = conversation.title;
         selectedConversationInitial = conversation.initial;
@@ -291,6 +294,14 @@ HusWindow {
 
         function onOperationFailed(reason: string): void {
             root.showOperationError(reason);
+        }
+
+        function onConversationRemoved(conversationId: string): void {
+            if (conversationId === root.selectedConversationId) {
+                root.selectedConversationId = "";
+                root.activePanel = "";
+                root.refreshSelectedConversation();
+            }
         }
 
         function onNotificationActivated(conversationId: string): void {

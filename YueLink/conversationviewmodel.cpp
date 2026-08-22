@@ -17,6 +17,7 @@ ConversationViewModel::ConversationViewModel(ChatCoordinator *coordinator, QObje
     m_filterModel.setFilterRole(ChatMessageModel::SearchTextRole);
     m_filterModel.setFilterCaseSensitivity(Qt::CaseInsensitive);
     connect(m_coordinator, &ChatCoordinator::messageAdded, this, &ConversationViewModel::handleMessageAdded);
+    connect(m_coordinator, &ChatCoordinator::conversationRemoved, this, &ConversationViewModel::handleConversationRemoved);
     connect(m_coordinator, &ChatCoordinator::messageStateChanged, this, &ConversationViewModel::handleMessageStateChanged);
     connect(m_coordinator, &ChatCoordinator::deliveryChanged, this, &ConversationViewModel::handleDeliveryChanged);
     connect(m_coordinator, &ChatCoordinator::fileTransferChanged, this, &ConversationViewModel::handleFileTransferChanged);
@@ -55,6 +56,10 @@ QString ConversationViewModel::localInitial() const
 
 bool ConversationViewModel::selectConversation(const QString &conversationId)
 {
+    if (!m_coordinator->restoreConversation(conversationId))
+    {
+        return false;
+    }
     Domain::Conversation conversation;
     if (!m_coordinator->conversation(conversationId, &conversation))
     {
@@ -88,6 +93,24 @@ void ConversationViewModel::synchronize(const QString &conversationId)
 void ConversationViewModel::handleMessageAdded(const Domain::Message &message)
 {
     m_model.append(message.metadata.conversationId, toViewMessage(message));
+}
+
+void ConversationViewModel::handleConversationRemoved(const QString &conversationId)
+{
+    const bool removedCurrentConversation = conversationId == m_currentConversationId;
+    m_model.removeConversation(conversationId);
+    if (!removedCurrentConversation)
+    {
+        return;
+    }
+    m_currentConversationId.clear();
+    if (!m_searchText.isEmpty())
+    {
+        m_searchText.clear();
+        m_filterModel.setFilterFixedString({});
+        emit searchTextChanged();
+    }
+    emit currentConversationIdChanged();
 }
 
 void ConversationViewModel::handleMessageStateChanged(const QString &conversationId, const QString &messageId, Domain::DeliveryState state)
