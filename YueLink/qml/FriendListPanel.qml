@@ -49,7 +49,7 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        height: 60
+        height: 48
 
         RowLayout {
             anchors.left: parent.left
@@ -63,7 +63,7 @@ Item {
                 id: searchInput
 
                 Layout.fillWidth: true
-                Layout.preferredHeight: 36
+                Layout.preferredHeight: 32
                 iconSource: HusIcon.SearchOutlined
                 iconSize: 16
                 iconPosition: HusInput.Position_Left
@@ -92,8 +92,8 @@ Item {
             HusIconButton {
                 id: quickActionsButton
 
-                Layout.preferredWidth: 36
-                Layout.preferredHeight: 36
+                Layout.preferredWidth: 32
+                Layout.preferredHeight: 32
                 padding: 0
                 type: HusButton.Type_Filled
                 iconSource: HusIcon.PlusOutlined
@@ -162,61 +162,12 @@ Item {
         }
     }
 
-    Item {
-        id: listHeader
-
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: root.contactsMode
-                     ? contactTypeSection.bottom
-                     : searchSection.bottom
-        height: 38
-
-        HusText {
-            anchors.left: parent.left
-            anchors.leftMargin: 16
-            anchors.verticalCenter: parent.verticalCenter
-            text: root.contactsMode
-                  ? root.groupContactsMode ? qsTr("群聊") : qsTr("好友")
-                  : qsTr("消息")
-            color: HusTheme.Primary.colorTextBase
-            font.pixelSize: HusTheme.Primary.fontPrimarySize
-            font.weight: Font.Medium
-        }
-
-        HusText {
-            anchors.right: parent.right
-            anchors.rightMargin: 16
-            anchors.verticalCenter: parent.verticalCenter
-            text: root.contactsMode
-                  ? root.groupContactsMode
-                    ? qsTr("%1 个群聊").arg(conversationList.count)
-                    : qsTr("%1 在线").arg(LanChat.onlineCount)
-                  : LanChat.totalUnreadCount > 0
-                    ? qsTr("%1 未读").arg(LanChat.totalUnreadCount)
-                    : ""
-            color: HusTheme.Primary.colorTextQuaternary
-            font.pixelSize: Math.max(11, HusTheme.Primary.fontPrimarySize - 1)
-        }
-
-        Rectangle {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            anchors.leftMargin: 16
-            anchors.rightMargin: 16
-            height: 1
-            color: HusTheme.Primary.colorSplit
-            Accessible.ignored: true
-        }
-    }
-
     ListView {
         id: conversationList
 
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.top: listHeader.bottom
+        anchors.top: contactTypeSection.bottom
         anchors.bottom: parent.bottom
         anchors.leftMargin: 8
         anchors.rightMargin: 8
