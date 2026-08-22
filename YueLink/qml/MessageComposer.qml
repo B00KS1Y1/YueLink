@@ -116,12 +116,12 @@ Item {
                                 : visualFocus ? HusTheme.Primary.colorPrimary
                                 : hovered ? HusTheme.Primary.colorTextBase : HusTheme.Primary.colorTextTertiary
             enabled: root.sendEnabled
-            contentDescription: qsTr("发送表情")
+            contentDescription: qsTr("表情")
             onClicked: emojiPopup.open()
 
             HusToolTip {
                 visible: emojiPickerButton.hovered || emojiPickerButton.visualFocus
-                position: HusToolTip.Position_Bottom
+                position: HusToolTip.Position_Top
                 text: emojiPickerButton.contentDescription
             }
         }
@@ -144,13 +144,13 @@ Item {
                                 : hovered ? HusTheme.Primary.colorTextBase : HusTheme.Primary.colorTextTertiary
             enabled: root.filesEnabled
             contentDescription: root.filesEnabled
-                                ? qsTr("发送文件")
+                                ? qsTr("文件")
                                 : qsTr("当前会话暂不支持发送文件")
             onClicked: fileDialog.open()
 
             HusToolTip {
                 visible: filePickerButton.hovered || filePickerButton.visualFocus
-                position: HusToolTip.Position_Bottom
+                position: HusToolTip.Position_Top
                 text: filePickerButton.contentDescription
             }
         }
@@ -173,13 +173,13 @@ Item {
                                 : hovered ? HusTheme.Primary.colorTextBase : HusTheme.Primary.colorTextTertiary
             enabled: root.filesEnabled
             contentDescription: root.filesEnabled
-                                ? qsTr("发送图片")
+                                ? qsTr("图片")
                                 : qsTr("当前会话暂不支持发送图片")
             onClicked: imageFileDialog.open()
 
             HusToolTip {
                 visible: imagePickerButton.hovered || imagePickerButton.visualFocus
-                position: HusToolTip.Position_Bottom
+                position: HusToolTip.Position_Top
                 text: imagePickerButton.contentDescription
             }
         }
@@ -211,7 +211,7 @@ Item {
 
         HusToolTip {
             visible: historyButton.hovered || historyButton.visualFocus
-            position: HusToolTip.Position_Bottom
+            position: HusToolTip.Position_Top
             text: historyButton.contentDescription
         }
     }
