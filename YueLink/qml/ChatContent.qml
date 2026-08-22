@@ -16,31 +16,12 @@ Item {
     property string conversationKind: ""
     property int memberCount: 0
     property int onlineCount: 0
-    property bool searchOpen: false
-    property color headerSurfaceColor: HusTheme.HusCard.colorBg
-    readonly property string messageSearchKeyword: LanChat.messageSearchText.trim()
 
     signal cancelFileRequested(string messageId)
     signal acceptFileRequested(string messageId)
     signal openFileRequested(string filePath)
     signal revealFileRequested(string filePath)
     signal groupInfoRequested()
-    signal searchFocusRequested()
-
-    function closeSearch(): void {
-        searchOpen = false;
-        LanChat.messageSearchText = "";
-    }
-
-    function focusSearch(): void {
-        searchOpen = true;
-        Qt.callLater(() => root.searchFocusRequested());
-    }
-
-    onConversationSelectedChanged: {
-        if (!conversationSelected)
-            closeSearch();
-    }
 
     Connections {
         target: LanChat.messages
@@ -54,21 +35,13 @@ Item {
         }
     }
 
-    Rectangle {
+    Item {
         id: chatHeader
 
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        anchors.leftMargin: 10
-        anchors.rightMargin: 10
-        anchors.topMargin: 10
-        height: 72
-        radius: HusTheme.Primary.radiusPrimaryLG
-        color: root.headerSurfaceColor
-        border.width: 1
-        border.color: HusThemeFunctions.alpha(HusTheme.Primary.colorPrimary,
-                                              HusTheme.isDark ? 0.34 : 0.2)
+        height: 48
 
         Row {
             id: friendSummary
@@ -78,44 +51,35 @@ Item {
             anchors.leftMargin: 18
             anchors.rightMargin: 12
             anchors.verticalCenter: parent.verticalCenter
-            spacing: 12
+            spacing: 8
 
-            HusAvatar {
-                size: 44
-                textSource: root.conversationInitial
-                colorBg: root.conversationColor
-                textSize: HusAvatar.Size_Auto
+            HusText {
+                id: conversationTitleLabel
 
-                HusBadge {
-                    dot: true
-                    visible: root.conversationKind === "direct"
-                    badgeState: root.conversationOnline
-                                ? HusBadge.State_Success
-                                : HusBadge.State_Default
-                }
+                width: Math.min(implicitWidth,
+                                Math.max(0, friendSummary.width
+                                         - (conversationPresence.visible
+                                            ? conversationPresence.width + friendSummary.spacing
+                                            : 0)))
+                text: root.conversationTitle
+                color: HusTheme.Primary.colorTextBase
+                elide: Text.ElideRight
+                font.pixelSize: HusTheme.Primary.fontPrimarySizeHeading5
+                font.weight: Font.Medium
             }
 
-            Column {
+            HusBadge {
+                id: conversationPresence
+
                 anchors.verticalCenter: parent.verticalCenter
-                width: Math.max(0, friendSummary.width - 56)
-                spacing: 5
-
-                HusText {
-                    width: parent.width
-                    text: root.conversationTitle
-                    color: HusTheme.Primary.colorTextBase
-                    elide: Text.ElideRight
-                    font.pixelSize: HusTheme.Primary.fontPrimarySizeHeading5
-                    font.weight: Font.Medium
-                }
-
-                HusText {
-                    width: parent.width
-                    text: root.conversationStatus
-                    color: HusTheme.Primary.colorTextTertiary
-                    elide: Text.ElideRight
-                    font.pixelSize: HusTheme.Primary.fontPrimarySize
-                }
+                dot: true
+                visible: root.conversationKind === "direct"
+                badgeState: root.conversationOnline
+                            ? HusBadge.State_Success
+                            : HusBadge.State_Default
+                Accessible.name: root.conversationOnline
+                                 ? qsTr("在线")
+                                 : qsTr("离线")
             }
         }
 
@@ -139,87 +103,17 @@ Item {
                 onClicked: root.groupInfoRequested()
             }
 
-            Loader {
-                id: messageSearchLoader
-
-                readonly property real expandedWidth:
-                    Math.min(320, Math.max(180, chatHeader.width * 0.34))
-
-                width: root.searchOpen ? expandedWidth : 0
-                height: 32
-                active: root.searchOpen || width > 0
-                clip: true
-                sourceComponent: messageSearchComponent
-
-                Behavior on width {
-                    enabled: HusTheme.animationEnabled
-
-                    NumberAnimation {
-                        duration: HusTheme.Primary.durationMid
-                        easing.type: root.searchOpen
-                                     ? Easing.OutCubic
-                                     : Easing.InCubic
-                    }
-                }
-            }
-
-            HusIconButton {
-                width: 36
-                height: 36
-                padding: 0
-                type: root.searchOpen
-                      ? HusButton.Type_Filled
-                      : HusButton.Type_Text
-                iconSource: HusIcon.SearchOutlined
-                iconSize: 18
-                enabled: root.conversationSelected
-                contentDescription: root.searchOpen
-                                    ? qsTr("关闭消息搜索")
-                                    : qsTr("搜索当前会话")
-                onClicked: root.searchOpen ? root.closeSearch() : root.focusSearch()
-
-                HusBadge {
-                    count: root.searchOpen && root.messageSearchKeyword.length > 0
-                           ? messageList.count
-                           : 0
-                    overflowCount: 99
-                    colorBg: HusTheme.Primary.colorPrimary
-                }
-            }
         }
-    }
 
-    Component {
-        id: messageSearchComponent
-
-        HusInput {
-            id: messageSearchInput
-
-            clearEnabled: "active"
-            type: HusInput.Type_Filled
-            colorBg: HusThemeFunctions.alpha(HusTheme.Primary.colorPrimary,
-                                             HusTheme.isDark ? 0.14 : 0.07)
-            text: LanChat.messageSearchText
-            placeholderText: qsTr("搜索消息或文件名")
-            contentDescription: qsTr("搜索当前会话中的消息或文件")
-
-            function focusInput(): void {
-                messageSearchInput.forceActiveFocus();
-                messageSearchInput.selectAll();
-            }
-
-            Component.onCompleted: messageSearchInput.focusInput()
-            onTextChanged: LanChat.messageSearchText = text
-            Keys.onEscapePressed: root.closeSearch()
-
-            Connections {
-                target: root
-
-                function onSearchFocusRequested(): void {
-                    messageSearchInput.focusInput();
-                }
-            }
+        Rectangle {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            height: 1
+            color: HusTheme.Primary.colorSplit
+            Accessible.ignored: true
         }
+
     }
 
     ListView {
@@ -231,20 +125,23 @@ Item {
         anchors.bottom: parent.bottom
         anchors.leftMargin: 22
         anchors.rightMargin: 22
-        anchors.topMargin: 16
+        anchors.topMargin: 10
         anchors.bottomMargin: 12
         model: LanChat.messages
         spacing: 6
         boundsBehavior: Flickable.StopAtBounds
         reuseItems: true
         clip: true
-        ScrollBar.vertical: HusScrollBar { }
+        ScrollBar.vertical: HusScrollBar {
+            contentDescription: qsTr("消息列表滚动条")
+        }
 
         delegate: MessageDelegate {
             id: messageDelegate
 
             width: messageList.width
             conversationKind: root.conversationKind
+            outgoingRightInset: 18
             onCancelFileRequested: messageId =>
                 root.cancelFileRequested(messageId)
             onAcceptFileRequested: messageId =>
@@ -285,9 +182,7 @@ Item {
         HusText {
             width: parent.width
             text: root.conversationSelected
-                  ? root.messageSearchKeyword.length > 0
-                    ? qsTr("没有找到消息")
-                    : qsTr("开始聊天")
+                  ? qsTr("开始聊天")
                   : qsTr("发现身边的好友")
             color: HusTheme.Primary.colorTextBase
             horizontalAlignment: Text.AlignHCenter
@@ -298,9 +193,7 @@ Item {
         HusText {
             width: parent.width
             text: root.conversationSelected
-                  ? root.messageSearchKeyword.length > 0
-                    ? qsTr("没有找到与“%1”匹配的消息").arg(root.messageSearchKeyword)
-                    : qsTr("还没有消息，发一句问候吧")
+                  ? qsTr("还没有消息，发一句问候吧")
                   : qsTr("从左侧选择联系人或群聊，即可开始聊天")
             color: HusTheme.Primary.colorTextTertiary
             horizontalAlignment: Text.AlignHCenter
@@ -309,15 +202,4 @@ Item {
         }
     }
 
-    Shortcut {
-        sequences: [StandardKey.Find]
-        enabled: root.conversationSelected
-        onActivated: root.focusSearch()
-    }
-
-    Shortcut {
-        sequence: "Escape"
-        enabled: root.searchOpen
-        onActivated: root.closeSearch()
-    }
 }

@@ -19,6 +19,7 @@ Item {
 
     signal imagesSelected(var imageUrls)
     signal filesSelected(var fileUrls)
+    signal historyRequested()
 
     function submitMessage(): void {
         const content = composer.text.trim();
@@ -184,12 +185,43 @@ Item {
         }
     }
 
-    HusText {
-        anchors.left: composerTools.right
+    HusIconButton {
+        id: historyButton
+
         anchors.right: parent.right
         anchors.top: parent.top
+        anchors.rightMargin: 10
+        anchors.topMargin: 8
+        width: 38
+        height: 38
+        padding: 0
+        type: HusButton.Type_Text
+        effectEnabled: false
+        colorBg: "transparent"
+        colorBorder: "transparent"
+        borderWidth: 0
+        iconSource: HusIcon.HistoryOutlined
+        iconSize: 19
+        colorIcon: !enabled ? HusTheme.Primary.colorTextQuaternary
+                            : visualFocus ? HusTheme.Primary.colorPrimary
+                            : hovered ? HusTheme.Primary.colorTextBase : HusTheme.Primary.colorTextTertiary
+        enabled: root.conversationId.length > 0
+        contentDescription: qsTr("聊天记录")
+        onClicked: root.historyRequested()
+
+        HusToolTip {
+            visible: historyButton.hovered || historyButton.visualFocus
+            position: HusToolTip.Position_Bottom
+            text: historyButton.contentDescription
+        }
+    }
+
+    HusText {
+        anchors.left: composerTools.right
+        anchors.right: historyButton.left
+        anchors.top: parent.top
         anchors.leftMargin: 12
-        anchors.rightMargin: 14
+        anchors.rightMargin: 8
         anchors.topMargin: 17
         visible: composer.text.length >= 1600
         text: qsTr("%1/2000 个字符").arg(composer.text.length)
@@ -255,6 +287,12 @@ Item {
         sequence: "Ctrl+Enter"
         enabled: root.sendEnabled && composer.text.trim().length > 0
         onActivated: root.submitMessage()
+    }
+
+    Shortcut {
+        sequences: [StandardKey.Find]
+        enabled: root.conversationId.length > 0
+        onActivated: root.historyRequested()
     }
 
     Rectangle {

@@ -30,6 +30,7 @@ Item {
     required property int totalRecipientCount
 
     property string conversationKind: ""
+    property real outgoingRightInset: 0
     readonly property bool transferActive: deliveryStatus === "transferring"
                                            || deliveryStatus === "receiving"
     readonly property bool awaitingAcceptance:
@@ -60,7 +61,8 @@ Item {
     readonly property bool deliveryStatusVisible: deliveryText.length > 0
     readonly property real contentTopMargin: timeVisible ? 30 : 0
     readonly property real availableBubbleWidth:
-        Math.max(0, width - avatarHalo.width - 12)
+        Math.max(0, width - avatarHalo.width - 12
+                 - (fromMe ? outgoingRightInset : 0))
     readonly property real maximumTextBubbleWidth:
         Math.min(420, availableBubbleWidth, width * 0.58)
     readonly property real preferredBubbleWidth: {
@@ -178,7 +180,7 @@ Item {
         id: avatarHalo
 
         y: root.contentTopMargin
-        x: root.fromMe ? root.width - width : 0
+        x: root.fromMe ? root.width - width - root.outgoingRightInset : 0
         width: 40
         height: 40
         radius: width / 2

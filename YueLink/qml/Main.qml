@@ -18,6 +18,7 @@ HusWindow {
     property int selectedConversationOnlineCount: 0
     property string activePanel: ""
     property string currentPage: "messages"
+    property bool chatHistoryOpen: false
     readonly property color shellSurfaceColor: HusTheme.Primary.colorBgBase
     readonly property color shellDividerColor: HusTheme.Primary.colorSplit
     readonly property url windowBackgroundSource: AppSettings.theme.backgroundImage
@@ -160,6 +161,20 @@ HusWindow {
         activePanel = panel;
     }
 
+    function openChatHistory(): void {
+        if (selectedConversationId.length === 0)
+            return;
+        if (!chatHistoryOpen) {
+            chatHistoryOpen = true;
+            return;
+        }
+        if (chatHistoryLoader.status === Loader.Ready) {
+            chatHistoryLoader.item.raise();
+            chatHistoryLoader.item.requestActivate();
+            chatHistoryLoader.item.focusSearch();
+        }
+    }
+
     function showOperationError(reason: string): void {
         operationMessage.error(reason, 5000);
     }
@@ -297,6 +312,7 @@ HusWindow {
 
         function onConversationRemoved(conversationId: string): void {
             if (conversationId === root.selectedConversationId) {
+                root.chatHistoryOpen = false;
                 root.selectedConversationId = "";
                 root.activePanel = "";
                 root.refreshSelectedConversation();
@@ -589,7 +605,6 @@ HusWindow {
                 conversationKind: root.selectedConversationKind
                 memberCount: root.selectedConversationMemberCount
                 onlineCount: root.selectedConversationOnlineCount
-                headerSurfaceColor: root.controlSurfaceColor
                 onGroupInfoRequested: root.openPanel("groupInfo")
                 onCancelFileRequested: messageId => {
                     if (root.selectedConversationId.length > 0)
@@ -630,6 +645,7 @@ HusWindow {
                     if (root.selectedConversationId.length > 0)
                         LanChat.sendFiles(root.selectedConversationId, fileUrls);
                 }
+                onHistoryRequested: root.openChatHistory()
             }
         }
     }
@@ -648,6 +664,17 @@ HusWindow {
         position: HusNotification.Position_TopRight
         topMargin: root.captionBar.height + 12
         z: 1000
+    }
+
+    Loader {
+        id: chatHistoryLoader
+
+        active: root.chatHistoryOpen
+        sourceComponent: chatHistoryComponent
+        onLoaded: {
+            item.raise();
+            item.requestActivate();
+        }
     }
 
     Loader {
@@ -672,6 +699,16 @@ HusWindow {
         anchors.fill: parent
         active: root.activePanel === "groupInfo"
         sourceComponent: groupInfoComponent
+    }
+
+    Component {
+        id: chatHistoryComponent
+
+        ChatHistoryWindow {
+            ownerWindow: root
+            conversationTitle: root.selectedConversationTitle
+            onCloseRequested: root.chatHistoryOpen = false
+        }
     }
 
     Component {
