@@ -64,6 +64,8 @@ endif()
 
 qt_add_qml_module(YueLink
     URI YueLink
+    IMPORTS
+        TARGET HuskarUIBasic
     DEPENDENCIES
         QtQml.Models
     QML_FILES

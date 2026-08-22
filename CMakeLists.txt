@@ -9,18 +9,14 @@ find_package(Qt6 6.8 REQUIRED COMPONENTS Core Network Sql)
 qt_standard_project_setup(REQUIRES 6.8)
 
 find_package(Qt6 6.8 REQUIRED COMPONENTS Quick QuickControls2 Widgets)
-find_package(HuskarUI REQUIRED)
 
-# HuskarUI 的 qmldir 使用未命名空间的动态插件目标名，但当前安装包只导出
-# HuskarUI::huskaruibasicplugin，且未导出 Impl 插件目标。为 Qt 的 QML 导入扫描器
-# 提供兼容目标；动态插件仍由 QML 引擎从 HuskarUI_QML_IMPORT_PATH 按需加载。
-if(TARGET HuskarUI::huskaruibasicplugin AND NOT TARGET huskaruibasicplugin)
-    add_library(huskaruibasicplugin ALIAS HuskarUI::huskaruibasicplugin)
-endif()
-
-if(NOT TARGET huskaruiimplplugin)
-    add_library(huskaruiimplplugin MODULE IMPORTED)
-endif()
+set(BUILD_HUSKARUI_GALLERY OFF CACHE BOOL "" FORCE)
+set(BUILD_HUSKARUI_STATIC_LIBRARY OFF CACHE BOOL "" FORCE)
+set(BUILD_HUSKARUI_ON_DESKTOP_PLATFORM ON CACHE BOOL "" FORCE)
+set(INSTALL_HUSKARUI_IN_DEFAULT_LOCATION OFF CACHE BOOL "" FORCE)
+set(HUSKARUI_INSTALL_DIRECTORY "${CMAKE_INSTALL_PREFIX}" CACHE PATH "" FORCE)
+add_subdirectory(thirdparty/HuskarUI)
+add_library(HuskarUI::Basic ALIAS HuskarUIBasic)
 
 set(QYLOG_QT_VERSION 6 CACHE STRING "" FORCE)
 set(QYLOG_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)

@@ -81,9 +81,9 @@ YueLink 将导航、会话列表与聊天区域集中在同一个桌面窗口中
   - Quick
   - QuickControls2
   - Widgets
-- [HuskarUI](https://github.com/mengps/HuskarUI)
+- [HuskarUI v0.6.1](https://github.com/mengps/HuskarUI)
 
-QyLog 与 nlohmann/json 均通过 Git submodule 管理，无需单独安装这两个依赖。
+HuskarUI、QyLog 与 nlohmann/json 均通过 Git submodule 管理，无需单独安装这些依赖。
 
 ## 构建项目
 
@@ -99,11 +99,11 @@ cd YueLink
 配置并构建：
 
 ```bash
-cmake -S . -B build -DCMAKE_PREFIX_PATH="<Qt 安装前缀>;<HuskarUI 安装前缀>"
+cmake -S . -B build -DCMAKE_PREFIX_PATH="<Qt 安装前缀>"
 cmake --build build --config Release
 ```
 
-也可以通过 `HuskarUI_DIR` 直接指定 HuskarUI 的 CMake 包目录。可执行文件会生成在构建目录的 `bin` 路径或对应配置子目录中。
+HuskarUI 会随项目一同配置；可执行文件会生成在构建目录的 `bin` 路径或对应配置子目录中。
 
 ## 项目架构
 
