@@ -128,107 +128,96 @@ Item {
             spacing: 2
 
             HusIconButton {
-                width: 40
-                height: 40
+                width: 36
+                height: 36
                 padding: 0
                 visible: root.conversationKind === "group"
                 type: HusButton.Type_Text
                 iconSource: HusIcon.GroupOutlined
-                iconSize: 20
+                iconSize: 18
                 contentDescription: qsTr("查看群聊信息")
                 onClicked: root.groupInfoRequested()
             }
 
+            Loader {
+                id: messageSearchLoader
+
+                readonly property real expandedWidth:
+                    Math.min(320, Math.max(180, chatHeader.width * 0.34))
+
+                width: root.searchOpen ? expandedWidth : 0
+                height: 32
+                active: root.searchOpen || width > 0
+                clip: true
+                sourceComponent: messageSearchComponent
+
+                Behavior on width {
+                    enabled: HusTheme.animationEnabled
+
+                    NumberAnimation {
+                        duration: HusTheme.Primary.durationMid
+                        easing.type: root.searchOpen
+                                     ? Easing.OutCubic
+                                     : Easing.InCubic
+                    }
+                }
+            }
+
             HusIconButton {
-                width: 40
-                height: 40
+                width: 36
+                height: 36
                 padding: 0
                 type: root.searchOpen
                       ? HusButton.Type_Filled
                       : HusButton.Type_Text
                 iconSource: HusIcon.SearchOutlined
-                iconSize: 20
+                iconSize: 18
                 enabled: root.conversationSelected
                 contentDescription: root.searchOpen
                                     ? qsTr("关闭消息搜索")
                                     : qsTr("搜索当前会话")
                 onClicked: root.searchOpen ? root.closeSearch() : root.focusSearch()
+
+                HusBadge {
+                    count: root.searchOpen && root.messageSearchKeyword.length > 0
+                           ? messageList.count
+                           : 0
+                    overflowCount: 99
+                    colorBg: HusTheme.Primary.colorPrimary
+                }
             }
         }
-    }
-
-    Loader {
-        id: messageSearchLoader
-
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: chatHeader.bottom
-        anchors.leftMargin: 10
-        anchors.rightMargin: 10
-        anchors.topMargin: active ? 8 : 0
-        height: active ? 52 : 0
-        active: root.searchOpen
-        sourceComponent: messageSearchComponent
     }
 
     Component {
         id: messageSearchComponent
 
-        Rectangle {
-            id: searchPanel
+        HusInput {
+            id: messageSearchInput
 
-            radius: HusTheme.Primary.radiusPrimary
-            color: root.headerSurfaceColor
-            border.width: 1
-            border.color: HusTheme.Primary.colorSplit
+            clearEnabled: "active"
+            type: HusInput.Type_Filled
+            colorBg: HusThemeFunctions.alpha(HusTheme.Primary.colorPrimary,
+                                             HusTheme.isDark ? 0.14 : 0.07)
+            text: LanChat.messageSearchText
+            placeholderText: qsTr("搜索消息或文件名")
+            contentDescription: qsTr("搜索当前会话中的消息或文件")
 
             function focusInput(): void {
                 messageSearchInput.forceActiveFocus();
                 messageSearchInput.selectAll();
             }
 
-            Component.onCompleted: searchPanel.focusInput()
+            Component.onCompleted: messageSearchInput.focusInput()
+            onTextChanged: LanChat.messageSearchText = text
+            Keys.onEscapePressed: root.closeSearch()
 
             Connections {
                 target: root
 
                 function onSearchFocusRequested(): void {
-                    searchPanel.focusInput();
+                    messageSearchInput.focusInput();
                 }
-            }
-
-            HusInput {
-                id: messageSearchInput
-
-                anchors.left: parent.left
-                anchors.right: resultCount.left
-                anchors.leftMargin: 14
-                anchors.rightMargin: 12
-                anchors.verticalCenter: parent.verticalCenter
-                height: 38
-                iconSource: HusIcon.SearchOutlined
-                iconPosition: HusInput.Position_Left
-                clearEnabled: "active"
-                type: HusInput.Type_Filled
-                colorBg: "transparent"
-                text: LanChat.messageSearchText
-                placeholderText: qsTr("搜索消息或文件名")
-                contentDescription: qsTr("搜索当前会话中的消息或文件")
-                onTextChanged: LanChat.messageSearchText = text
-                Keys.onEscapePressed: root.closeSearch()
-            }
-
-            HusText {
-                id: resultCount
-
-                anchors.right: parent.right
-                anchors.rightMargin: 14
-                anchors.verticalCenter: parent.verticalCenter
-                width: 74
-                text: qsTr("%1 条结果").arg(messageList.count)
-                color: HusTheme.Primary.colorTextQuaternary
-                horizontalAlignment: Text.AlignRight
-                font.pixelSize: HusTheme.Primary.fontPrimarySize
             }
         }
     }
@@ -238,7 +227,7 @@ Item {
 
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.top: messageSearchLoader.bottom
+        anchors.top: chatHeader.bottom
         anchors.bottom: parent.bottom
         anchors.leftMargin: 22
         anchors.rightMargin: 22
